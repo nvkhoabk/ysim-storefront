@@ -33,10 +33,11 @@ export const checkoutFormSchema = z
       z.string().trim().email("Email người nhận không hợp lệ."),
     ]),
 
-    paymentMethod: z
-      .string()
-      .trim()
-      .min(1, "Vui lòng chọn phương thức thanh toán."),
+    paymentMethod: z.enum([
+	  "gpay_qr",
+	  "onepay_card",
+	  "cash_agent",
+	]),
 
     customerNote: z.string().trim().max(500),
 

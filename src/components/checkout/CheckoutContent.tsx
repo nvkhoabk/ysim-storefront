@@ -12,12 +12,9 @@ import { CheckoutOrderSummary } from "./CheckoutOrderSummary";
 
 import type { WooCommerceCart } from "@/lib/woocommerce/cart-types";
 import type { WooCommerceCheckout } from "@/features/checkout/checkout.types";
-
-interface PaymentMethodOption {
-  id: string;
-  title: string;
-  description: string;
-}
+import type {
+  PaymentMethodOption,
+} from "@/features/payments/payment.types";
 
 interface CheckoutApiResponse {
   cart: WooCommerceCart;

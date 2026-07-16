@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Check,
   CreditCard,
@@ -9,27 +8,37 @@ import {
   LoaderCircle,
   User,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
+  type FieldErrors,
   useForm,
   useWatch,
-  type FieldErrors,
 } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
   checkoutFormSchema,
   type CheckoutFormInput,
 } from "@/features/checkout/checkout.validation";
-import type { WooCommerceCheckout } from "@/features/checkout/checkout.types";
-
-interface PaymentMethodOption {
-  id: string;
-  title: string;
-  description: string;
-}
+import type {
+  WooCommerceCheckout,
+} from "@/features/checkout/checkout.types";
+import type {
+  PaymentMethodOption,
+  PaymentSession,
+} from "@/features/payments/payment.types";
 
 interface CheckoutFormProps {
   paymentMethods: PaymentMethodOption[];
+}
+
+interface CheckoutApiResponse {
+  checkout: WooCommerceCheckout;
+  selectedPaymentProvider: PaymentMethodOption["id"];
+}
+
+interface PaymentErrorResponse {
+  message?: string;
 }
 
 function FieldError({
@@ -46,6 +55,51 @@ function FieldError({
       {message}
     </p>
   );
+}
+
+/**
+ * Chuyển giá trị tiền của WooCommerce từ đơn vị nhỏ nhất
+ * sang giá trị tiền thực.
+ *
+ * Ví dụ:
+ * total_price = "16900000"
+ * currency_minor_unit = 2
+ * → 169000 VND
+ */
+function getCheckoutAmount(
+  checkout: WooCommerceCheckout,
+): {
+  amount: number;
+  currency: string;
+} {
+  const cart = checkout.__experimentalCart;
+
+  if (!cart) {
+    throw new Error(
+      "WooCommerce không trả về thông tin tổng tiền của đơn hàng.",
+    );
+  }
+
+  const rawAmount = Number(
+    cart.totals.total_price,
+  );
+
+  const minorUnit =
+    cart.totals.currency_minor_unit;
+
+  if (!Number.isFinite(rawAmount)) {
+    throw new Error(
+      "Tổng tiền đơn hàng không hợp lệ.",
+    );
+  }
+
+  return {
+    amount:
+      rawAmount /
+      Math.pow(10, minorUnit),
+    currency:
+      cart.totals.currency_code || "VND",
+  };
 }
 
 export function CheckoutForm({
@@ -65,7 +119,9 @@ export function CheckoutForm({
       isSubmitting,
     },
   } = useForm<CheckoutFormInput>({
-    resolver: zodResolver(checkoutFormSchema),
+    resolver: zodResolver(
+      checkoutFormSchema,
+    ),
     defaultValues: {
       fullName: "",
       email: "",
@@ -78,7 +134,7 @@ export function CheckoutForm({
       recipientEmail: "",
 
       paymentMethod:
-        paymentMethods[0]?.id ?? "",
+        paymentMethods[0]?.id ?? "gpay_qr",
 
       customerNote: "",
       acceptTerms: false,
@@ -86,9 +142,9 @@ export function CheckoutForm({
   });
 
   const purchaseFor = useWatch({
-	  control,
-	  name: "purchaseFor",
-	});
+    control,
+    name: "purchaseFor",
+  });
 
   async function submitCheckout(
     values: CheckoutFormInput,
@@ -96,39 +152,152 @@ export function CheckoutForm({
     setSubmitError(null);
 
     try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      /*
+       * Bước 1:
+       * Tạo WooCommerce order từ cart hiện tại.
+       */
+      const checkoutResponse = await fetch(
+        "/api/checkout",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify(values),
         },
-        body: JSON.stringify(values),
-      });
+      );
 
-      const data = await response.json();
+      const checkoutData: unknown =
+        await checkoutResponse.json();
 
-      if (!response.ok) {
+      if (!checkoutResponse.ok) {
+        const errorData =
+          checkoutData as PaymentErrorResponse;
+
         throw new Error(
-          data.message ||
+          errorData.message ||
             "Không thể tạo đơn hàng.",
         );
       }
 
-      const checkout =
-        data as WooCommerceCheckout;
+      const {
+        checkout,
+        selectedPaymentProvider,
+      } =
+        checkoutData as CheckoutApiResponse;
 
-      const redirectUrl =
-        checkout.payment_result?.redirect_url;
+      if (
+        !checkout.order_id ||
+        !checkout.order_key
+      ) {
+        throw new Error(
+          "WooCommerce không trả về đầy đủ thông tin đơn hàng.",
+        );
+      }
 
-      if (redirectUrl) {
-        window.location.assign(redirectUrl);
+      /*
+       * Trường hợp WooCommerce gateway thực sự trả redirect URL,
+       * vẫn ưu tiên redirect đó.
+       *
+       * Với kiến trúc hiện tại, bacs thường không có redirect_url
+       * ra ngoài website.
+       */
+      const wooRedirectUrl =
+        checkout.payment_result
+          ?.redirect_url;
+
+      if (wooRedirectUrl) {
+        window.location.assign(
+          wooRedirectUrl,
+        );
+
         return;
       }
 
+      /*
+       * Bước 2:
+       * Khởi tạo payment session theo provider người dùng chọn.
+       */
+      const { amount, currency } =
+        getCheckoutAmount(checkout);
+
+      const orderNumber =
+        checkout.order_number ??
+        String(checkout.order_id);
+
+      const paymentResponse = await fetch(
+        "/api/payments/create",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            provider:
+              selectedPaymentProvider,
+
+            orderId: checkout.order_id,
+            orderNumber,
+            orderKey: checkout.order_key,
+
+            /*
+             * Hiện frontend gửi amount để hoàn chỉnh scaffold.
+             * API /api/payments/create bắt buộc phải đối chiếu
+             * lại amount từ WooCommerce trước khi bật payment thật.
+             */
+            amount,
+            currency,
+
+            customerName:
+              values.fullName,
+            customerEmail:
+              values.email,
+            customerPhone:
+              values.phone,
+
+            description:
+              `Thanh toán đơn YSim #${orderNumber}`,
+          }),
+        },
+      );
+
+      const paymentData: unknown =
+        await paymentResponse.json();
+
+      if (!paymentResponse.ok) {
+        const errorData =
+          paymentData as PaymentErrorResponse;
+
+        throw new Error(
+          errorData.message ||
+            "Không thể khởi tạo thanh toán.",
+        );
+      }
+
+      const paymentSession =
+        paymentData as PaymentSession;
+
+      /*
+       * OnePay sau này sẽ trả redirectUrl.
+       */
+      if (paymentSession.redirectUrl) {
+        window.location.assign(
+          paymentSession.redirectUrl,
+        );
+
+        return;
+      }
+
+      /*
+       * GPay QR và Cash Agent sẽ dùng trang trạng thái chung.
+       *
+       * order key chỉ dùng để chứng minh người dùng sở hữu
+       * phiên checkout tương ứng, không phải secret thanh toán.
+       */
       router.push(
-        `/checkout/success?order=${encodeURIComponent(
-          checkout.order_number ??
-            String(checkout.order_id),
-        )}&key=${encodeURIComponent(
+        `/checkout/payment/${checkout.order_id}?key=${encodeURIComponent(
           checkout.order_key,
         )}`,
       );
@@ -189,7 +358,9 @@ export function CheckoutForm({
             />
 
             <FieldError
-              message={errors.fullName?.message}
+              message={
+                errors.fullName?.message
+              }
             />
           </label>
 
@@ -239,25 +410,32 @@ export function CheckoutForm({
               <option value="VN">
                 Việt Nam
               </option>
+
               <option value="PH">
                 Philippines
               </option>
+
               <option value="TH">
                 Thái Lan
               </option>
+
               <option value="SG">
                 Singapore
               </option>
+
               <option value="MY">
                 Malaysia
               </option>
+
               <option value="ID">
                 Indonesia
               </option>
             </select>
 
             <FieldError
-              message={errors.country?.message}
+              message={
+                errors.country?.message
+              }
             />
           </label>
         </div>
@@ -285,7 +463,9 @@ export function CheckoutForm({
             <input
               type="radio"
               value="self"
-              {...register("purchaseFor")}
+              {...register(
+                "purchaseFor",
+              )}
               className="peer sr-only"
             />
 
@@ -308,7 +488,9 @@ export function CheckoutForm({
             <input
               type="radio"
               value="gift"
-              {...register("purchaseFor")}
+              {...register(
+                "purchaseFor",
+              )}
               className="peer sr-only"
             />
 
@@ -337,13 +519,16 @@ export function CheckoutForm({
 
               <input
                 type="text"
-                {...register("recipientName")}
+                {...register(
+                  "recipientName",
+                )}
                 className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
               />
 
               <FieldError
                 message={
-                  errors.recipientName?.message
+                  errors.recipientName
+                    ?.message
                 }
               />
             </label>
@@ -355,13 +540,16 @@ export function CheckoutForm({
 
               <input
                 type="email"
-                {...register("recipientEmail")}
+                {...register(
+                  "recipientEmail",
+                )}
                 className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
               />
 
               <FieldError
                 message={
-                  errors.recipientEmail?.message
+                  errors.recipientEmail
+                    ?.message
                 }
               />
             </label>
@@ -387,37 +575,43 @@ export function CheckoutForm({
         </div>
 
         <div className="mt-6 space-y-3">
-          {paymentMethods.map((method) => (
-            <label
-              key={method.id}
-              className="block cursor-pointer"
-            >
-              <input
-                type="radio"
-                value={method.id}
-                {...register("paymentMethod")}
-                className="peer sr-only"
-              />
+          {paymentMethods.map(
+            (method) => (
+              <label
+                key={method.id}
+                className="block cursor-pointer"
+              >
+                <input
+                  type="radio"
+                  value={method.id}
+                  {...register(
+                    "paymentMethod",
+                  )}
+                  className="peer sr-only"
+                />
 
-              <span className="flex items-start gap-4 rounded-xl border border-slate-300 p-4 transition peer-checked:border-green-700 peer-checked:bg-green-50">
-                <span className="mt-1 h-4 w-4 rounded-full border-4 border-white bg-slate-300 ring-1 ring-slate-300 peer-checked:bg-green-700" />
+                <span className="flex items-start gap-4 rounded-xl border border-slate-300 p-4 transition peer-checked:border-green-700 peer-checked:bg-green-50">
+                  <span className="mt-1 h-4 w-4 rounded-full border-4 border-white bg-slate-300 ring-1 ring-slate-300 peer-checked:bg-green-700" />
 
-                <span>
-                  <strong className="block text-sm text-slate-900">
-                    {method.title}
-                  </strong>
+                  <span>
+                    <strong className="block text-sm text-slate-900">
+                      {method.title}
+                    </strong>
 
-                  <span className="mt-1 block text-sm leading-6 text-slate-500">
-                    {method.description}
+                    <span className="mt-1 block text-sm leading-6 text-slate-500">
+                      {method.description}
+                    </span>
                   </span>
                 </span>
-              </span>
-            </label>
-          ))}
+              </label>
+            ),
+          )}
         </div>
 
         <FieldError
-          message={errors.paymentMethod?.message}
+          message={
+            errors.paymentMethod?.message
+          }
         />
 
         <label className="mt-5 block">
@@ -442,14 +636,17 @@ export function CheckoutForm({
           />
 
           <span className="text-sm leading-6 text-slate-600">
-            Tôi xác nhận thiết bị hỗ trợ eSIM và đồng ý với
-            điều khoản sử dụng, chính sách thanh toán và hoàn
-            tiền của YSim.
+            Tôi xác nhận thiết bị hỗ trợ
+            eSIM và đồng ý với điều khoản
+            sử dụng, chính sách thanh toán
+            và hoàn tiền của YSim.
           </span>
         </label>
 
         <FieldError
-          message={errors.acceptTerms?.message}
+          message={
+            errors.acceptTerms?.message
+          }
         />
 
         {submitError ? (
