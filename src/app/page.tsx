@@ -1,7 +1,14 @@
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { HeroSection } from "@/components/home/HeroSection";
+import { HomeGuideSection } from "@/components/home/HomeGuideSection";
+import { HomeValueRow } from "@/components/home/HomeValueRow";
+import { PopularDestinations } from "@/components/home/PopularDestinations";
+import { TestimonialsSection } from "@/components/home/TestimonialsSection";
+import { TravelGuidesSection } from "@/components/home/TravelGuidesSection";
+import { FooterBenefits } from "@/components/layout/FooterBenefits";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/footer/Footer";
 import { getProducts } from "@/lib/woocommerce/products";
 import type { WooCommerceProduct } from "@/lib/woocommerce/types";
 
@@ -25,6 +32,9 @@ export default async function HomePage() {
 
       <main>
         <HeroSection />
+		<PopularDestinations />
+		<HomeValueRow />
+		<HomeGuideSection />
 
         {catalogError ? (
           <section className="bg-white px-5 py-16 lg:px-8">
@@ -36,7 +46,13 @@ export default async function HomePage() {
         ) : (
           <FeaturedProducts products={products} />
         )}
+
+		<TestimonialsSection />
+		<TravelGuidesSection />
+		<FooterBenefits />
       </main>
+
+	  <Footer />
     </>
   );
 }
