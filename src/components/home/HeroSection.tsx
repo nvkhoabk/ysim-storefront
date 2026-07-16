@@ -45,32 +45,32 @@ const popularSearches = [
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden bg-white">
-	  {/* Ảnh nền desktop */}
-	  <div className="absolute inset-0 hidden lg:block">
-		<Image
-		  src="/images/hero/ysim-home-hero.png"
-		  alt="Du khách sử dụng eSIM YSim tại Nhật Bản"
-		  fill
-		  priority
-		  sizes="100vw"
-		  className="object-cover object-center"
-		/>
+      {/* Ảnh nền desktop */}
+      <div className="absolute inset-0 hidden lg:block">
+        <Image
+          src="/images/hero/ysim-home-hero.png"
+          alt="Du khách sử dụng eSIM YSim tại Nhật Bản"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
 
-		<div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent" />
-	  </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent" />
+      </div>
 
-	  <div className="relative mx-auto max-w-7xl px-6 pb-12 pt-6 lg:px-8 lg:pb-24 lg:pt-12">
-		{/* Ảnh riêng mobile và tablet */}
-		<div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-2xl border border-slate-200 shadow-sm lg:hidden">
-		  <Image
-			src="/images/hero/ysim-home-hero.png"
-			alt="Du lịch Nhật Bản cùng YSim"
-			fill
-			priority
-			sizes="100vw"
-			className="object-cover object-[68%_center]"
-		  />
-		</div>
+      <div className="relative mx-auto max-w-7xl px-6 pt-6 pb-12 lg:px-8 lg:pt-12 lg:pb-24">
+        {/* Ảnh riêng mobile và tablet */}
+        <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-2xl border border-slate-200 shadow-sm lg:hidden">
+          <Image
+            src="/images/hero/ysim-home-hero.png"
+            alt="Du lịch Nhật Bản cùng YSim"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[68%_center]"
+          />
+        </div>
 
         <div className="grid min-h-[560px] items-center sm:min-h-[520px] lg:min-h-[390px] lg:grid-cols-[48%_52%]">
           <div className="relative z-10 py-4">
@@ -79,19 +79,15 @@ export function HeroSection() {
               eSIM du lịch quốc tế
             </div>
 
-            <h1 className="max-w-2xl text-[38px] font-bold leading-[1.08] tracking-tight text-slate-950 sm:text-5xl lg:text-[56px]">
+            <h1 className="max-w-2xl text-[38px] leading-[1.08] font-bold tracking-tight text-slate-950 sm:text-5xl lg:text-[56px]">
               Internet sẵn sàng
               <br />
-              ngay khi bạn{" "}
-              <span className="text-green-700">
-                hạ cánh
-              </span>
+              ngay khi bạn <span className="text-green-700">hạ cánh</span>
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-7 text-slate-600 lg:text-lg">
-              eSIM du lịch giúp bạn kết nối Internet nhanh chóng,
-              ổn định và thuận tiện tại hơn 200 quốc gia và vùng
-              lãnh thổ.
+              eSIM du lịch giúp bạn kết nối Internet nhanh chóng, ổn định và
+              thuận tiện tại hơn 200 quốc gia và vùng lãnh thổ.
             </p>
 
             <div className="mt-8 grid max-w-2xl grid-cols-2 gap-x-5 gap-y-5 sm:grid-cols-4">
@@ -99,10 +95,7 @@ export function HeroSection() {
                 const Icon = benefit.icon;
 
                 return (
-                  <div
-                    key={benefit.title}
-                    className="flex items-start gap-2.5"
-                  >
+                  <div key={benefit.title} className="flex items-start gap-2.5">
                     <Icon className="mt-0.5 h-6 w-6 shrink-0 text-green-700" />
 
                     <div>
@@ -164,7 +157,7 @@ export function HeroSection() {
 
               <input
                 type="date"
-                className="h-12 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                className="h-12 w-full rounded-xl border border-slate-300 px-3 text-sm transition outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
               />
             </label>
 
@@ -175,7 +168,7 @@ export function HeroSection() {
 
               <input
                 type="date"
-                className="h-12 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                className="h-12 w-full rounded-xl border border-slate-300 px-3 text-sm transition outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
               />
             </label>
 
@@ -185,9 +178,9 @@ export function HeroSection() {
               </span>
 
               <div className="relative">
-                <Users className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                <Users className="pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-slate-500" />
 
-                <select className="h-12 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100">
+                <select className="h-12 w-full appearance-none rounded-xl border border-slate-300 bg-white pr-3 pl-10 text-sm transition outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100">
                   <option value="1">1</option>
                   <option value="2">2</option>
                   <option value="3">3</option>
@@ -199,7 +192,7 @@ export function HeroSection() {
             <div className="flex items-end">
               <button
                 type="button"
-                className="h-12 w-full rounded-xl bg-green-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                className="h-12 w-full rounded-xl bg-green-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800 focus:ring-2 focus:ring-green-600 focus:ring-offset-2 focus:outline-none"
               >
                 Tìm eSIM phù hợp →
               </button>

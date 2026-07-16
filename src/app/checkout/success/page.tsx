@@ -1,8 +1,5 @@
 import Link from "next/link";
-import {
-  CheckCircle2,
-  Mail,
-} from "lucide-react";
+import { CheckCircle2, Mail } from "lucide-react";
 
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { Header } from "@/components/layout/Header";
@@ -42,10 +39,7 @@ export default async function CheckoutSuccessPage({
 
           {order ? (
             <p className="mt-3 text-slate-600">
-              Mã đơn hàng:{" "}
-              <strong className="text-slate-900">
-                #{order}
-              </strong>
+              Mã đơn hàng: <strong className="text-slate-900">#{order}</strong>
             </p>
           ) : null}
 
@@ -57,8 +51,8 @@ export default async function CheckoutSuccessPage({
             </p>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Thông tin thanh toán và eSIM sẽ được gửi sau khi
-              đơn hàng được xác nhận.
+              Thông tin thanh toán và eSIM sẽ được gửi sau khi đơn hàng được xác
+              nhận.
             </p>
           </div>
 

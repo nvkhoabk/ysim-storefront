@@ -22,8 +22,7 @@ export function CartButton() {
           return;
         }
 
-        const cart =
-          (await response.json()) as WooCommerceCart;
+        const cart = (await response.json()) as WooCommerceCart;
 
         if (isMounted) {
           setItemsCount(cart.items_count);
@@ -43,18 +42,12 @@ export function CartButton() {
 
     void loadCart();
 
-    window.addEventListener(
-      "ysim-cart-updated",
-      handleCartUpdated,
-    );
+    window.addEventListener("ysim-cart-updated", handleCartUpdated);
 
     return () => {
       isMounted = false;
 
-      window.removeEventListener(
-        "ysim-cart-updated",
-        handleCartUpdated,
-      );
+      window.removeEventListener("ysim-cart-updated", handleCartUpdated);
     };
   }, []);
 
@@ -66,7 +59,7 @@ export function CartButton() {
     >
       <ShoppingCart className="h-5 w-5" />
 
-      <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-green-700 px-1 text-xs font-semibold text-white">
+      <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-green-700 px-1 text-xs font-semibold text-white">
         {itemsCount > 99 ? "99+" : itemsCount}
       </span>
     </Link>

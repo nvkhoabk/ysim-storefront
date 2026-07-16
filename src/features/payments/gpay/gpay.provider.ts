@@ -7,9 +7,7 @@ import type {
 export const gpayQrProvider: PaymentProvider = {
   id: "gpay_qr",
 
-  async createPayment(
-    input: CreatePaymentInput,
-  ): Promise<PaymentSession> {
+  async createPayment(input: CreatePaymentInput): Promise<PaymentSession> {
     /*
      * Tạm thời chỉ tạo session nội bộ.
      * Khi GPay sẵn sàng test, thay bằng:
@@ -19,8 +17,7 @@ export const gpayQrProvider: PaymentProvider = {
      * - trả bill_url hoặc qr image
      */
 
-    const merchantTransactionId =
-      `GPAY-${input.orderId}-${Date.now()}`;
+    const merchantTransactionId = `GPAY-${input.orderId}-${Date.now()}`;
 
     return {
       provider: "gpay_qr",
@@ -34,8 +31,7 @@ export const gpayQrProvider: PaymentProvider = {
       amount: input.amount,
       currency: input.currency,
 
-      message:
-        "Đang chờ cấu hình GPay Sandbox.",
+      message: "Đang chờ cấu hình GPay Sandbox.",
     };
   },
 };

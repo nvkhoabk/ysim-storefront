@@ -1,10 +1,5 @@
 import Image from "next/image";
-import {
-  Clock3,
-  Headphones,
-  Mail,
-  ShieldCheck,
-} from "lucide-react";
+import { Clock3, Headphones, Mail, ShieldCheck } from "lucide-react";
 
 import { formatMoney } from "@/lib/currency";
 import type { WooCommerceCart } from "@/lib/woocommerce/cart-types";
@@ -32,24 +27,17 @@ const benefits = [
   },
 ];
 
-export function CheckoutOrderSummary({
-  cart,
-}: CheckoutOrderSummaryProps) {
+export function CheckoutOrderSummary({ cart }: CheckoutOrderSummaryProps) {
   return (
     <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-6">
-      <h2 className="text-lg font-semibold text-slate-950">
-        Tóm tắt đơn hàng
-      </h2>
+      <h2 className="text-lg font-semibold text-slate-950">Tóm tắt đơn hàng</h2>
 
       <div className="mt-5 space-y-5">
         {cart.items.map((item) => {
           const image = item.images?.[0];
 
           return (
-            <article
-              key={item.key}
-              className="flex gap-4"
-            >
+            <article key={item.key} className="flex gap-4">
               <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                 {image ? (
                   <Image
@@ -74,10 +62,8 @@ export function CheckoutOrderSummary({
                 <p className="mt-2 text-sm font-bold text-green-700">
                   {formatMoney({
                     amount: item.totals.line_total,
-                    currencyCode:
-                      item.totals.currency_code,
-                    currencyMinorUnit:
-                      item.totals.currency_minor_unit,
+                    currencyCode: item.totals.currency_code,
+                    currencyMinorUnit: item.totals.currency_minor_unit,
                   })}
                 </p>
               </div>
@@ -93,10 +79,8 @@ export function CheckoutOrderSummary({
           <span>
             {formatMoney({
               amount: cart.totals.total_items,
-              currencyCode:
-                cart.totals.currency_code,
-              currencyMinorUnit:
-                cart.totals.currency_minor_unit,
+              currencyCode: cart.totals.currency_code,
+              currencyMinorUnit: cart.totals.currency_minor_unit,
             })}
           </span>
         </div>
@@ -108,29 +92,22 @@ export function CheckoutOrderSummary({
             <span>
               -
               {formatMoney({
-                amount:
-                  cart.totals.total_discount,
-                currencyCode:
-                  cart.totals.currency_code,
-                currencyMinorUnit:
-                  cart.totals.currency_minor_unit,
+                amount: cart.totals.total_discount,
+                currencyCode: cart.totals.currency_code,
+                currencyMinorUnit: cart.totals.currency_minor_unit,
               })}
             </span>
           </div>
         ) : null}
 
         <div className="flex items-center justify-between border-t border-slate-200 pt-4">
-          <span className="font-semibold text-slate-950">
-            Tổng cộng
-          </span>
+          <span className="font-semibold text-slate-950">Tổng cộng</span>
 
           <span className="text-xl font-bold text-green-700">
             {formatMoney({
               amount: cart.totals.total_price,
-              currencyCode:
-                cart.totals.currency_code,
-              currencyMinorUnit:
-                cart.totals.currency_minor_unit,
+              currencyCode: cart.totals.currency_code,
+              currencyMinorUnit: cart.totals.currency_minor_unit,
             })}
           </span>
         </div>

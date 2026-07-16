@@ -1,47 +1,88 @@
 import { NextResponse } from "next/server";
 
+import {
+  authorizeGPaySandboxRequest,
+  getSandboxSecretHeaderName,
+  isGPaySandboxEnvironment,
+} from "@/features/payments/gpay/gpay.sandbox-auth";
 import { getGPayAccessToken } from "@/features/payments/gpay/gpay.client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  if (process.env.GPAY_ENV !== "sandbox") {
-    return NextResponse.json(
+function noStoreJson(body: Record<string, unknown>, status: number) {
+  return NextResponse.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    },
+  });
+}
+
+export async function GET(request: Request) {
+  if (!isGPaySandboxEnvironment()) {
+    return noStoreJson(
       {
-        message:
-          "Token test endpoint is disabled outside sandbox.",
+        success: false,
+        message: "Not found.",
       },
+      404,
+    );
+  }
+
+  if (!authorizeGPaySandboxRequest(request)) {
+    console.warn("Unauthorized GPay sandbox token test request", {
+      receivedAt: new Date().toISOString(),
+      forwardedFor: request.headers.get("x-forwarded-for"),
+      userAgent: request.headers.get("user-agent"),
+    });
+
+    return noStoreJson(
       {
-        status: 404,
+        success: false,
+        message: "Unauthorized.",
+        requiredHeader: getSandboxSecretHeaderName(),
       },
+      401,
     );
   }
 
   try {
-    const token = await getGPayAccessToken();
+    const accessToken = await getGPayAccessToken();
 
-    return NextResponse.json({
-      success: true,
-      tokenReceived: Boolean(token),
-      tokenPreview: `${token.slice(0, 6)}...${token.slice(
-        -4,
-      )}`,
+    /*
+     * Chỉ xác nhận token đã được cấp.
+     * Không trả token hoặc token preview cho client.
+     */
+    console.info("GPay sandbox token test succeeded", {
+      testedAt: new Date().toISOString(),
     });
-  } catch (error) {
-    console.error("GPay token test failed:", error);
 
-    return NextResponse.json(
+    return noStoreJson(
+      {
+        success: true,
+        environment: "sandbox",
+        tokenAvailable: accessToken.length > 0,
+        message: "GPay access token was obtained successfully.",
+        testedAt: new Date().toISOString(),
+      },
+      200,
+    );
+  } catch (error) {
+    console.error("GPay sandbox token test failed", {
+      testedAt: new Date().toISOString(),
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    return noStoreJson(
       {
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Cannot get GPay token.",
+        environment: "sandbox",
+        message: "Cannot obtain GPay access token.",
       },
-      {
-        status: 502,
-      },
+      502,
     );
   }
 }

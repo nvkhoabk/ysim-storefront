@@ -15,58 +15,34 @@ interface BenefitItem {
 const benefits: BenefitItem[] = [
   {
     title: "Phủ sóng toàn cầu",
-    description:
-      "Kết nối tại hơn 200 quốc gia và vùng lãnh thổ.",
+    description: "Kết nối tại hơn 200 quốc gia và vùng lãnh thổ.",
     icon: Globe2,
   },
   {
     title: "Giá cả minh bạch",
-    description:
-      "Hiển thị rõ chi phí, không phí ẩn.",
+    description: "Hiển thị rõ chi phí, không phí ẩn.",
     icon: Tags,
   },
   {
     title: "Kích hoạt dễ dàng",
-    description:
-      "Quét mã QR và làm theo hướng dẫn đơn giản.",
+    description: "Quét mã QR và làm theo hướng dẫn đơn giản.",
     icon: QrCode,
   },
   {
     title: "Hỗ trợ 24/7",
-    description:
-      "Đội ngũ hỗ trợ sẵn sàng khi bạn cần.",
+    description: "Đội ngũ hỗ trợ sẵn sàng khi bạn cần.",
     icon: Headphones,
   },
 ];
 
 export function WhyYSim() {
   return (
-    <section
-      className="
-        rounded-xl
-        border
-        border-slate-200
-        bg-white
-        p-4
-        shadow-sm
-        sm:p-5
-      "
-    >
-      <h2 className="text-[17px] font-bold leading-6 text-slate-950">
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <h2 className="text-[17px] leading-6 font-bold text-slate-950">
         Vì sao chọn YSim?
       </h2>
 
-      <div
-        className="
-          mt-3.5
-          grid
-          grid-cols-2
-          gap-x-4
-          gap-y-4
-          lg:grid-cols-4
-          lg:gap-3
-        "
-      >
+      <div className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-4 lg:gap-3">
         {benefits.map((benefit) => {
           const Icon = benefit.icon;
 
@@ -75,19 +51,7 @@ export function WhyYSim() {
               key={benefit.title}
               className="flex min-w-0 items-start gap-2.5"
             >
-              <span
-                className="
-                  flex
-                  h-8
-                  w-8
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-lg
-                  bg-green-50
-                  text-green-700
-                "
-              >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-700">
                 <Icon
                   aria-hidden="true"
                   className="h-[18px] w-[18px]"
@@ -96,7 +60,7 @@ export function WhyYSim() {
               </span>
 
               <div className="min-w-0">
-                <h3 className="text-[12px] font-bold leading-4 text-slate-950">
+                <h3 className="text-[12px] leading-4 font-bold text-slate-950">
                   {benefit.title}
                 </h3>
 

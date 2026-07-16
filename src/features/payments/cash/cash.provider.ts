@@ -7,9 +7,7 @@ import type {
 export const cashAgentProvider: PaymentProvider = {
   id: "cash_agent",
 
-  async createPayment(
-    input: CreatePaymentInput,
-  ): Promise<PaymentSession> {
+  async createPayment(input: CreatePaymentInput): Promise<PaymentSession> {
     return {
       provider: "cash_agent",
       status: "waiting",
@@ -17,14 +15,12 @@ export const cashAgentProvider: PaymentProvider = {
       orderId: input.orderId,
       orderNumber: input.orderNumber,
 
-      merchantTransactionId:
-        `CASH-${input.orderId}-${Date.now()}`,
+      merchantTransactionId: `CASH-${input.orderId}-${Date.now()}`,
 
       amount: input.amount,
       currency: input.currency,
 
-      message:
-        "Đơn hàng đang chờ nhân viên xác nhận đã nhận tiền mặt.",
+      message: "Đơn hàng đang chờ nhân viên xác nhận đã nhận tiền mặt.",
     };
   },
 };

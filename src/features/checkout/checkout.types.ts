@@ -36,10 +36,7 @@ export interface WooCommerceCheckout {
 
   billing_address: CheckoutAddress;
 
-  shipping_address: Omit<
-    CheckoutAddress,
-    "email" | "phone"
-  >;
+  shipping_address: Omit<CheckoutAddress, "email" | "phone">;
 
   payment_method: string;
   payment_result: CheckoutPaymentResult | null;

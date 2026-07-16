@@ -31,17 +31,14 @@ export default async function ESimPage() {
       <main>
         <section className="bg-gradient-to-r from-green-50 to-sky-50 px-6 py-12 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <p className="text-sm font-semibold text-green-700">
-              YSim Store
-            </p>
+            <p className="text-sm font-semibold text-green-700">YSim Store</p>
 
             <h1 className="mt-2 text-3xl font-bold text-slate-950 sm:text-4xl">
               eSIM du lịch quốc tế
             </h1>
 
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-              Chọn gói data phù hợp với điểm đến và thời gian của
-              chuyến đi.
+              Chọn gói data phù hợp với điểm đến và thời gian của chuyến đi.
             </p>
           </div>
         </section>
@@ -49,8 +46,7 @@ export default async function ESimPage() {
         {hasError ? (
           <section className="px-6 py-12 lg:px-8">
             <div className="mx-auto max-w-7xl rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
-              Không thể tải danh sách sản phẩm. Vui lòng thử lại
-              sau.
+              Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.
             </div>
           </section>
         ) : (

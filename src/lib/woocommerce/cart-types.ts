@@ -1,7 +1,4 @@
-import type {
-  WooCommerceImage,
-  WooCommercePrice,
-} from "./types";
+import type { WooCommerceImage, WooCommercePrice } from "./types";
 
 export interface WooCommerceCartItemQuantityLimits {
   minimum: number;

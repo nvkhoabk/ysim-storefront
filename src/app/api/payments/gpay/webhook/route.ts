@@ -8,10 +8,8 @@ export async function GET() {
     {
       success: true,
       service: "ysim-gpay-webhook",
-      environment:
-        process.env.GPAY_ENV ?? "unknown",
-      message:
-        "GPay webhook endpoint is reachable.",
+      environment: process.env.GPAY_ENV ?? "unknown",
+      message: "GPay webhook endpoint is reachable.",
       timestamp: new Date().toISOString(),
     },
     {
@@ -48,44 +46,32 @@ export async function POST(request: Request) {
 
       method: request.method,
 
-      contentType:
-        request.headers.get("content-type"),
+      contentType: request.headers.get("content-type"),
 
-      userAgent:
-        request.headers.get("user-agent"),
+      userAgent: request.headers.get("user-agent"),
 
-      forwardedFor:
-        request.headers.get("x-forwarded-for"),
+      forwardedFor: request.headers.get("x-forwarded-for"),
 
-      realIp:
-        request.headers.get("x-real-ip"),
+      realIp: request.headers.get("x-real-ip"),
 
       /*
        * Chỉ ghi nhận tên header, chưa log giá trị chữ ký hoặc
        * token đầy đủ để tránh lộ dữ liệu xác thực.
        */
-      hasSignature: Boolean(
-        request.headers.get("signature"),
-      ),
+      hasSignature: Boolean(request.headers.get("signature")),
 
-      hasCertificate: Boolean(
-        request.headers.get("x-certificate"),
-      ),
+      hasCertificate: Boolean(request.headers.get("x-certificate")),
 
       requestId:
         request.headers.get("x-requests-id") ??
         request.headers.get("x-request-id"),
 
-      timestamp:
-        request.headers.get("x-timestamp"),
+      timestamp: request.headers.get("x-timestamp"),
 
       payload,
     };
 
-    console.info(
-      "GPay webhook received",
-      webhookMetadata,
-    );
+    console.info("GPay webhook received", webhookMetadata);
 
     /*
      * Giai đoạn này chỉ xác nhận endpoint đã nhận request.
@@ -111,10 +97,7 @@ export async function POST(request: Request) {
       },
     );
   } catch (error) {
-    console.error(
-      "Cannot process GPay webhook:",
-      error,
-    );
+    console.error("Cannot process GPay webhook:", error);
 
     return NextResponse.json(
       {

@@ -24,12 +24,9 @@ export async function getProducts(
     params.set("category", options.category);
   }
 
-  return storeApiFetch<WooCommerceProduct[]>(
-    `/products?${params.toString()}`,
-    {
-      revalidate: 300,
-    },
-  );
+  return storeApiFetch<WooCommerceProduct[]>(`/products?${params.toString()}`, {
+    revalidate: 300,
+  });
 }
 
 export async function getProductBySlug(
@@ -43,8 +40,7 @@ export async function getProductBySlug(
       },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : String(error);
+    const message = error instanceof Error ? error.message : String(error);
 
     if (
       message.includes("404") ||

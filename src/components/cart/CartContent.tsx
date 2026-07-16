@@ -20,58 +20,50 @@ import type {
 } from "@/lib/woocommerce/cart-types";
 
 export function CartContent() {
-  const [cart, setCart] =
-    useState<WooCommerceCart | null>(null);
+  const [cart, setCart] = useState<WooCommerceCart | null>(null);
 
   const [couponCode, setCouponCode] = useState("");
 
-  const [errorMessage, setErrorMessage] =
-    useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [pendingItemKey, setPendingItemKey] =
-    useState<string | null>(null);
+  const [pendingItemKey, setPendingItemKey] = useState<string | null>(null);
 
-  const [couponLoading, setCouponLoading] =
-    useState(false);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   useEffect(() => {
-	  let cancelled = false;
+    let cancelled = false;
 
-	  async function fetchCart() {
-		try {
-		  const response = await fetch("/api/cart", {
-			cache: "no-store",
-		  });
+    async function fetchCart() {
+      try {
+        const response = await fetch("/api/cart", {
+          cache: "no-store",
+        });
 
-		  const data = await response.json();
+        const data = await response.json();
 
-		  if (!response.ok) {
-			throw new Error(
-			  data.message || "Không thể tải giỏ hàng.",
-			);
-		  }
+        if (!response.ok) {
+          throw new Error(data.message || "Không thể tải giỏ hàng.");
+        }
 
-		  if (!cancelled) {
-			setCart(data as WooCommerceCart);
-			setErrorMessage(null);
-		  }
-		} catch (error) {
-		  if (!cancelled) {
-			setErrorMessage(
-			  error instanceof Error
-				? error.message
-				: "Không thể tải giỏ hàng.",
-			);
-		  }
-		}
-	  }
+        if (!cancelled) {
+          setCart(data as WooCommerceCart);
+          setErrorMessage(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setErrorMessage(
+            error instanceof Error ? error.message : "Không thể tải giỏ hàng.",
+          );
+        }
+      }
+    }
 
-	  void fetchCart();
+    void fetchCart();
 
-	  return () => {
-		cancelled = true;
-	  };
-	}, []);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function updateLocalCart(nextCart: WooCommerceCart) {
     setCart(nextCart);
@@ -114,17 +106,13 @@ export function CartContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Không thể cập nhật số lượng.",
-        );
+        throw new Error(data.message || "Không thể cập nhật số lượng.");
       }
 
       updateLocalCart(data as WooCommerceCart);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Không thể cập nhật số lượng.",
+        error instanceof Error ? error.message : "Không thể cập nhật số lượng.",
       );
     } finally {
       setPendingItemKey(null);
@@ -149,17 +137,13 @@ export function CartContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Không thể xóa sản phẩm.",
-        );
+        throw new Error(data.message || "Không thể xóa sản phẩm.");
       }
 
       updateLocalCart(data as WooCommerceCart);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Không thể xóa sản phẩm.",
+        error instanceof Error ? error.message : "Không thể xóa sản phẩm.",
       );
     } finally {
       setPendingItemKey(null);
@@ -190,9 +174,7 @@ export function CartContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Không thể áp dụng mã giảm giá.",
-        );
+        throw new Error(data.message || "Không thể áp dụng mã giảm giá.");
       }
 
       updateLocalCart(data as WooCommerceCart);
@@ -226,17 +208,13 @@ export function CartContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Không thể gỡ mã giảm giá.",
-        );
+        throw new Error(data.message || "Không thể gỡ mã giảm giá.");
       }
 
       updateLocalCart(data as WooCommerceCart);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Không thể gỡ mã giảm giá.",
+        error instanceof Error ? error.message : "Không thể gỡ mã giảm giá.",
       );
     } finally {
       setCouponLoading(false);
@@ -295,8 +273,7 @@ export function CartContent() {
         <div className="space-y-4">
           {cart.items.map((item) => {
             const image = item.images?.[0];
-            const isPending =
-              pendingItemKey === item.key;
+            const isPending = pendingItemKey === item.key;
 
             return (
               <article
@@ -322,9 +299,7 @@ export function CartContent() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-slate-900">
-                    {item.name}
-                  </h2>
+                  <h2 className="font-semibold text-slate-900">{item.name}</h2>
 
                   {item.sku ? (
                     <p className="mt-1 text-xs text-slate-500">
@@ -335,10 +310,8 @@ export function CartContent() {
                   <p className="mt-3 text-lg font-bold text-green-700">
                     {formatMoney({
                       amount: item.prices.price,
-                      currencyCode:
-                        item.prices.currency_code,
-                      currencyMinorUnit:
-                        item.prices.currency_minor_unit,
+                      currencyCode: item.prices.currency_code,
+                      currencyMinorUnit: item.prices.currency_minor_unit,
                     })}
                   </p>
 
@@ -348,15 +321,11 @@ export function CartContent() {
                         type="button"
                         aria-label="Giảm số lượng"
                         onClick={() =>
-                          void updateQuantity(
-                            item,
-                            item.quantity - 1,
-                          )
+                          void updateQuantity(item, item.quantity - 1)
                         }
                         disabled={
                           isPending ||
-                          item.quantity <=
-                            item.quantity_limits.minimum
+                          item.quantity <= item.quantity_limits.minimum
                         }
                         className="flex h-10 w-10 items-center justify-center hover:bg-slate-50 disabled:opacity-40"
                       >
@@ -371,15 +340,11 @@ export function CartContent() {
                         type="button"
                         aria-label="Tăng số lượng"
                         onClick={() =>
-                          void updateQuantity(
-                            item,
-                            item.quantity + 1,
-                          )
+                          void updateQuantity(item, item.quantity + 1)
                         }
                         disabled={
                           isPending ||
-                          item.quantity >=
-                            item.quantity_limits.maximum
+                          item.quantity >= item.quantity_limits.maximum
                         }
                         className="flex h-10 w-10 items-center justify-center hover:bg-slate-50 disabled:opacity-40"
                       >
@@ -389,9 +354,7 @@ export function CartContent() {
 
                     <button
                       type="button"
-                      onClick={() =>
-                        void removeItem(item.key)
-                      }
+                      onClick={() => void removeItem(item.key)}
                       disabled={isPending}
                       className="inline-flex items-center gap-2 text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-40"
                     >
@@ -417,10 +380,8 @@ export function CartContent() {
               <span>
                 {formatMoney({
                   amount: cart.totals.total_items,
-                  currencyCode:
-                    cart.totals.currency_code,
-                  currencyMinorUnit:
-                    cart.totals.currency_minor_unit,
+                  currencyCode: cart.totals.currency_code,
+                  currencyMinorUnit: cart.totals.currency_minor_unit,
                 })}
               </span>
             </div>
@@ -432,12 +393,9 @@ export function CartContent() {
                 <span>
                   -
                   {formatMoney({
-                    amount:
-                      cart.totals.total_discount,
-                    currencyCode:
-                      cart.totals.currency_code,
-                    currencyMinorUnit:
-                      cart.totals.currency_minor_unit,
+                    amount: cart.totals.total_discount,
+                    currencyCode: cart.totals.currency_code,
+                    currencyMinorUnit: cart.totals.currency_minor_unit,
                   })}
                 </span>
               </div>
@@ -446,17 +404,13 @@ export function CartContent() {
 
           <div className="mt-5 border-t border-slate-200 pt-5">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-900">
-                Tổng cộng
-              </span>
+              <span className="font-semibold text-slate-900">Tổng cộng</span>
 
               <span className="text-xl font-bold text-green-700">
                 {formatMoney({
                   amount: cart.totals.total_price,
-                  currencyCode:
-                    cart.totals.currency_code,
-                  currencyMinorUnit:
-                    cart.totals.currency_minor_unit,
+                  currencyCode: cart.totals.currency_code,
+                  currencyMinorUnit: cart.totals.currency_minor_unit,
                 })}
               </span>
             </div>
@@ -476,9 +430,7 @@ export function CartContent() {
                 id="coupon-code"
                 type="text"
                 value={couponCode}
-                onChange={(event) =>
-                  setCouponCode(event.target.value)
-                }
+                onChange={(event) => setCouponCode(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     void applyCoupon();
@@ -491,9 +443,7 @@ export function CartContent() {
               <button
                 type="button"
                 onClick={() => void applyCoupon()}
-                disabled={
-                  couponLoading || !couponCode.trim()
-                }
+                disabled={couponLoading || !couponCode.trim()}
                 className="h-11 rounded-xl border border-green-700 px-4 text-sm font-semibold text-green-700 hover:bg-green-50 disabled:opacity-50"
               >
                 {couponLoading ? "..." : "Áp dụng"}
@@ -507,16 +457,12 @@ export function CartContent() {
                     key={coupon.code}
                     className="flex items-center justify-between rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800"
                   >
-                    <span className="font-semibold">
-                      {coupon.code}
-                    </span>
+                    <span className="font-semibold">{coupon.code}</span>
 
                     <button
                       type="button"
                       aria-label={`Gỡ mã ${coupon.code}`}
-                      onClick={() =>
-                        void removeCoupon(coupon.code)
-                      }
+                      onClick={() => void removeCoupon(coupon.code)}
                       disabled={couponLoading}
                       className="rounded-md p-1 hover:bg-green-100"
                     >

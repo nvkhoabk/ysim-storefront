@@ -2,17 +2,13 @@ import { cookies } from "next/headers";
 
 export const CART_COOKIE_NAME = "ysim_cart_token";
 
-export async function getCartTokenCookie(): Promise<
-  string | null
-> {
+export async function getCartTokenCookie(): Promise<string | null> {
   const cookieStore = await cookies();
 
   return cookieStore.get(CART_COOKIE_NAME)?.value ?? null;
 }
 
-export async function setCartTokenCookie(
-  token: string,
-): Promise<void> {
+export async function setCartTokenCookie(token: string): Promise<void> {
   const cookieStore = await cookies();
 
   cookieStore.set({

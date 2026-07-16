@@ -1,9 +1,7 @@
 const wooCommerceUrl = process.env.NEXT_PUBLIC_WOOCOMMERCE_URL;
 
 if (!wooCommerceUrl) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_WOOCOMMERCE_URL environment variable.",
-  );
+  throw new Error("Missing NEXT_PUBLIC_WOOCOMMERCE_URL environment variable.");
 }
 
 const storeApiBaseUrl = `${wooCommerceUrl.replace(

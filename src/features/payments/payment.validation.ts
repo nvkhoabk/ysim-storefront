@@ -1,11 +1,7 @@
 import { z } from "zod";
 
 export const createPaymentSchema = z.object({
-  provider: z.enum([
-    "gpay_qr",
-    "onepay_card",
-    "cash_agent",
-  ]),
+  provider: z.enum(["gpay_qr", "onepay_card", "cash_agent"]),
 
   orderId: z.number().int().positive(),
   orderNumber: z.string().trim().min(1),

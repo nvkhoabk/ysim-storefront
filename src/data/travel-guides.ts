@@ -20,8 +20,7 @@ export const travelGuides: TravelGuideItem[] = [
   {
     id: "guide-02",
     title: "eSIM khác roaming quốc tế như thế nào?",
-    excerpt:
-      "So sánh chi phí, tốc độ và sự thuận tiện giữa eSIM với roaming.",
+    excerpt: "So sánh chi phí, tốc độ và sự thuận tiện giữa eSIM với roaming.",
     slug: "esim-khac-roaming-quoc-te-nhu-the-nao",
     category: "Kiến thức eSIM",
     image: "/images/guides/esim-vs-roaming.jpg",

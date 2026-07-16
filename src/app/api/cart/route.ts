@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-import {
-  getCartTokenCookie,
-  setCartTokenCookie,
-} from "@/lib/cart-cookie";
+import { getCartTokenCookie, setCartTokenCookie } from "@/lib/cart-cookie";
 import { getWooCart } from "@/lib/woocommerce/cart-api";
 
 export const dynamic = "force-dynamic";
@@ -30,9 +27,7 @@ export async function GET() {
     return NextResponse.json(
       {
         message:
-          error instanceof Error
-            ? error.message
-            : "Không thể tải giỏ hàng.",
+          error instanceof Error ? error.message : "Không thể tải giỏ hàng.",
       },
       {
         status: 500,

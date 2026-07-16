@@ -7,8 +7,7 @@ import { Header } from "@/components/layout/Header";
 
 export const metadata = {
   title: "Thanh toán",
-  description:
-    "Hoàn tất đơn hàng eSIM YSim an toàn và nhanh chóng.",
+  description: "Hoàn tất đơn hàng eSIM YSim an toàn và nhanh chóng.",
 };
 
 export default function CheckoutPage() {

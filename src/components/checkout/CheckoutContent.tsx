@@ -2,19 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  LoaderCircle,
-  ShoppingBag,
-} from "lucide-react";
+import { LoaderCircle, ShoppingBag } from "lucide-react";
 
 import { CheckoutForm } from "./CheckoutForm";
 import { CheckoutOrderSummary } from "./CheckoutOrderSummary";
 
 import type { WooCommerceCart } from "@/lib/woocommerce/cart-types";
 import type { WooCommerceCheckout } from "@/features/checkout/checkout.types";
-import type {
-  PaymentMethodOption,
-} from "@/features/payments/payment.types";
+import type { PaymentMethodOption } from "@/features/payments/payment.types";
 
 interface CheckoutApiResponse {
   cart: WooCommerceCart;
@@ -23,37 +18,29 @@ interface CheckoutApiResponse {
 }
 
 export function CheckoutContent() {
-  const [checkoutData, setCheckoutData] =
-    useState<CheckoutApiResponse | null>(null);
+  const [checkoutData, setCheckoutData] = useState<CheckoutApiResponse | null>(
+    null,
+  );
 
-  const [errorMessage, setErrorMessage] =
-    useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     async function fetchCheckout() {
       try {
-        const response = await fetch(
-          "/api/checkout",
-          {
-            cache: "no-store",
-          },
-        );
+        const response = await fetch("/api/checkout", {
+          cache: "no-store",
+        });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Không thể tải trang thanh toán.",
-          );
+          throw new Error(data.message || "Không thể tải trang thanh toán.");
         }
 
         if (!cancelled) {
-          setCheckoutData(
-            data as CheckoutApiResponse,
-          );
+          setCheckoutData(data as CheckoutApiResponse);
         }
       } catch (error) {
         if (!cancelled) {
@@ -115,15 +102,9 @@ export function CheckoutContent() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-      <CheckoutForm
-        paymentMethods={
-          checkoutData.paymentMethods
-        }
-      />
+      <CheckoutForm paymentMethods={checkoutData.paymentMethods} />
 
-      <CheckoutOrderSummary
-        cart={checkoutData.cart}
-      />
+      <CheckoutOrderSummary cart={checkoutData.cart} />
     </div>
   );
 }

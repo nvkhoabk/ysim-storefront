@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import {
-  getCartTokenCookie,
-  setCartTokenCookie,
-} from "@/lib/cart-cookie";
+import { getCartTokenCookie, setCartTokenCookie } from "@/lib/cart-cookie";
 import {
   addWooCartItem,
   getWooCart,
@@ -32,8 +29,7 @@ export async function POST(request: Request) {
   try {
     const requestBody = await request.json();
 
-    const parsedBody =
-      addCartItemSchema.safeParse(requestBody);
+    const parsedBody = addCartItemSchema.safeParse(requestBody);
 
     if (!parsedBody.success) {
       return NextResponse.json(
@@ -59,9 +55,7 @@ export async function POST(request: Request) {
       cartToken = cartResult.cartToken;
 
       if (!cartToken) {
-        throw new Error(
-          "WooCommerce không trả về Cart-Token.",
-        );
+        throw new Error("WooCommerce không trả về Cart-Token.");
       }
 
       await setCartTokenCookie(cartToken);
@@ -190,10 +184,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const result = await removeWooCartItem(
-      parsed.data.itemKey,
-      cartToken,
-    );
+    const result = await removeWooCartItem(parsed.data.itemKey, cartToken);
 
     if (result.cartToken) {
       await setCartTokenCookie(result.cartToken);
@@ -210,9 +201,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error
-            ? error.message
-            : "Không thể xóa sản phẩm.",
+          error instanceof Error ? error.message : "Không thể xóa sản phẩm.",
       },
       {
         status: 500,

@@ -1,8 +1,6 @@
 import type { WooCommercePrice } from "@/lib/woocommerce/types";
 
-export function formatWooCommercePrice(
-  prices: WooCommercePrice,
-): string {
+export function formatWooCommercePrice(prices: WooCommercePrice): string {
   const numericPrice = Number(prices.price);
 
   if (!Number.isFinite(numericPrice)) {
@@ -18,7 +16,6 @@ export function formatWooCommercePrice(
     maximumFractionDigits: minorUnit,
   }).format(actualPrice);
 }
-
 
 interface MoneyValue {
   amount: string;
@@ -37,8 +34,7 @@ export function formatMoney({
     return "Liên hệ";
   }
 
-  const actualAmount =
-    numericAmount / Math.pow(10, currencyMinorUnit);
+  const actualAmount = numericAmount / Math.pow(10, currencyMinorUnit);
 
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",

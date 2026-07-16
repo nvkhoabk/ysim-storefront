@@ -20,10 +20,7 @@ function formatAttributeName(name: string): string {
   return nameMap[name.toLowerCase()] ?? name;
 }
 
-function formatAttributeValue(
-  attributeName: string,
-  value: string,
-): string {
+function formatAttributeValue(attributeName: string, value: string): string {
   const normalizedName = attributeName.toLowerCase();
   const normalizedValue = value.toLowerCase();
 
@@ -60,9 +57,7 @@ function formatAttributeValue(
   return value;
 }
 
-export function ProductAttributes({
-  attributes,
-}: ProductAttributesProps) {
+export function ProductAttributes({ attributes }: ProductAttributesProps) {
   if (attributes.length === 0) {
     return (
       <p className="text-sm text-slate-500">
@@ -76,10 +71,7 @@ export function ProductAttributes({
       {attributes.map((attribute, index) => {
         const values = attribute.terms
           .map((term) =>
-            formatAttributeValue(
-              attribute.name,
-              term.name || term.slug,
-            ),
+            formatAttributeValue(attribute.name, term.name || term.slug),
           )
           .join(", ");
 

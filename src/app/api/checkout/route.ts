@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { checkoutFormSchema } from "@/features/checkout/checkout.validation";
-import {
-  getCartTokenCookie,
-  setCartTokenCookie,
-} from "@/lib/cart-cookie";
-import {
-  getWooCart,
-} from "@/lib/woocommerce/cart-api";
+import { getCartTokenCookie, setCartTokenCookie } from "@/lib/cart-cookie";
+import { getWooCart } from "@/lib/woocommerce/cart-api";
 import {
   getWooCheckout,
   processWooCheckout,
@@ -32,8 +27,7 @@ const paymentMethods = [
   {
     id: "onepay_card",
     title: "Thẻ tín dụng hoặc thẻ quốc tế",
-    description:
-      "Thanh toán bảo mật qua cổng OnePay.",
+    description: "Thanh toán bảo mật qua cổng OnePay.",
   },
   {
     id: "cash_agent",
@@ -70,15 +64,12 @@ export async function GET() {
       );
     }
 
-    const [cartResult, checkoutResult] =
-      await Promise.all([
-        getWooCart(cartToken),
-        getWooCheckout(cartToken),
-      ]);
+    const [cartResult, checkoutResult] = await Promise.all([
+      getWooCart(cartToken),
+      getWooCheckout(cartToken),
+    ]);
 
-    const nextToken =
-      checkoutResult.cartToken ??
-      cartResult.cartToken;
+    const nextToken = checkoutResult.cartToken ?? cartResult.cartToken;
 
     if (nextToken) {
       await setCartTokenCookie(nextToken);
@@ -118,14 +109,12 @@ export async function POST(request: Request) {
   try {
     const body: unknown = await request.json();
 
-    const parsed =
-      checkoutFormSchema.safeParse(body);
+    const parsed = checkoutFormSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
         {
-          message:
-            "Thông tin thanh toán chưa hợp lệ.",
+          message: "Thông tin thanh toán chưa hợp lệ.",
           issues: parsed.error.flatten(),
         },
         {
@@ -168,8 +157,7 @@ export async function POST(request: Request) {
     if (!cart.needs_payment) {
       return NextResponse.json(
         {
-          message:
-            "Giỏ hàng hiện tại không yêu cầu thanh toán.",
+          message: "Giỏ hàng hiện tại không yêu cầu thanh toán.",
         },
         {
           status: 400,
@@ -179,10 +167,7 @@ export async function POST(request: Request) {
 
     const values = parsed.data;
 
-    const fullNameParts = values.fullName
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
+    const fullNameParts = values.fullName.trim().split(/\s+/).filter(Boolean);
 
     /*
      * Với tên Việt Nam, cách tách first_name/last_name chỉ mang
@@ -190,8 +175,7 @@ export async function POST(request: Request) {
      *
      * fullName vẫn là dữ liệu gốc được frontend gửi lên.
      */
-    const firstName =
-      fullNameParts.shift() ?? values.fullName;
+    const firstName = fullNameParts.shift() ?? values.fullName;
 
     const lastName = fullNameParts.join(" ");
 
@@ -233,18 +217,11 @@ export async function POST(request: Request) {
       values.paymentMethod,
     ].join(" ");
 
-    const customerNote = [
-      values.customerNote,
-      giftNote,
-      paymentNote,
-    ]
+    const customerNote = [values.customerNote, giftNote, paymentNote]
       .filter(Boolean)
       .join("\n\n");
 
-    const additionalFields: Record<
-      string,
-      unknown
-    > = {};
+    const additionalFields: Record<string, unknown> = {};
 
     /*
      * Quan trọng:
@@ -261,8 +238,7 @@ export async function POST(request: Request) {
     const result = await processWooCheckout(
       {
         billingAddress,
-        paymentMethod:
-          WOO_ORDER_CREATION_GATEWAY,
+        paymentMethod: WOO_ORDER_CREATION_GATEWAY,
         customerNote,
         additionalFields,
         paymentData: [],
@@ -271,9 +247,7 @@ export async function POST(request: Request) {
     );
 
     if (result.cartToken) {
-      await setCartTokenCookie(
-        result.cartToken,
-      );
+      await setCartTokenCookie(result.cartToken);
     }
 
     /*
@@ -286,8 +260,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         checkout: result.data,
-        selectedPaymentProvider:
-          values.paymentMethod,
+        selectedPaymentProvider: values.paymentMethod,
       },
       {
         status: 200,
@@ -297,17 +270,12 @@ export async function POST(request: Request) {
       },
     );
   } catch (error) {
-    console.error(
-      "Cannot process checkout:",
-      error,
-    );
+    console.error("Cannot process checkout:", error);
 
     return NextResponse.json(
       {
         message:
-          error instanceof Error
-            ? error.message
-            : "Không thể tạo đơn hàng.",
+          error instanceof Error ? error.message : "Không thể tạo đơn hàng.",
       },
       {
         status: 500,

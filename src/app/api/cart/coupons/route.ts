@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import {
-  getCartTokenCookie,
-  setCartTokenCookie,
-} from "@/lib/cart-cookie";
+import { getCartTokenCookie, setCartTokenCookie } from "@/lib/cart-cookie";
 import {
   applyWooCartCoupon,
   removeWooCartCoupon,
@@ -45,10 +42,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await applyWooCartCoupon(
-      parsed.data.code,
-      cartToken,
-    );
+    const result = await applyWooCartCoupon(parsed.data.code, cartToken);
 
     if (result.cartToken) {
       await setCartTokenCookie(result.cartToken);
@@ -105,10 +99,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const result = await removeWooCartCoupon(
-      parsed.data.code,
-      cartToken,
-    );
+    const result = await removeWooCartCoupon(parsed.data.code, cartToken);
 
     if (result.cartToken) {
       await setCartTokenCookie(result.cartToken);
@@ -125,9 +116,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error
-            ? error.message
-            : "Không thể gỡ mã giảm giá.",
+          error instanceof Error ? error.message : "Không thể gỡ mã giảm giá.",
       },
       {
         status: 500,

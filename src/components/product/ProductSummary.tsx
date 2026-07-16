@@ -36,12 +36,8 @@ const serviceBenefits = [
   },
 ];
 
-export function ProductSummary({
-  product,
-}: ProductSummaryProps) {
-  const shortDescription = stripHtml(
-    product.short_description || "",
-  );
+export function ProductSummary({ product }: ProductSummaryProps) {
+  const shortDescription = stripHtml(product.short_description || "");
 
   return (
     <div>
@@ -68,14 +64,12 @@ export function ProductSummary({
         )}
       </div>
 
-      <h1 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl">
+      <h1 className="mt-5 text-3xl leading-tight font-bold tracking-tight text-slate-950 sm:text-4xl">
         {product.name}
       </h1>
 
       {product.sku ? (
-        <p className="mt-3 text-sm text-slate-500">
-          SKU: {product.sku}
-        </p>
+        <p className="mt-3 text-sm text-slate-500">SKU: {product.sku}</p>
       ) : null}
 
       {shortDescription ? (
@@ -85,17 +79,14 @@ export function ProductSummary({
       ) : null}
 
       <div className="mt-6 border-y border-slate-200 py-6">
-        <p className="text-sm text-slate-500">
-          Giá sản phẩm
-        </p>
+        <p className="text-sm text-slate-500">Giá sản phẩm</p>
 
         <p className="mt-1 text-3xl font-bold text-green-700">
           {formatWooCommercePrice(product.prices)}
         </p>
 
         <p className="mt-2 text-xs text-slate-500">
-          Giá đã bao gồm các khoản phí được hiển thị tại thời điểm
-          đặt hàng.
+          Giá đã bao gồm các khoản phí được hiển thị tại thời điểm đặt hàng.
         </p>
       </div>
 
@@ -128,19 +119,17 @@ export function ProductSummary({
             </p>
 
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              Mã QR eSIM sẽ được gửi sau khi đơn hàng được thanh
-              toán và xử lý thành công.
+              Mã QR eSIM sẽ được gửi sau khi đơn hàng được thanh toán và xử lý
+              thành công.
             </p>
           </div>
         </div>
       </div>
 
       <AddToCartButton
-		  productId={product.id}
-		  disabled={
-			!product.is_in_stock || !product.is_purchasable
-		  }
-		/>
+        productId={product.id}
+        disabled={!product.is_in_stock || !product.is_purchasable}
+      />
 
       <div className="mt-5 flex items-center justify-center gap-2 text-xs text-slate-500">
         <ShieldCheck className="h-4 w-4 text-green-700" />

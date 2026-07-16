@@ -44,7 +44,7 @@ export interface WooCommerceProduct {
   low_stock_remaining: number | null;
   average_rating: string;
   review_count: number;
-  
+
   add_to_cart?: {
     text: string;
     description: string;

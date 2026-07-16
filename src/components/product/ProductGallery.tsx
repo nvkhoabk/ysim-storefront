@@ -7,10 +7,7 @@ interface ProductGalleryProps {
   productName: string;
 }
 
-export function ProductGallery({
-  images,
-  productName,
-}: ProductGalleryProps) {
+export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const primaryImage = images[0];
   const secondaryImages = images.slice(1, 5);
 

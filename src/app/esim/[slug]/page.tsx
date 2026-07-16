@@ -34,10 +34,10 @@ export async function generateMetadata({
   }
 
   const description =
-    stripHtml(
-      product.short_description || product.description || "",
-    ).slice(0, 160) ||
-    `Thông tin và giá gói ${product.name} tại YSim.`;
+    stripHtml(product.short_description || product.description || "").slice(
+      0,
+      160,
+    ) || `Thông tin và giá gói ${product.name} tại YSim.`;
 
   const primaryImage = product.images?.[0]?.src;
 
@@ -63,9 +63,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductPage({
-  params,
-}: ProductPageProps) {
+export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
 
@@ -81,19 +79,13 @@ export default async function ProductPage({
       <main className="bg-white">
         <div className="border-b border-slate-200 bg-slate-50">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-6 py-4 text-sm text-slate-500 lg:px-8">
-            <Link
-              href="/"
-              className="transition hover:text-green-700"
-            >
+            <Link href="/" className="transition hover:text-green-700">
               Trang chủ
             </Link>
 
             <ChevronRight className="h-4 w-4" />
 
-            <Link
-              href="/esim"
-              className="transition hover:text-green-700"
-            >
+            <Link href="/esim" className="transition hover:text-green-700">
               eSIM
             </Link>
 
@@ -152,13 +144,10 @@ export default async function ProductPage({
                 </h2>
 
                 <div className="mt-6">
-                  <ProductAttributes
-                    attributes={product.attributes ?? []}
-                  />
+                  <ProductAttributes attributes={product.attributes ?? []} />
                 </div>
 
-                {product.categories &&
-                product.categories.length > 0 ? (
+                {product.categories && product.categories.length > 0 ? (
                   <div className="mt-7">
                     <p className="text-sm font-semibold text-slate-800">
                       Danh mục

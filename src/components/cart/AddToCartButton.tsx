@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Check,
-  LoaderCircle,
-  ShoppingCart,
-} from "lucide-react";
+import { Check, LoaderCircle, ShoppingCart } from "lucide-react";
 
 import type { WooCommerceCart } from "@/lib/woocommerce/cart-types";
 
@@ -22,9 +18,7 @@ export function AddToCartButton({
     "idle" | "loading" | "success" | "error"
   >("idle");
 
-  const [errorMessage, setErrorMessage] = useState<string | null>(
-    null,
-  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleAddToCart() {
     if (disabled || status === "loading") {
@@ -50,8 +44,7 @@ export function AddToCartButton({
 
       if (!response.ok) {
         throw new Error(
-          responseData.message ||
-            "Không thể thêm sản phẩm vào giỏ hàng.",
+          responseData.message || "Không thể thêm sản phẩm vào giỏ hàng.",
         );
       }
 
@@ -86,11 +79,7 @@ export function AddToCartButton({
       <button
         type="button"
         onClick={handleAddToCart}
-        disabled={
-          disabled ||
-          status === "loading" ||
-          status === "success"
-        }
+        disabled={disabled || status === "loading" || status === "success"}
         className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-700 px-6 text-base font-semibold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-65"
       >
         {status === "loading" ? (
@@ -112,9 +101,7 @@ export function AddToCartButton({
       </button>
 
       {errorMessage ? (
-        <p className="mt-3 text-center text-sm text-red-600">
-          {errorMessage}
-        </p>
+        <p className="mt-3 text-center text-sm text-red-600">{errorMessage}</p>
       ) : null}
     </div>
   );

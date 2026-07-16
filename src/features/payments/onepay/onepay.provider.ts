@@ -7,11 +7,8 @@ import type {
 export const onePayCardProvider: PaymentProvider = {
   id: "onepay_card",
 
-  async createPayment(
-    input: CreatePaymentInput,
-  ): Promise<PaymentSession> {
-    const merchantTransactionId =
-      `ONEPAY-${input.orderId}-${Date.now()}`;
+  async createPayment(input: CreatePaymentInput): Promise<PaymentSession> {
+    const merchantTransactionId = `ONEPAY-${input.orderId}-${Date.now()}`;
 
     /*
      * Chưa có Merchant ID, Access Code, Secure Secret.
@@ -35,8 +32,7 @@ export const onePayCardProvider: PaymentProvider = {
       amount: input.amount,
       currency: input.currency,
 
-      message:
-        "Đang chờ thông tin tích hợp OnePay.",
+      message: "Đang chờ thông tin tích hợp OnePay.",
     };
   },
 };

@@ -32,27 +32,27 @@ export default async function HomePage() {
 
       <main>
         <HeroSection />
-		<PopularDestinations />
-		<HomeValueRow />
-		<HomeGuideSection />
+        <PopularDestinations />
+        <HomeValueRow />
+        <HomeGuideSection />
 
         {catalogError ? (
           <section className="bg-white px-5 py-16 lg:px-8">
             <div className="mx-auto max-w-7xl rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
-              Danh sách sản phẩm đang tạm thời không khả dụng.
-              Vui lòng thử lại sau.
+              Danh sách sản phẩm đang tạm thời không khả dụng. Vui lòng thử lại
+              sau.
             </div>
           </section>
         ) : (
           <FeaturedProducts products={products} />
         )}
 
-		<TestimonialsSection />
-		<TravelGuidesSection />
-		<FooterBenefits />
+        <TestimonialsSection />
+        <TravelGuidesSection />
+        <FooterBenefits />
       </main>
 
-	  <Footer />
+      <Footer />
     </>
   );
 }

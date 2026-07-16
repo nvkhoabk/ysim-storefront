@@ -1,7 +1,4 @@
-export type PaymentProviderId =
-  | "gpay_qr"
-  | "onepay_card"
-  | "cash_agent";
+export type PaymentProviderId = "gpay_qr" | "onepay_card" | "cash_agent";
 
 export type PaymentStatus =
   | "created"
@@ -68,13 +65,9 @@ export interface ConfirmPaymentInput {
 export interface PaymentProvider {
   readonly id: PaymentProviderId;
 
-  createPayment(
-    input: CreatePaymentInput,
-  ): Promise<PaymentSession>;
+  createPayment(input: CreatePaymentInput): Promise<PaymentSession>;
 
-  queryPayment?(
-    session: PaymentSession,
-  ): Promise<PaymentSession>;
+  queryPayment?(session: PaymentSession): Promise<PaymentSession>;
 }
 
 export interface PaymentMethodOption {

@@ -14,8 +14,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         {
-          message:
-            "Thông tin tạo thanh toán không hợp lệ.",
+          message: "Thông tin tạo thanh toán không hợp lệ.",
           issues: parsed.error.flatten(),
         },
         {
@@ -35,10 +34,7 @@ export async function POST(request: Request) {
      * - Lấy amount/currency trực tiếp từ order.
      */
 
-    const session = await createPaymentSession(
-      values.provider,
-      values,
-    );
+    const session = await createPaymentSession(values.provider, values);
 
     return NextResponse.json(session, {
       headers: {

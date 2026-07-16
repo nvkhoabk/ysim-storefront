@@ -1,12 +1,9 @@
 import type { WooCommerceCart } from "./cart-types";
 
-const wooCommerceUrl =
-  process.env.NEXT_PUBLIC_WOOCOMMERCE_URL;
+const wooCommerceUrl = process.env.NEXT_PUBLIC_WOOCOMMERCE_URL;
 
 if (!wooCommerceUrl) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_WOOCOMMERCE_URL environment variable.",
-  );
+  throw new Error("Missing NEXT_PUBLIC_WOOCOMMERCE_URL environment variable.");
 }
 
 const cartApiBaseUrl = `${wooCommerceUrl.replace(
@@ -42,18 +39,12 @@ export async function wooCartApiFetch<T>(
     headers.set("Cart-Token", options.cartToken);
   }
 
-  const response = await fetch(
-    `${cartApiBaseUrl}${normalizedEndpoint}`,
-    {
-      method: options.method ?? "GET",
-      headers,
-      body:
-        options.body !== undefined
-          ? JSON.stringify(options.body)
-          : undefined,
-      cache: "no-store",
-    },
-  );
+  const response = await fetch(`${cartApiBaseUrl}${normalizedEndpoint}`, {
+    method: options.method ?? "GET",
+    headers,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    cache: "no-store",
+  });
 
   const responseText = await response.text();
 

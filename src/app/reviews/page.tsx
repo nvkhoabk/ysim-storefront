@@ -1,9 +1,5 @@
 import Link from "next/link";
-import {
-  ArrowLeft,
-  BadgeCheck,
-  Star,
-} from "lucide-react";
+import { ArrowLeft, BadgeCheck, Star } from "lucide-react";
 
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { Header } from "@/components/layout/Header";
@@ -11,8 +7,7 @@ import { testimonials } from "@/data/testimonials";
 
 export const metadata = {
   title: "Đánh giá khách hàng",
-  description:
-    "Những chia sẻ từ khách hàng đã sử dụng eSIM YSim.",
+  description: "Những chia sẻ từ khách hàng đã sử dụng eSIM YSim.",
 };
 
 export default function ReviewsPage() {
@@ -28,8 +23,8 @@ export default function ReviewsPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl leading-7 text-slate-600">
-            Những trải nghiệm và chia sẻ từ khách hàng đã sử
-            dụng eSIM trong các chuyến đi.
+            Những trải nghiệm và chia sẻ từ khách hàng đã sử dụng eSIM trong các
+            chuyến đi.
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -55,26 +50,22 @@ export default function ReviewsPage() {
                     </div>
 
                     <p className="mt-0.5 text-xs text-slate-500">
-                      {testimonial.destinationFlag}{" "}
-                      {testimonial.destination}
+                      {testimonial.destinationFlag} {testimonial.destination}
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-4 flex gap-0.5">
-                  {Array.from({ length: 5 }).map(
-                    (_, index) => (
-                      <Star
-                        key={index}
-                        className={
-                          index <
-                          testimonial.rating
-                            ? "h-4 w-4 fill-amber-400 text-amber-400"
-                            : "h-4 w-4 text-slate-200"
-                        }
-                      />
-                    ),
-                  )}
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star
+                      key={index}
+                      className={
+                        index < testimonial.rating
+                          ? "h-4 w-4 fill-amber-400 text-amber-400"
+                          : "h-4 w-4 text-slate-200"
+                      }
+                    />
+                  ))}
                 </div>
 
                 <p className="mt-3 text-sm leading-6 text-slate-600">

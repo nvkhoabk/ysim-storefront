@@ -1,10 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ChevronDown,
-  Globe2,
-  Menu,
-} from "lucide-react";
+import { ChevronDown, Globe2, Menu } from "lucide-react";
 
 import { CartButton } from "@/components/cart/CartButton";
 
@@ -42,14 +38,14 @@ export function Header() {
           aria-label="Trang chủ YSim"
           className="flex shrink-0 items-center"
         >
-			<Image
-			  src="/images/brand/ysim-logo.png"
-			  alt="YSim"
-			  width={160}
-			  height={52}
-			  priority
-			  className="h-9 w-auto object-contain"
-			/>
+          <Image
+            src="/images/brand/ysim-logo.png"
+            alt="YSim"
+            width={160}
+            height={52}
+            priority
+            className="h-9 w-auto object-contain"
+          />
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex">
@@ -61,9 +57,7 @@ export function Header() {
             >
               {item.label}
 
-              {item.hasDropdown ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : null}
+              {item.hasDropdown ? <ChevronDown className="h-4 w-4" /> : null}
             </Link>
           ))}
         </nav>
