@@ -61,23 +61,21 @@ export const gpayConfig = {
 
   /**
    * X.509 certificate của Merchant/YSim.
-   *
-   * Certificate này được khai báo trên GPay Developer Portal
-   * và có thể cần được gửi trong header hoặc request metadata
-   * tùy theo đặc tả API chính thức.
+   * Certificate này đã đăng ký trên GPay Developer Portal.
    */
   merchantCertificatePath: requireServerEnv(
     "GPAY_CERTIFICATE_PATH",
   ),
 
   /**
-   * Certificate/public certificate do GPay cung cấp.
-   * Dùng để xác minh chữ ký response hoặc webhook từ GPay.
+   * Certificate do GPay cung cấp để xác minh response/webhook.
+   *
+   * Đây là cấu hình tùy chọn ở thời điểm khởi tạo ứng dụng.
+   * Hàm verify sẽ kiểm tra bắt buộc khi được gọi.
    */
-  gpayVerifyCertificatePath:
-    requireServerEnv(
-      "GPAY_VERIFY_CERTIFICATE_PATH",
-    ),
+  gpayVerifyCertificatePath: optionalServerEnv(
+    "GPAY_VERIFY_CERTIFICATE_PATH",
+  ),
 
   webhookUrl: requireServerEnv(
     "GPAY_QR_WEBHOOK_URL",

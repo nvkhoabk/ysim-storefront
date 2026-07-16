@@ -10,16 +10,35 @@ import { gpayConfig } from "./gpay.config";
 async function readPemFile(
   path: string,
 ): Promise<string> {
+  if (!path.trim()) {
+    throw new Error(
+      "Cannot read PEM file because the configured path is empty.",
+    );
+  }
+
   return readFile(path, "utf8");
+}
+
+function requireGPayVerifyCertificatePath(): string {
+  const path =
+    gpayConfig.gpayVerifyCertificatePath.trim();
+
+  if (!path) {
+    throw new Error(
+      [
+        "Missing environment variable:",
+        "GPAY_VERIFY_CERTIFICATE_PATH.",
+        "This value is required when verifying",
+        "a GPay response or webhook signature.",
+      ].join(" "),
+    );
+  }
+
+  return path;
 }
 
 /**
  * Đọc X.509 certificate của Merchant/YSim.
- *
- * Giá trị trả về vẫn bao gồm:
- * -----BEGIN CERTIFICATE-----
- * ...
- * -----END CERTIFICATE-----
  */
 export async function getMerchantCertificatePem(): Promise<string> {
   return readPemFile(
@@ -28,10 +47,10 @@ export async function getMerchantCertificatePem(): Promise<string> {
 }
 
 /**
- * Trả về certificate YSim ở dạng base64 DER.
+ * Trả về certificate Merchant ở dạng Base64 DER.
  *
- * Chỉ sử dụng hàm này nếu đặc tả GPay yêu cầu
- * x-certificate không bao gồm PEM header/footer.
+ * Chỉ dùng nếu tài liệu GPay yêu cầu header certificate
+ * không gồm PEM header/footer.
  */
 export async function getMerchantCertificateBase64(): Promise<string> {
   const certificatePem =
@@ -69,17 +88,18 @@ export async function signWithMerchantKey(
  * Xác minh chữ ký response/webhook bằng certificate
  * do GPay cung cấp.
  *
- * Node.js có thể sử dụng trực tiếp X.509 certificate PEM
- * trong createVerify().verify().
+ * GPAY_VERIFY_CERTIFICATE_PATH chỉ được yêu cầu
+ * tại thời điểm hàm này thực sự được gọi.
  */
 export async function verifyWithGPayCertificate(
   rawData: string,
   signature: string,
 ): Promise<boolean> {
+  const certificatePath =
+    requireGPayVerifyCertificatePath();
+
   const gpayCertificate =
-    await readPemFile(
-      gpayConfig.gpayVerifyCertificatePath,
-    );
+    await readPemFile(certificatePath);
 
   const verifier = createVerify(
     "RSA-SHA256",
