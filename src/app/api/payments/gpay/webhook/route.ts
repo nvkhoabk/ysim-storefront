@@ -3,10 +3,6 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * Endpoint GET chỉ dùng để kiểm tra khả năng truy cập webhook.
- * GPay thực tế sẽ gửi callback bằng POST.
- */
 export async function GET() {
   return NextResponse.json(
     {
@@ -14,7 +10,8 @@ export async function GET() {
       service: "ysim-gpay-webhook",
       environment:
         process.env.GPAY_ENV ?? "unknown",
-      message: "GPay webhook endpoint is reachable.",
+      message:
+        "GPay webhook endpoint is reachable.",
       timestamp: new Date().toISOString(),
     },
     {
@@ -26,24 +23,17 @@ export async function GET() {
   );
 }
 
-/**
- * Webhook Sandbox ban đầu.
- *
- * Chưa cập nhật trạng thái WooCommerce order ở phiên bản này.
- * Ngày mai ta sẽ bổ sung:
- *
- * 1. Đọc raw request body.
- * 2. Xác minh chữ ký GPay.
- * 3. Đối chiếu request_id/bill_id/order.
- * 4. Đối chiếu số tiền và merchant.
- * 5. Chống xử lý callback lặp lại.
- * 6. Cập nhật WooCommerce order.
- */
 export async function POST(request: Request) {
   try {
+    /*
+     * Phải đọc raw body trước khi JSON.parse.
+     *
+     * Sau này rawBody sẽ được dùng để xác minh chữ ký nếu
+     * GPay ký trực tiếp trên request body.
+     */
     const rawBody = await request.text();
 
-    let payload: unknown = rawBody;
+    let payload: unknown = null;
 
     if (rawBody) {
       try {
@@ -53,23 +43,59 @@ export async function POST(request: Request) {
       }
     }
 
-    /*
-     * Chỉ log metadata cơ bản trong Sandbox.
-     * Không log Authorization, secret hoặc private key.
-     */
-    console.info("GPay webhook received", {
+    const webhookMetadata = {
       receivedAt: new Date().toISOString(),
+
+      method: request.method,
+
       contentType:
         request.headers.get("content-type"),
+
       userAgent:
         request.headers.get("user-agent"),
+
+      forwardedFor:
+        request.headers.get("x-forwarded-for"),
+
+      realIp:
+        request.headers.get("x-real-ip"),
+
+      /*
+       * Chỉ ghi nhận tên header, chưa log giá trị chữ ký hoặc
+       * token đầy đủ để tránh lộ dữ liệu xác thực.
+       */
+      hasSignature: Boolean(
+        request.headers.get("signature"),
+      ),
+
+      hasCertificate: Boolean(
+        request.headers.get("x-certificate"),
+      ),
+
+      requestId:
+        request.headers.get("x-requests-id") ??
+        request.headers.get("x-request-id"),
+
+      timestamp:
+        request.headers.get("x-timestamp"),
+
       payload,
-    });
+    };
+
+    console.info(
+      "GPay webhook received",
+      webhookMetadata,
+    );
 
     /*
-     * Tạm trả HTTP 200 để xác nhận hệ thống đã nhận request.
-     * Không coi đây là giao dịch hợp lệ cho tới khi chữ ký
-     * và dữ liệu được xác minh đầy đủ.
+     * Giai đoạn này chỉ xác nhận endpoint đã nhận request.
+     *
+     * Chưa cập nhật trạng thái WooCommerce vì chưa thực hiện:
+     * - xác minh chữ ký;
+     * - đối chiếu merchant;
+     * - đối chiếu order;
+     * - đối chiếu số tiền;
+     * - kiểm tra giao dịch trùng.
      */
     return NextResponse.json(
       {
@@ -97,6 +123,9 @@ export async function POST(request: Request) {
       },
       {
         status: 500,
+        headers: {
+          "Cache-Control": "no-store",
+        },
       },
     );
   }
