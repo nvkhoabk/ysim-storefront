@@ -51,7 +51,16 @@ export interface LocalizedProduct {
   attributes: ProductAttribute[];
 }
 
+export interface ProductLookup {
+  type: "slug";
+  requestedSlug: string;
+  sourceProductId: number;
+  sourceLocale: LocaleCode;
+}
+
 export interface ProductResolverResponse {
+  lookup?: ProductLookup;
+
   familyId: number;
   familyCode: string;
 

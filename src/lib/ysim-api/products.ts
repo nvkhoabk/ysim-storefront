@@ -59,9 +59,11 @@ function createProductQueryString(
     );
   }
 
-  const value = params.toString();
+  const queryString = params.toString();
 
-  return value ? `?${value}` : "";
+  return queryString
+    ? `?${queryString}`
+    : "";
 }
 
 /**
@@ -85,10 +87,7 @@ export async function getLocalizedProducts(
 }
 
 /**
- * Resolve một product theo Family Code và locale.
- *
- * Endpoint này sẽ được dùng khi chuyển Product Detail
- * sang hệ thống localization ở milestone sau.
+ * Resolve một product theo Family Code.
  */
 export async function getLocalizedProduct(
   familyCode: string,
@@ -109,6 +108,50 @@ export async function getLocalizedProduct(
     return await api.get<ProductResolverResponse>(
       `/products/${encodeURIComponent(
         normalizedFamilyCode,
+      )}?${params.toString()}`,
+      {
+        cache: "force-cache",
+        next: {
+          revalidate: 60,
+        },
+      },
+    );
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      error.status === 404
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Resolve localized product từ slug SEO hiện tại.
+ *
+ * Slug có thể thuộc bất kỳ localized product nào trong family.
+ * Backend sẽ tìm family rồi resolve sang locale yêu cầu.
+ */
+export async function getLocalizedProductBySlug(
+  slug: string,
+  locale = "vi",
+): Promise<ProductResolverResponse | null> {
+  const normalizedSlug = slug.trim();
+
+  if (!normalizedSlug) {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    locale,
+  });
+
+  try {
+    return await api.get<ProductResolverResponse>(
+      `/products/by-slug/${encodeURIComponent(
+        normalizedSlug,
       )}?${params.toString()}`,
       {
         cache: "force-cache",

@@ -4,12 +4,9 @@ import type {
 } from "@/lib/models/product";
 
 import {
+  getLocalizedProductBySlug,
   getLocalizedProducts,
 } from "@/lib/ysim-api/products";
-
-import {
-  storeApiFetch,
-} from "./store-api";
 
 import type {
   WooCommerceImage,
@@ -25,29 +22,26 @@ interface GetProductsOptions {
   search?: string;
   category?: string;
 
-  /**
-   * Các tùy chọn mới dành cho YSim Localization API.
-   */
   locale?: string;
   destination?: string;
   featured?: boolean;
 }
 
 /**
- * Chuyển giá dạng decimal của WooCommerce CRUD:
+ * Chuyển giá decimal thành minor units.
  *
- * 169000 VND
- * 12.99 USD
- *
- * sang định dạng minor-unit mà UI hiện tại đang sử dụng:
- *
- * 169000 với VND decimals = 0
- * 1299 với USD decimals = 2
+ * Ví dụ:
+ * VND 169000, decimals 0 => 169000
+ * USD 12.99, decimals 2 => 1299
  */
 function convertPriceToMinorUnits(
   value: string,
   decimals: number,
 ): string {
+  if (!value) {
+    return "";
+  }
+
   const numericValue = Number(value);
 
   if (!Number.isFinite(numericValue)) {
@@ -89,10 +83,7 @@ function createWooCommercePrice(
     ),
 
     currency_code: product.currency,
-
-    currency_symbol:
-      product.currencySymbol,
-
+    currency_symbol: product.currencySymbol,
     currency_minor_unit: decimals,
 
     currency_decimal_separator:
@@ -142,10 +133,6 @@ function createWooCommerceImages(
   }
 
   for (const galleryImage of product.gallery) {
-    /*
-     * Tránh lặp lại ảnh đại diện nếu backend vô tình
-     * đưa cùng attachment vào gallery.
-     */
     if (
       primaryImage &&
       galleryImage.id === primaryImage.id
@@ -181,6 +168,15 @@ function createWooCommerceCategories(
   );
 }
 
+function normalizeAttributeSlug(
+  value: string,
+): string {
+  return value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/\s+/g, "-");
+}
+
 function createWooCommerceAttributes(
   product: LocalizedProduct,
 ): WooCommerceProductAttribute[] {
@@ -196,10 +192,7 @@ function createWooCommerceAttributes(
         (option, optionIndex) => ({
           id: optionIndex + 1,
           name: option,
-          slug: option
-            .trim()
-            .toLocaleLowerCase()
-            .replace(/\s+/g, "-"),
+          slug: normalizeAttributeSlug(option),
         }),
       ),
     }),
@@ -209,8 +202,7 @@ function createWooCommerceAttributes(
 /**
  * Adapter LocalizedProduct → WooCommerceProduct.
  *
- * Nhờ adapter này, các component hiện tại như
- * FeaturedProducts và ProductSummary chưa cần sửa.
+ * Giữ nguyên interface mà UI hiện tại đang dùng.
  */
 function adaptLocalizedProduct(
   resolved: ProductResolverResponse,
@@ -277,7 +269,7 @@ function adaptLocalizedProduct(
 }
 
 /**
- * Lấy Product Listing từ YSim Localization API.
+ * Product Listing từ Localization API.
  */
 export async function getProducts(
   options: GetProductsOptions = {},
@@ -312,38 +304,21 @@ export async function getProducts(
 }
 
 /**
- * Product Detail theo slug vẫn sử dụng WooCommerce Store API.
- *
- * Milestone kế tiếp sẽ chuyển detail sang Family Code resolver.
+ * Product Detail từ Localization API theo slug SEO.
  */
 export async function getProductBySlug(
   slug: string,
+  locale = "vi",
 ): Promise<WooCommerceProduct | null> {
-  try {
-    return await storeApiFetch<WooCommerceProduct>(
-      `/products/${encodeURIComponent(slug)}`,
-      {
-        revalidate: 300,
-      },
+  const resolved =
+    await getLocalizedProductBySlug(
+      slug,
+      locale,
     );
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : String(error);
 
-    if (
-      message.includes("404") ||
-      message.includes(
-        "woocommerce_rest_product_invalid_slug",
-      ) ||
-      message.includes(
-        "woocommerce_rest_product_invalid_id",
-      )
-    ) {
-      return null;
-    }
-
-    throw error;
+  if (!resolved) {
+    return null;
   }
+
+  return adaptLocalizedProduct(resolved);
 }
