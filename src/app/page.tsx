@@ -19,10 +19,11 @@ export default async function HomePage() {
   try {
     products = await getProducts({
       perPage: 8,
+      locale: "vi",
     });
   } catch (error) {
     catalogError = true;
-    console.error("Cannot load WooCommerce products:", error);
+    console.error("Cannot load localized products:", error);
   }
 
   return (
