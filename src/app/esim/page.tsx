@@ -1,58 +1,63 @@
-import { FeaturedProducts } from "@/components/home/FeaturedProducts";
-import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
-import { Header } from "@/components/layout/Header";
-import { getProducts } from "@/lib/woocommerce/products";
-import type { WooCommerceProduct } from "@/lib/woocommerce/types";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Danh sách eSIM",
+import {
+  EsimPackageAssistantBanner,
+} from "@/components/esim/EsimPackageAssistantBanner";
+
+import {
+  EsimCatalogShell,
+} from "@/components/esim/catalog";
+
+import {
+  AnnouncementBar,
+} from "@/components/layout/AnnouncementBar";
+
+import {
+  Header,
+} from "@/components/layout/Header";
+
+import {
+  FooterBenefits,
+} from "@/components/layout/FooterBenefits";
+
+import {
+  Footer,
+} from "@/components/layout/footer/Footer";
+
+import {
+  SiteContainer,
+} from "@/components/layout/primitives";
+
+export const metadata: Metadata = {
+  title: "eSIM du lịch quốc tế",
   description:
-    "Khám phá các gói eSIM du lịch quốc tế phù hợp với hành trình của bạn.",
+    "Khám phá eSIM theo quốc gia, khu vực và toàn cầu cho hơn 200 quốc gia và vùng lãnh thổ.",
 };
 
-export default async function ESimPage() {
-  let products: WooCommerceProduct[] = [];
-  let hasError = false;
-
-  try {
-    products = await getProducts({
-      perPage: 24,
-    });
-  } catch (error) {
-    hasError = true;
-    console.error("Cannot load WooCommerce products:", error);
-  }
-
+export default function EsimPage() {
   return (
     <>
       <AnnouncementBar />
+
       <Header />
 
-      <main>
-        <section className="bg-gradient-to-r from-green-50 to-sky-50 px-6 py-12 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <p className="text-sm font-semibold text-green-700">YSim Store</p>
-
-            <h1 className="mt-2 text-3xl font-bold text-slate-950 sm:text-4xl">
-              eSIM du lịch quốc tế
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-              Chọn gói data phù hợp với điểm đến và thời gian của chuyến đi.
-            </p>
-          </div>
+      <main className="bg-slate-50">
+        <section className="py-5 sm:py-7">
+          <SiteContainer size="wide">
+            <EsimCatalogShell />
+          </SiteContainer>
         </section>
 
-        {hasError ? (
-          <section className="px-6 py-12 lg:px-8">
-            <div className="mx-auto max-w-7xl rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
-              Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.
-            </div>
-          </section>
-        ) : (
-          <FeaturedProducts products={products} />
-        )}
+        <section className="pb-8 sm:pb-10">
+          <SiteContainer size="wide">
+            <EsimPackageAssistantBanner />
+          </SiteContainer>
+        </section>
+
+        <FooterBenefits />
       </main>
+
+      <Footer />
     </>
   );
 }

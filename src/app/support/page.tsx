@@ -3,8 +3,8 @@ import type {
 } from "next";
 
 import {
-  DestinationPage,
-} from "@/components/destination";
+  SupportPage,
+} from "@/components/support";
 
 import {
   AnnouncementBar,
@@ -23,20 +23,19 @@ import {
 } from "@/components/layout/footer/Footer";
 
 export const metadata: Metadata = {
-  title:
-    "Điểm đến eSIM quốc tế | YSim",
+  title: "Hỗ trợ khách hàng | YSim",
   description:
-    "Khám phá eSIM cho hơn 200 quốc gia và vùng lãnh thổ. Tìm kiếm, so sánh thời hạn, dung lượng và giá gói eSIM phù hợp cho chuyến đi của bạn.",
+    "Tìm hướng dẫn, câu hỏi thường gặp và các kênh hỗ trợ khách hàng YSim 24/7.",
 };
 
-export default function DestinationsPage() {
+export default function SupportRoutePage() {
   return (
     <>
       <AnnouncementBar />
 
       <Header />
 
-      <DestinationPage />
+      <SupportPage />
 
       <FooterBenefits />
 
