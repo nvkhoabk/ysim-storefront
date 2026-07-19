@@ -7,3 +7,6 @@ export * from "./providers";
 export * from "./service";
 
 export * from "./bootstrap";
+
+export * from "./adapters/gpay";
+
