@@ -1,12 +1,18 @@
 import type { PaymentProvider, PaymentProviderId } from "./payment.types";
 
-import { gpayQrProvider } from "./gpay/gpay.provider";
-import { onePayCardProvider } from "./onepay/onepay.provider";
 import { cashAgentProvider } from "./cash/cash.provider";
+import {
+  gpayGatewayAllProvider,
+  gpayGatewayAtmProvider,
+  gpayGatewayCardProvider,
+  gpayGatewayQrProvider,
+} from "./gpay/gpay.provider";
 
 const providerRegistry: Record<PaymentProviderId, PaymentProvider> = {
-  gpay_qr: gpayQrProvider,
-  onepay_card: onePayCardProvider,
+  gpay_gateway_all: gpayGatewayAllProvider,
+  gpay_gateway_card: gpayGatewayCardProvider,
+  gpay_gateway_atm: gpayGatewayAtmProvider,
+  gpay_gateway_qr: gpayGatewayQrProvider,
   cash_agent: cashAgentProvider,
 };
 

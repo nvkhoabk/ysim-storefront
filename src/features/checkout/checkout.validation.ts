@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { paymentProviderIdSchema } from "@/features/payments/payment.validation";
+
 export const checkoutFormSchema = z
   .object({
     fullName: z.string().trim().min(2, "Vui lòng nhập họ và tên.").max(100),
@@ -19,7 +21,7 @@ export const checkoutFormSchema = z
       z.string().trim().email("Email người nhận không hợp lệ."),
     ]),
 
-    paymentMethod: z.enum(["gpay_qr", "onepay_card", "cash_agent"]),
+    paymentMethod: paymentProviderIdSchema,
 
     customerNote: z.string().trim().max(500),
 

@@ -12,6 +12,7 @@ import { formatWooCommercePrice } from "@/lib/currency";
 import { stripHtml } from "@/lib/html";
 import type { WooCommerceProduct } from "@/lib/woocommerce/types";
 import { AddToCartButton } from "@/components/cart/AddToCartButton";
+import { VariableProductPurchase } from "@/components/product/VariableProductPurchase";
 
 interface ProductSummaryProps {
   product: WooCommerceProduct;
@@ -78,17 +79,17 @@ export function ProductSummary({ product }: ProductSummaryProps) {
         </p>
       ) : null}
 
-      <div className="mt-6 border-y border-slate-200 py-6">
-        <p className="text-sm text-slate-500">Giá sản phẩm</p>
-
-        <p className="mt-1 text-3xl font-bold text-green-700">
-          {formatWooCommercePrice(product.prices)}
-        </p>
-
-        <p className="mt-2 text-xs text-slate-500">
-          Giá đã bao gồm các khoản phí được hiển thị tại thời điểm đặt hàng.
-        </p>
-      </div>
+      {product.type !== "variable" ? (
+        <div className="mt-6 border-y border-slate-200 py-6">
+          <p className="text-sm text-slate-500">Giá sản phẩm</p>
+          <p className="mt-1 text-3xl font-bold text-green-700">
+            {formatWooCommercePrice(product.prices)}
+          </p>
+          <p className="mt-2 text-xs text-slate-500">
+            Giá đã bao gồm các khoản phí được hiển thị tại thời điểm đặt hàng.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {serviceBenefits.map((benefit) => {
@@ -126,10 +127,14 @@ export function ProductSummary({ product }: ProductSummaryProps) {
         </div>
       </div>
 
-      <AddToCartButton
-        productId={product.id}
-        disabled={!product.is_in_stock || !product.is_purchasable}
-      />
+      {product.type === "variable" ? (
+        <VariableProductPurchase product={product} />
+      ) : (
+        <AddToCartButton
+          productId={product.id}
+          disabled={!product.is_in_stock || !product.is_purchasable}
+        />
+      )}
 
       <div className="mt-5 flex items-center justify-center gap-2 text-xs text-slate-500">
         <ShieldCheck className="h-4 w-4 text-green-700" />

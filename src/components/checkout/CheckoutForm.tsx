@@ -95,7 +95,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
       recipientName: "",
       recipientEmail: "",
 
-      paymentMethod: paymentMethods[0]?.id ?? "gpay_qr",
+      paymentMethod: paymentMethods[0]?.id ?? "gpay_gateway_all",
 
       customerNote: "",
       acceptTerms: false,
@@ -199,10 +199,27 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
       const paymentSession = paymentData as PaymentSession;
 
-      /*
-       * OnePay sau này sẽ trả redirectUrl.
-       */
       if (paymentSession.redirectUrl) {
+        if (
+          paymentSession.provider.startsWith("gpay_gateway_") &&
+          paymentSession.providerBillId
+        ) {
+          sessionStorage.setItem(
+            "ysim:gpay:pending-payment",
+            JSON.stringify({
+              orderId: paymentSession.orderId,
+              orderNumber: paymentSession.orderNumber,
+              orderKey: checkout.order_key,
+              provider: paymentSession.provider,
+              gpayBillId: paymentSession.providerBillId,
+              merchantOrderId: paymentSession.merchantTransactionId,
+              billUrl: paymentSession.redirectUrl,
+              expiresAt: paymentSession.expiresAt,
+              createdAt: new Date().toISOString(),
+            }),
+          );
+        }
+
         window.location.assign(paymentSession.redirectUrl);
 
         return;

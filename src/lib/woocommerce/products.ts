@@ -14,6 +14,7 @@ import type {
   WooCommerceProduct,
   WooCommerceProductAttribute,
   WooCommerceProductCategory,
+  WooCommerceProductVariation,
 } from "./types";
 
 interface GetProductsOptions {
@@ -186,17 +187,45 @@ function createWooCommerceAttributes(
       name: attribute.name,
       taxonomy:
         attribute.slug || null,
-      has_variations: false,
+      has_variations: attribute.hasVariations,
 
       terms: attribute.options.map(
         (option, optionIndex) => ({
           id: optionIndex + 1,
-          name: option,
-          slug: normalizeAttributeSlug(option),
+          name: option.name,
+          slug: option.value || normalizeAttributeSlug(option.name),
+          default: product.defaultAttributes?.[attribute.slug] === option.value,
         }),
       ),
     }),
   );
+}
+
+
+function createWooCommerceVariations(
+  product: LocalizedProduct,
+): WooCommerceProductVariation[] {
+  return product.variations.map((variation) => ({
+    id: variation.id,
+    sku: variation.sku,
+    prices: {
+      price: convertPriceToMinorUnits(variation.price, variation.currencyDecimals),
+      regular_price: convertPriceToMinorUnits(variation.regularPrice, variation.currencyDecimals),
+      sale_price: convertPriceToMinorUnits(variation.salePrice, variation.currencyDecimals),
+      currency_code: variation.currency,
+      currency_symbol: variation.currencySymbol,
+      currency_minor_unit: variation.currencyDecimals,
+      currency_decimal_separator: variation.currencyDecimals > 0 ? "." : "",
+      currency_thousand_separator: ",",
+      currency_prefix: variation.currencySymbol,
+      currency_suffix: "",
+    },
+    image: createWooCommerceImage(variation.image, product.name),
+    description: variation.description,
+    is_purchasable: variation.purchasable,
+    is_in_stock: variation.inStock,
+    attributes: variation.attributes,
+  }));
 }
 
 /**
@@ -244,6 +273,12 @@ function adaptLocalizedProduct(
 
     attributes:
       createWooCommerceAttributes(product),
+
+    variations:
+      createWooCommerceVariations(product),
+
+    default_attributes:
+      product.defaultAttributes,
 
     is_purchasable:
       product.purchasable,

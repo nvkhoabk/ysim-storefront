@@ -1,7 +1,15 @@
 import { z } from "zod";
 
+export const paymentProviderIdSchema = z.enum([
+  "gpay_gateway_all",
+  "gpay_gateway_card",
+  "gpay_gateway_atm",
+  "gpay_gateway_qr",
+  "cash_agent",
+]);
+
 export const createPaymentSchema = z.object({
-  provider: z.enum(["gpay_qr", "onepay_card", "cash_agent"]),
+  provider: paymentProviderIdSchema,
 
   orderId: z.number().int().positive(),
   orderNumber: z.string().trim().min(1),

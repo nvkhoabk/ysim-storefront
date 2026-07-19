@@ -21,6 +21,39 @@ export interface WooCommerceImage {
   alt: string;
 }
 
+export interface WooCommerceProductAttributeTerm {
+  id: number;
+  name: string;
+  slug: string;
+  default?: boolean;
+}
+
+export interface WooCommerceProductAttribute {
+  id: number;
+  name: string;
+  taxonomy: string | null;
+  has_variations: boolean;
+  terms: WooCommerceProductAttributeTerm[];
+}
+
+export interface WooCommerceVariationAttribute {
+  name: string;
+  slug: string;
+  value: string;
+  label: string;
+}
+
+export interface WooCommerceProductVariation {
+  id: number;
+  sku: string;
+  prices: WooCommercePrice;
+  image: WooCommerceImage | null;
+  description: string;
+  is_purchasable: boolean;
+  is_in_stock: boolean;
+  attributes: WooCommerceVariationAttribute[];
+}
+
 export interface WooCommerceProduct {
   id: number;
   name: string;
@@ -39,12 +72,13 @@ export interface WooCommerceProduct {
   categories?: WooCommerceProductCategory[];
   tags?: WooCommerceProductTag[];
   attributes?: WooCommerceProductAttribute[];
+  variations?: WooCommerceProductVariation[];
+  default_attributes?: Record<string, string>;
   is_purchasable: boolean;
   is_in_stock: boolean;
   low_stock_remaining: number | null;
   average_rating: string;
   review_count: number;
-
   add_to_cart?: {
     text: string;
     description: string;
@@ -67,19 +101,4 @@ export interface WooCommerceProductTag {
   name: string;
   slug: string;
   link?: string;
-}
-
-export interface WooCommerceProductAttributeTerm {
-  id: number;
-  name: string;
-  slug: string;
-  default?: boolean;
-}
-
-export interface WooCommerceProductAttribute {
-  id: number;
-  name: string;
-  taxonomy: string | null;
-  has_variations: boolean;
-  terms: WooCommerceProductAttributeTerm[];
 }

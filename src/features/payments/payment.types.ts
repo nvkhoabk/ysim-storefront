@@ -1,4 +1,9 @@
-export type PaymentProviderId = "gpay_qr" | "onepay_card" | "cash_agent";
+export type PaymentProviderId =
+  | "gpay_gateway_all"
+  | "gpay_gateway_card"
+  | "gpay_gateway_atm"
+  | "gpay_gateway_qr"
+  | "cash_agent";
 
 export type PaymentStatus =
   | "created"
@@ -43,6 +48,7 @@ export interface PaymentSession {
 
   merchantTransactionId: string;
   providerTransactionId?: string;
+  providerBillId?: string;
 
   amount: number;
   currency: string;
