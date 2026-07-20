@@ -1,9 +1,19 @@
-import { GPayReturnClient } from "@/components/payment/GPayReturnClient";
-import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
-import { Header } from "@/components/layout/Header";
+import {
+  GPayReturnClient,
+} from "@/components/payment/GPayReturnClient";
+
+import {
+  AnnouncementBar,
+} from "@/components/layout/AnnouncementBar";
+
+import {
+  Header,
+} from "@/components/layout/Header";
 
 export const metadata = {
-  title: "Kết quả thanh toán GPay",
+  title:
+    "Kết quả thanh toán GPay",
+
   robots: {
     index: false,
     follow: false,
