@@ -3,6 +3,7 @@ import {
 } from "@/components/support/refactor/integration";
 
 import {
+  createProductionSupportRouteAdapterFromEnvironment,
   loadSupportRouteCandidate,
 } from "@/lib/storefront/integration/support";
 
@@ -22,8 +23,13 @@ export const dynamic =
   "force-dynamic";
 
 export default async function SupportRouteCandidatePreviewPage() {
+  const productionAdapter =
+    createProductionSupportRouteAdapterFromEnvironment();
+
   const candidate =
-    await loadSupportRouteCandidate();
+    await loadSupportRouteCandidate({
+      productionAdapter,
+    });
 
   return (
     <SupportRouteCandidatePage
