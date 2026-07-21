@@ -1,45 +1,70 @@
-import type {
-  Metadata,
-} from "next";
+/* YSIM_PACKAGE_24_ACTIVATION:support */
+import LegacySupportPage from "./legacy-page";
 
 import {
-  SupportPage,
-} from "@/components/support";
+  SupportPageComposition,
+} from "@/components/support/refactor";
 
 import {
-  AnnouncementBar,
-} from "@/components/layout/AnnouncementBar";
+  SupportRouteCandidatePage,
+} from "@/components/support/refactor/integration";
 
 import {
-  Header,
-} from "@/components/layout/Header";
+  createProductionSupportRouteAdapterFromEnvironment,
+  loadSupportRouteCandidate,
+} from "@/lib/storefront/integration/support";
 
 import {
-  FooterBenefits,
-} from "@/components/layout/FooterBenefits";
+  getProductionRouteMode,
+} from "@/lib/storefront/integration/route-flags";
 
-import {
-  Footer,
-} from "@/components/layout/footer/Footer";
+export { metadata } from "./legacy-page";
 
-export const metadata: Metadata = {
-  title: "Hỗ trợ khách hàng | YSim",
-  description:
-    "Tìm hướng dẫn, câu hỏi thường gặp và các kênh hỗ trợ khách hàng YSim 24/7.",
-};
+export default async function SupportPage(
+  props: any,
+) {
+  const mode =
+    getProductionRouteMode(
+      "support",
+    );
 
-export default function SupportRoutePage() {
+  if (
+    mode ===
+    "legacy"
+  ) {
+    return (
+      <LegacySupportPage
+        {...props}
+      />
+    );
+  }
+
+  const productionAdapter =
+    createProductionSupportRouteAdapterFromEnvironment();
+
+  const candidate =
+    await loadSupportRouteCandidate({
+      productionAdapter,
+    });
+
+  if (
+    mode ===
+    "candidate"
+  ) {
+    return (
+      <SupportRouteCandidatePage
+        candidate={
+          candidate
+        }
+      />
+    );
+  }
+
   return (
-    <>
-      <AnnouncementBar />
-
-      <Header />
-
-      <SupportPage />
-
-      <FooterBenefits />
-
-      <Footer />
-    </>
+    <SupportPageComposition
+      page={
+        candidate.page
+      }
+    />
   );
 }
