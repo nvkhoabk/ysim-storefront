@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" role="img" aria-labelledby="title desc">
+  <title id="title">KOREA eSIM illustration</title>
+  <desc id="desc">YSim product preview illustration.</desc>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#edf6ff"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="520" rx="36" fill="url(#g)"/>
+  <circle cx="665" cy="100" r="72" fill="#7db6ff" opacity=".28"/>
+  <circle cx="120" cy="430" r="110" fill="#2fa66a" opacity=".14"/>
+  <path d="M80 365 C205 285 315 350 445 250 C565 160 680 210 760 135" fill="none" stroke="#178653" stroke-width="10" stroke-linecap="round" opacity=".32"/>
+  <circle cx="450" cy="250" r="15" fill="#178653"/>
+  <circle cx="620" cy="195" r="15" fill="#7db6ff"/>
+  <g transform="translate(250 65)">
+    <rect x="0" y="0" width="265" height="385" rx="48" fill="#05281b"/>
+    <rect x="16" y="18" width="233" height="349" rx="34" fill="#ffffff"/>
+    <rect x="88" y="30" width="90" height="10" rx="5" fill="#dfe8e2"/>
+    <circle cx="132.5" cy="155" r="62" fill="#effaf4"/>
+    <path d="M105 156c0-18 12-32 28-32s28 14 28 32c0 31-28 54-28 54s-28-23-28-54Z" fill="#178653"/>
+    <circle cx="133" cy="154" r="12" fill="#ffffff"/>
+    <rect x="54" y="246" width="158" height="36" rx="18" fill="#dcf5e7"/>
+    <text x="133" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f6b43">eSIM READY</text>
+    <rect x="58" y="305" width="150" height="30" rx="15" fill="#7db6ff" opacity=".78"/>
+  </g>
+  <rect x="72" y="70" width="140" height="58" rx="20" fill="#ffffff" opacity=".95"/>
+  <text x="142" y="107" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="3" fill="#0f6b43">KOREA</text>
+  <circle cx="690" cy="405" r="55" fill="#ffffff" opacity=".95"/>
+  <text x="690" y="416" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#0f6b43">KR</text>
+</svg>
