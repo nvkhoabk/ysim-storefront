@@ -3,6 +3,7 @@ import {
 } from "@/components/home/refactor/integration";
 
 import {
+  createProductionHomeRouteAdapterFromEnvironment,
   loadHomeRouteCandidate,
 } from "@/lib/storefront/integration/home";
 
@@ -22,8 +23,13 @@ export const dynamic =
   "force-dynamic";
 
 export default async function HomeRouteCandidatePreviewPage() {
+  const productionAdapter =
+    createProductionHomeRouteAdapterFromEnvironment();
+
   const candidate =
-    await loadHomeRouteCandidate();
+    await loadHomeRouteCandidate({
+      productionAdapter,
+    });
 
   return (
     <HomeRouteCandidatePage

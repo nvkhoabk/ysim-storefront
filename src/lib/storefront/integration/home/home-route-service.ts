@@ -39,6 +39,11 @@ export async function loadHomeRouteCandidate(
       .adapter
       .load();
 
+  const diagnostics =
+    runtime.adapter
+      .getDiagnostics?.() ||
+    [];
+
   const warnings: string[] = [
     "Production route / is unchanged.",
     "Legacy Home remains the rollback path.",
@@ -49,7 +54,19 @@ export async function loadHomeRouteCandidate(
     "fixture"
   ) {
     warnings.push(
-      "Candidate currently uses reviewed fixture data, not production adapters.",
+      "Candidate currently uses reviewed fixture data.",
+    );
+  }
+
+  if (
+    diagnostics.some(
+      (item) =>
+        item.status ===
+        "fallback",
+    )
+  ) {
+    warnings.push(
+      "Một hoặc nhiều production sources đang fallback; xem diagnostics.",
     );
   }
 
@@ -85,6 +102,8 @@ export async function loadHomeRouteCandidate(
       "YSIM_HOME_DATA_SOURCE",
 
     warnings,
+
+    diagnostics,
 
     page,
   };

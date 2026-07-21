@@ -8,6 +8,14 @@ import {
 } from "@/config/storefront-home-preview";
 
 import {
+  productionHomeGuideSection,
+} from "@/config/storefront-production-home";
+
+import {
+  contentPreviewArticles,
+} from "@/config/storefront-content-preview";
+
+import {
   heroSearchPreviewItems,
   homeHero,
 } from "@/config/storefront-heroes";
@@ -50,9 +58,56 @@ export function createFixtureHomeRouteAdapter():
         products:
           homePreviewProducts,
 
-        content:
-          storefrontHomeContent,
+        guides:
+          contentPreviewArticles.slice(
+            0,
+            3,
+          ),
+
+        content: {
+          ...storefrontHomeContent,
+
+          guideSection:
+            productionHomeGuideSection,
+        },
       };
+    },
+
+    getDiagnostics() {
+      return [
+        {
+          domain:
+            "commerce" as const,
+
+          label:
+            "WooCommerce",
+
+          status:
+            "skipped" as const,
+
+          statusLabel:
+            "Fixture",
+
+          message:
+            "Destination và Product đang dùng fixture đã review.",
+        },
+        {
+          domain:
+            "content" as const,
+
+          label:
+            "WordPress",
+
+          status:
+            "skipped" as const,
+
+          statusLabel:
+            "Fixture",
+
+          message:
+            "Guide đang dùng fixture đã review.",
+        },
+      ];
     },
   };
 }

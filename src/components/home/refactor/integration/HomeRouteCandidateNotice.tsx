@@ -6,8 +6,31 @@ import {
 } from "lucide-react";
 
 import type {
+  HomeProductionDiagnosticStatus,
+} from "@/types/view-models/home-production";
+
+import type {
   HomeRouteCandidateViewModel,
 } from "@/types/view-models/home-route-candidate";
+
+import {
+  cn,
+} from "@/lib/ui/cn";
+
+const diagnosticClass:
+  Record<
+    HomeProductionDiagnosticStatus,
+    string
+  > = {
+    live:
+      "bg-emerald-50 text-emerald-800",
+
+    fallback:
+      "bg-amber-50 text-amber-900",
+
+    skipped:
+      "bg-slate-100 text-slate-700",
+  };
 
 export function HomeRouteCandidateNotice({
   candidate,
@@ -16,7 +39,7 @@ export function HomeRouteCandidateNotice({
     HomeRouteCandidateViewModel;
 }) {
   return (
-    <aside className="fixed bottom-4 right-4 z-[70] w-[min(24rem,calc(100vw-2rem))] rounded-[var(--ysim-radius-xl)] border border-[var(--ysim-color-brand-200)] bg-white/95 p-4 shadow-[var(--ysim-shadow-lg)] backdrop-blur">
+    <aside className="fixed bottom-4 right-4 z-[70] max-h-[calc(100vh-2rem)] w-[min(25rem,calc(100vw-2rem))] overflow-y-auto rounded-[var(--ysim-radius-xl)] border border-[var(--ysim-color-brand-200)] bg-white/95 p-4 shadow-[var(--ysim-shadow-lg)] backdrop-blur">
       <div className="flex items-start gap-3">
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--ysim-radius-md)] bg-[var(--ysim-color-brand-50)] text-[var(--ysim-color-brand-700)]">
           <Home className="h-5 w-5" />
@@ -28,7 +51,7 @@ export function HomeRouteCandidateNotice({
           </p>
 
           <h2 className="mt-1 font-bold text-[var(--ysim-color-text)]">
-            Safe preview mode
+            Adapter diagnostics
           </h2>
         </div>
       </div>
@@ -62,6 +85,50 @@ export function HomeRouteCandidateNotice({
           </dd>
         </div>
       </dl>
+
+      {candidate.diagnostics
+        .length >
+      0 ? (
+        <div className="mt-3 space-y-2">
+          {candidate.diagnostics.map(
+            (item) => (
+              <div
+                key={
+                  item.domain
+                }
+                className="rounded-[var(--ysim-radius-md)] border border-[var(--ysim-color-border)] p-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <strong className="text-xs text-[var(--ysim-color-text)]">
+                    {
+                      item.label
+                    }
+                  </strong>
+
+                  <span
+                    className={cn(
+                      "rounded-[var(--ysim-radius-pill)] px-2 py-1 text-[10px] font-bold",
+                      diagnosticClass[
+                        item.status
+                      ],
+                    )}
+                  >
+                    {
+                      item.statusLabel
+                    }
+                  </span>
+                </div>
+
+                <p className="mt-2 text-[11px] font-semibold leading-relaxed text-[var(--ysim-color-text-muted)]">
+                  {
+                    item.message
+                  }
+                </p>
+              </div>
+            ),
+          )}
+        </div>
+      ) : null}
 
       <div className="mt-3 space-y-1.5">
         {candidate.warnings.map(

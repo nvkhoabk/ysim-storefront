@@ -11,6 +11,10 @@ import type {
   ProductCardViewModel,
 } from "@/types/view-models/product-card";
 
+import type {
+  ArticleCardViewModel,
+} from "@/types/view-models/content";
+
 export type ValuePropositionIcon =
   | "instant"
   | "transparent"
@@ -105,6 +109,9 @@ export interface HomePageContentViewModel {
   productSection:
     HomeSectionHeaderViewModel;
 
+  guideSection?:
+    HomeSectionHeaderViewModel;
+
   selectionAssistant:
     SelectionAssistantViewModel;
 
@@ -122,7 +129,8 @@ export interface HomePageContentViewModel {
 }
 
 export interface HomePageViewModel {
-  hero: HeroViewModel;
+  hero:
+    HeroViewModel;
 
   heroSearchItems:
     readonly HeroSearchItemViewModel[];
@@ -132,6 +140,9 @@ export interface HomePageViewModel {
 
   products:
     readonly ProductCardViewModel[];
+
+  guides?:
+    readonly ArticleCardViewModel[];
 
   content:
     HomePageContentViewModel;

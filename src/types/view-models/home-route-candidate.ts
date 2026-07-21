@@ -3,6 +3,10 @@ import type {
 } from "@/types/view-models/home";
 
 import type {
+  HomeProductionDiagnosticViewModel,
+} from "@/types/view-models/home-production";
+
+import type {
   ProductionRouteMode,
 } from "@/types/view-models/production-route-plan";
 
@@ -21,6 +25,8 @@ export interface HomeRouteCandidateViewModel {
   dataSourceFlag: string;
   warnings:
     readonly string[];
+  diagnostics:
+    readonly HomeProductionDiagnosticViewModel[];
   page:
     HomePageViewModel;
 }
