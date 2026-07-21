@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" role="img" aria-labelledby="title desc">
+  <title id="title">USA destination illustration</title>
+  <desc id="desc">Abstract green travel illustration for YSim UI preview.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e9efff"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7bcf9e"/>
+      <stop offset="1" stop-color="#187a4c"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky)"/>
+  <circle cx="655" cy="95" r="58" fill="#7591e8" opacity=".82"/>
+  <path d="M0 285 C130 185 275 250 415 135 C565 15 675 100 800 35 L800 450 L0 450 Z" fill="url(#land)" opacity=".96"/>
+  <path d="M0 365 C175 300 310 380 485 300 C605 245 700 300 800 255 L800 500 L0 500 Z" fill="#0f6b43"/>
+  <rect x="105" y="240" width="160" height="115" rx="8" fill="#ffffff" opacity=".94"/>
+  <path d="M555 80 L600 175 L510 175 Z" fill="#7591e8"/>
+  <rect x="135" y="275" width="35" height="80" rx="4" fill="#dcf5e7"/>
+  <rect x="190" y="275" width="45" height="40" rx="4" fill="#dcf5e7"/>
+  <path d="M315 350 C390 305 465 320 545 270" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity=".8"/>
+  <circle cx="550" cy="270" r="15" fill="#ffffff"/>
+  <path d="M550 250 C570 250 580 265 580 280 C580 305 550 330 550 330 C550 330 520 305 520 280 C520 265 530 250 550 250 Z" fill="#7591e8"/>
+  <circle cx="550" cy="279" r="8" fill="#ffffff"/>
+  <text x="42" y="75" font-family="Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="4" fill="#0f6b43">USA</text>
+  <path d="M95 130 C170 100 225 105 285 135" fill="none" stroke="#0f6b43" stroke-width="4" stroke-dasharray="10 12" opacity=".55"/>
+  <path d="M282 130 l28 8 -22 19 z" fill="#0f6b43" opacity=".7"/>
+</svg>

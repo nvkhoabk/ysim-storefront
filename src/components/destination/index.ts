@@ -29,3 +29,6 @@ export * from "./catalog/DestinationDesktopTable";
 export * from "./catalog/DestinationMobileCard";
 
 export * from "./catalog/DestinationMobileList";
+export * from "./DestinationCard";
+export * from "./DestinationCardSkeleton";
+export * from "./DestinationRail";
