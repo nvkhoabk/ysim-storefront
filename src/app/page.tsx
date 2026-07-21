@@ -1,59 +1,70 @@
-import { FeaturedProducts } from "@/components/home/FeaturedProducts";
-import { HeroSection } from "@/components/home/HeroSection";
-import { HomeGuideSection } from "@/components/home/HomeGuideSection";
-import { HomeValueRow } from "@/components/home/HomeValueRow";
-import { PopularDestinations } from "@/components/home/PopularDestinations";
-import { TestimonialsSection } from "@/components/home/TestimonialsSection";
-import { TravelGuidesSection } from "@/components/home/TravelGuidesSection";
-import { FooterBenefits } from "@/components/layout/FooterBenefits";
-import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/footer/Footer";
-import { getProducts } from "@/lib/woocommerce/products";
-import type { WooCommerceProduct } from "@/lib/woocommerce/types";
+/* YSIM_PACKAGE_24_ACTIVATION:home */
+import LegacyHomePage from "./legacy-page";
 
-export default async function HomePage() {
-  let products: WooCommerceProduct[] = [];
-  let catalogError = false;
+import {
+  HomePageComposition,
+} from "@/components/home/refactor";
 
-  try {
-    products = await getProducts({
-      perPage: 8,
-      locale: "vi",
+import {
+  HomeRouteCandidatePage,
+} from "@/components/home/refactor/integration";
+
+import {
+  createProductionHomeRouteAdapterFromEnvironment,
+  loadHomeRouteCandidate,
+} from "@/lib/storefront/integration/home";
+
+import {
+  getProductionRouteMode,
+} from "@/lib/storefront/integration/route-flags";
+
+
+
+export default async function HomePage(
+  props: any,
+) {
+  const mode =
+    getProductionRouteMode(
+      "home",
+    );
+
+  if (
+    mode ===
+    "legacy"
+  ) {
+    return (
+      <LegacyHomePage
+        {...props}
+      />
+    );
+  }
+
+  const productionAdapter =
+    createProductionHomeRouteAdapterFromEnvironment();
+
+  const candidate =
+    await loadHomeRouteCandidate({
+      productionAdapter,
     });
-  } catch (error) {
-    catalogError = true;
-    console.error("Cannot load localized products:", error);
+
+  if (
+    mode ===
+    "candidate"
+  ) {
+    return (
+      <HomeRouteCandidatePage
+        candidate={
+          candidate
+        }
+      />
+    );
   }
 
   return (
-    <>
-      <AnnouncementBar />
-      <Header />
-
-      <main>
-        <HeroSection />
-        <PopularDestinations />
-        <HomeValueRow />
-        <HomeGuideSection />
-
-        {catalogError ? (
-          <section className="bg-white px-5 py-16 lg:px-8">
-            <div className="mx-auto max-w-7xl rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
-              Danh sách sản phẩm đang tạm thời không khả dụng. Vui lòng thử lại
-              sau.
-            </div>
-          </section>
-        ) : (
-          <FeaturedProducts products={products} />
-        )}
-
-        <TestimonialsSection />
-        <TravelGuidesSection />
-        <FooterBenefits />
-      </main>
-
-      <Footer />
-    </>
+    <HomePageComposition
+      page={
+        candidate.page
+      }
+    />
   );
 }

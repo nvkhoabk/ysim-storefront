@@ -1,45 +1,83 @@
-import type {
-  Metadata,
-} from "next";
+/* YSIM_PACKAGE_24_ACTIVATION:guides */
+import LegacyGuidesPage from "./legacy-page";
 
 import {
-  GuidesPage,
-} from "@/components/guides";
+  ContentLandingComposition,
+} from "@/components/content/refactor";
 
 import {
-  AnnouncementBar,
-} from "@/components/layout/AnnouncementBar";
+  GuideLandingRouteCandidatePage,
+} from "@/components/content/refactor/integration";
 
 import {
-  Header,
-} from "@/components/layout/Header";
+  parseContentLocale,
+} from "@/lib/content/integration";
 
 import {
-  FooterBenefits,
-} from "@/components/layout/FooterBenefits";
+  loadGuideLandingRouteCandidate,
+} from "@/lib/content/route-candidate";
 
 import {
-  Footer,
-} from "@/components/layout/footer/Footer";
+  getProductionRouteMode,
+} from "@/lib/storefront/integration/route-flags";
 
-export const metadata: Metadata = {
-  title: "Hướng dẫn sử dụng eSIM | YSim",
-  description:
-    "Hướng dẫn mua, nhận, cài đặt và sử dụng eSIM YSim trên iPhone, iPad và Android.",
-};
+export { metadata } from "./legacy-page";
 
-export default function GuidesRoutePage() {
+export default async function GuidesPage(
+  props: any,
+) {
+  const mode =
+    getProductionRouteMode(
+      "guides",
+    );
+
+  if (
+    mode ===
+    "legacy"
+  ) {
+    return (
+      <LegacyGuidesPage
+        {...props}
+      />
+    );
+  }
+
+  const query =
+    await (
+      props.searchParams ||
+      Promise.resolve({})
+    );
+
+  const locale =
+    parseContentLocale(
+      query.locale,
+    );
+
+  const candidate =
+    await loadGuideLandingRouteCandidate({
+      locale,
+      category:
+        query.category,
+    });
+
+  if (
+    mode ===
+    "candidate"
+  ) {
+    return (
+      <GuideLandingRouteCandidatePage
+        candidate={
+          candidate
+        }
+      />
+    );
+  }
+
   return (
-    <>
-      <AnnouncementBar />
-
-      <Header />
-
-      <GuidesPage />
-
-      <FooterBenefits />
-
-      <Footer />
-    </>
+    <ContentLandingComposition
+      page={
+        candidate.page
+      }
+    />
   );
 }
