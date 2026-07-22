@@ -1,0 +1,269 @@
+{
+  "package": 36,
+  "mode": "local",
+  "baseUrl": "http://localhost:3000",
+  "generatedAt": "2026-07-22T22:12:11.425Z",
+  "result": "PASS",
+  "results": [
+    {
+      "path": "/",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/",
+      "status": 200,
+      "durationMs": 5007,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/cart-route-candidate",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/cart-route-candidate",
+      "status": 200,
+      "durationMs": 1163,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/checkout-route-candidate",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/checkout-route-candidate",
+      "status": 200,
+      "durationMs": 1122,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/payment-route-candidate",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/payment-route-candidate",
+      "status": 200,
+      "durationMs": 1276,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/payment-result-route-candidate",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/payment-result-route-candidate",
+      "status": 200,
+      "durationMs": 1009,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/order-route-candidate",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/order-route-candidate",
+      "status": 200,
+      "durationMs": 1156,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/esim-index-route-candidate",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/esim-index-route-candidate",
+      "status": 200,
+      "durationMs": 1929,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/offers-route-candidate",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/offers-route-candidate",
+      "status": 200,
+      "durationMs": 1449,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/policies-route-candidate",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/policies-route-candidate",
+      "status": 200,
+      "durationMs": 1062,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/policies-route-candidate/terms",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "contains": "Điều khoản",
+      "url": "http://localhost:3000/ui-preview/policies-route-candidate/terms",
+      "status": 200,
+      "durationMs": 2066,
+      "contentCheck": "Điều khoản",
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/policies-route-candidate/privacy-policy",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "contains": "quyền riêng tư",
+      "url": "http://localhost:3000/ui-preview/policies-route-candidate/privacy-policy",
+      "status": 200,
+      "durationMs": 604,
+      "contentCheck": "quyền riêng tư",
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/policies-route-candidate/refund-policy",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "contains": "hoàn tiền",
+      "url": "http://localhost:3000/ui-preview/policies-route-candidate/refund-policy",
+      "status": 200,
+      "durationMs": 764,
+      "contentCheck": "hoàn tiền",
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/global-states",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/global-states",
+      "status": 200,
+      "durationMs": 1260,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/global-boundary-activation",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/global-boundary-activation",
+      "status": 200,
+      "durationMs": 1161,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/release-readiness",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/release-readiness",
+      "status": 200,
+      "durationMs": 1164,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/global-boundary-activation/slow",
+      "required": true,
+      "expected": [
+        200
+      ],
+      "url": "http://localhost:3000/ui-preview/global-boundary-activation/slow",
+      "status": 200,
+      "durationMs": 3716,
+      "contentCheck": null,
+      "requireNoindex": false,
+      "noindexOk": true,
+      "semantics": null,
+      "passed": true
+    },
+    {
+      "path": "/ui-preview/global-boundary-activation/not-found-test",
+      "required": true,
+      "expected": [
+        200,
+        404
+      ],
+      "contains": "Không tìm thấy trang",
+      "requireNoindex": true,
+      "semantics": "next-streamed-not-found",
+      "url": "http://localhost:3000/ui-preview/global-boundary-activation/not-found-test",
+      "status": 200,
+      "durationMs": 1912,
+      "contentCheck": "Không tìm thấy trang",
+      "noindexOk": true,
+      "passed": true
+    }
+  ]
+}

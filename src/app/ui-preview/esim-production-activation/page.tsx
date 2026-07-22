@@ -1,9 +1,3 @@
-/* YSIM_PACKAGE_37_V2_ROUTE:esim */
-
-import type {
-  Metadata,
-} from "next";
-
 import {
   EsimCatalogPage,
 } from "@/components/catalog";
@@ -15,17 +9,16 @@ import {
 export const dynamic =
   "force-dynamic";
 
-export const metadata:
-  Metadata = {
-    title:
-      "Mua eSIM theo quốc gia và khu vực | YSim",
-    description:
-      "Khám phá eSIM theo quốc gia, châu lục, khu vực hoặc gói toàn cầu.",
-    alternates: {
-      canonical:
-        "/esim",
-    },
-  };
+export const metadata = {
+  title:
+    "eSIM Production Activation Candidate | YSim",
+  robots: {
+    index:
+      false,
+    follow:
+      false,
+  },
+};
 
 export default async function Page() {
   const catalog =

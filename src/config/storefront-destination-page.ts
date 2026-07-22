@@ -90,6 +90,24 @@ export const destinationCategoryOptions:
     },
     {
       key:
+        "south-america",
+      label:
+        "Nam Mỹ",
+    },
+    {
+      key:
+        "africa",
+      label:
+        "Châu Phi",
+    },
+    {
+      key:
+        "oceania",
+      label:
+        "Châu Đại Dương",
+    },
+    {
+      key:
         "global",
       label:
         "Đa quốc gia",

@@ -12,6 +12,9 @@ export type DestinationContinentKey =
   | "asia"
   | "europe"
   | "north-america"
+  | "south-america"
+  | "africa"
+  | "oceania"
   | "global";
 
 export type DestinationDurationFilter =
@@ -95,4 +98,30 @@ export interface DestinationPageViewModel {
   };
   catalog:
     DestinationCatalogSectionViewModel;
+}
+
+
+export type DestinationRouteSelectionKind =
+  | "all"
+  | "destination"
+  | "continent"
+  | "region"
+  | "global";
+
+export interface DestinationRouteSelectionViewModel {
+  key: string;
+  kind:
+    DestinationRouteSelectionKind;
+  label: string;
+  description: string;
+  destinationSlug?: string;
+  continent?:
+    DestinationContinentKey;
+  query?: string;
+  source: {
+    destination?: string;
+    continent?: string;
+    type?: string;
+    region?: string;
+  };
 }

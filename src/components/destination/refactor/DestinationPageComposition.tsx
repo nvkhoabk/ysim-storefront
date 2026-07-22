@@ -23,6 +23,7 @@ import {
 
 import type {
   DestinationPageViewModel,
+  DestinationRouteSelectionViewModel,
 } from "@/types/view-models/destination-page";
 
 import {
@@ -33,11 +34,14 @@ export interface DestinationPageCompositionProps {
   page:
     DestinationPageViewModel;
   cartCount?: number;
+  initialSelection?:
+    DestinationRouteSelectionViewModel;
 }
 
 export function DestinationPageComposition({
   page,
   cartCount = 0,
+  initialSelection,
 }: DestinationPageCompositionProps) {
   return (
     <PageShell
@@ -102,8 +106,16 @@ export function DestinationPageComposition({
       />
 
       <DestinationCatalog
+        key={
+          initialSelection
+            ?.key ||
+          "all"
+        }
         section={
           page.catalog
+        }
+        initialSelection={
+          initialSelection
         }
       />
 

@@ -22,8 +22,13 @@ import type {
   DestinationContinentKey,
   DestinationDataFilter,
   DestinationDurationFilter,
+  DestinationRouteSelectionViewModel,
   DestinationSortValue,
 } from "@/types/view-models/destination-page";
+
+import {
+  createDestinationInitialFilters,
+} from "@/lib/storefront/navigation/destination-query";
 
 import {
   DestinationCatalogToolbar,
@@ -40,6 +45,10 @@ import {
 import {
   DestinationMobileList,
 } from "./DestinationMobileList";
+
+import {
+  DestinationSelectionNotice,
+} from "./DestinationSelectionNotice";
 
 function normalize(
   value: string,
@@ -128,17 +137,39 @@ function matchesDuration(
 export interface DestinationCatalogProps {
   section:
     DestinationCatalogSectionViewModel;
+  initialSelection?:
+    DestinationRouteSelectionViewModel;
 }
 
 export function DestinationCatalog({
   section,
+  initialSelection,
 }: DestinationCatalogProps) {
   const [
     filters,
     setFilters,
   ] =
     useState<DestinationCatalogFilterState>(
-      section.initialFilters,
+      () =>
+        createDestinationInitialFilters(
+          section.initialFilters,
+          initialSelection,
+        ),
+    );
+
+  const [
+    selectedDestinationSlug,
+    setSelectedDestinationSlug,
+  ] =
+    useState<
+      string | undefined
+    >(
+      initialSelection
+        ?.kind ===
+        "destination"
+          ? initialSelection
+              .destinationSlug
+          : undefined,
     );
 
   const categories =
@@ -196,6 +227,11 @@ export function DestinationCatalog({
               item.continent ===
                 filters.continent;
 
+            const matchesSelectedDestination =
+              !selectedDestinationSlug ||
+              item.slug ===
+                selectedDestinationSlug;
+
             const matchesData =
               filters.data ===
                 "all" ||
@@ -206,6 +242,7 @@ export function DestinationCatalog({
             return (
               matchesQuery &&
               matchesContinent &&
+              matchesSelectedDestination &&
               matchesData &&
               matchesDuration(
                 item,
@@ -250,6 +287,7 @@ export function DestinationCatalog({
     }, [
       filters,
       section.items,
+      selectedDestinationSlug,
     ]);
 
   function updateFilter<
@@ -262,6 +300,10 @@ export function DestinationCatalog({
         Key
       ],
   ) {
+    setSelectedDestinationSlug(
+      undefined,
+    );
+
     setFilters(
       (current) => ({
         ...current,
@@ -288,6 +330,18 @@ export function DestinationCatalog({
             section.description
           }
         />
+
+        {
+          initialSelection
+            ? (
+                <DestinationSelectionNotice
+                  selection={
+                    initialSelection
+                  }
+                />
+              )
+            : null
+        }
 
         <DestinationCategoryNav
           items={
@@ -360,11 +414,15 @@ export function DestinationCatalog({
 
           <button
             type="button"
-            onClick={() =>
+            onClick={() => {
+              setSelectedDestinationSlug(
+                undefined,
+              );
+
               setFilters(
                 section.initialFilters,
-              )
-            }
+              );
+            }}
             className="rounded-[var(--ysim-radius-md)] px-3 py-2 text-sm font-bold text-[var(--ysim-color-brand-700)] hover:bg-[var(--ysim-color-brand-100)]"
           >
             Đặt lại bộ lọc
@@ -392,7 +450,13 @@ export function DestinationCatalog({
               <SearchX className="mx-auto h-10 w-10 text-[var(--ysim-color-text-soft)]" />
 
               <h2 className="mt-4 text-lg font-bold text-[var(--ysim-color-text)]">
-                Không tìm thấy điểm đến
+                {
+                  initialSelection
+                    ?.kind ===
+                    "destination"
+                      ? `Chưa có gói eSIM cho ${initialSelection.label}`
+                      : "Không tìm thấy điểm đến"
+                }
               </h2>
 
               <p className="mt-2 text-sm text-[var(--ysim-color-text-muted)]">

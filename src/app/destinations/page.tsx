@@ -1,46 +1,93 @@
-import type {
-  Metadata,
-} from "next";
+/* YSIM_PACKAGE_38_V3_ROUTE:destinations-query-bridge */
+
+import LegacyDestinationsPage from "./legacy-page";
 
 import {
-  DestinationPage,
-} from "@/components/destination";
+  DestinationPageComposition,
+} from "@/components/destination/refactor";
 
 import {
-  AnnouncementBar,
-} from "@/components/layout/AnnouncementBar";
+  DestinationRouteCandidatePage,
+} from "@/components/destination/refactor/integration";
 
 import {
-  Header,
-} from "@/components/layout/Header";
+  createProductionDestinationRouteAdapterFromEnvironment,
+  loadDestinationRouteCandidate,
+} from "@/lib/storefront/integration/destinations";
 
 import {
-  FooterBenefits,
-} from "@/components/layout/FooterBenefits";
+  resolveDestinationRouteSelection,
+  type DestinationSearchParams,
+} from "@/lib/storefront/navigation/destination-query";
 
 import {
-  Footer,
-} from "@/components/layout/footer/Footer";
+  getProductionRouteMode,
+} from "@/lib/storefront/integration/route-flags";
 
-export const metadata: Metadata = {
-  title:
-    "Điểm đến eSIM quốc tế | YSim",
-  description:
-    "Khám phá eSIM cho hơn 200 quốc gia và vùng lãnh thổ. Tìm kiếm, so sánh thời hạn, dung lượng và giá gói eSIM phù hợp cho chuyến đi của bạn.",
-};
+export {
+  metadata,
+} from "./legacy-page";
 
-export default function DestinationsPage() {
+export default async function DestinationsPage(
+  props: any,
+) {
+  const mode =
+    getProductionRouteMode(
+      "destinations",
+    );
+
+  if (
+    mode ===
+    "legacy"
+  ) {
+    return (
+      <LegacyDestinationsPage
+        {...props}
+      />
+    );
+  }
+
+  const candidate =
+    await loadDestinationRouteCandidate({
+      productionAdapter:
+        createProductionDestinationRouteAdapterFromEnvironment(),
+    });
+
+  const selection =
+    resolveDestinationRouteSelection(
+      await Promise.resolve(
+        (
+          props.searchParams ||
+          {}
+        ) as DestinationSearchParams,
+      ),
+    );
+
+  if (
+    mode ===
+    "candidate"
+  ) {
+    return (
+      <DestinationRouteCandidatePage
+        candidate={
+          candidate
+        }
+        initialSelection={
+          selection
+        }
+      />
+    );
+  }
+
   return (
-    <>
-      <AnnouncementBar />
-
-      <Header />
-
-      <DestinationPage />
-
-      <FooterBenefits />
-
-      <Footer />
-    </>
+    <DestinationPageComposition
+      page={
+        candidate.page
+      }
+      cartCount={0}
+      initialSelection={
+        selection
+      }
+    />
   );
 }
