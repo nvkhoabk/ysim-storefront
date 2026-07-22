@@ -48,6 +48,7 @@ const supportHero:
     ],
 
     media: {
+	  imageUrl: "/assets/heroes/support-hero.png",
       eyebrow:
         "YSim Support",
       alt:

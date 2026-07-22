@@ -75,12 +75,14 @@ function parseHandoff(
 }
 
 export function OrderCandidateClient({
+  showDiagnostics = true,
   config,
   orderCode,
 }: {
   config:
     OrderRouteCandidateConfigViewModel;
   orderCode?: string;
+  showDiagnostics?: boolean;
 }) {
   const [
     handoff,
@@ -210,11 +212,14 @@ export function OrderCandidateClient({
           </Container>
         </Section>
 
-        <OrderCandidateDiagnostics
-          config={
-            config
-          }
-        />
+        {showDiagnostics
+          ? (
+            <OrderCandidateDiagnostics
+                      config={
+                        config
+                      }        />
+            )
+          : null}
       </PageShell>
     );
   }
@@ -234,11 +239,14 @@ export function OrderCandidateClient({
           }
         />
 
-        <OrderCandidateDiagnostics
-          config={
-            config
-          }
-        />
+        {showDiagnostics
+          ? (
+            <OrderCandidateDiagnostics
+                      config={
+                        config
+                      }        />
+            )
+          : null}
       </>
     );
   }
@@ -271,11 +279,14 @@ export function OrderCandidateClient({
           </Container>
         </Section>
 
-        <OrderCandidateDiagnostics
-          config={
-            config
-          }
-        />
+        {showDiagnostics
+          ? (
+            <OrderCandidateDiagnostics
+                      config={
+                        config
+                      }        />
+            )
+          : null}
       </PageShell>
     );
   }
@@ -316,11 +327,14 @@ export function OrderCandidateClient({
         </Container>
       </Section>
 
-      <OrderCandidateDiagnostics
-        config={
-          config
-        }
-      />
+      {showDiagnostics
+        ? (
+          <OrderCandidateDiagnostics
+                  config={
+                    config
+                  }      />
+          )
+        : null}
     </PageShell>
   );
 }

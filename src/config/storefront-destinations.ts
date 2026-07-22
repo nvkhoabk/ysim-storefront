@@ -13,7 +13,7 @@ export const destinationPresentation:
       slug:
         "japan",
       imageUrl:
-        "/ui-preview/destinations/japan.svg",
+        "/assets/destinations/japan.jpg",
       imageAlt:
         "Minh họa điểm đến Nhật Bản",
       flagUrl:
@@ -34,7 +34,7 @@ export const destinationPresentation:
       slug:
         "korea",
       imageUrl:
-        "/ui-preview/destinations/korea.svg",
+        "/assets/destinations/korea.jpg",
       imageAlt:
         "Minh họa điểm đến Hàn Quốc",
       flagUrl:
@@ -49,7 +49,7 @@ export const destinationPresentation:
       slug:
         "thailand",
       imageUrl:
-        "/ui-preview/destinations/thailand.svg",
+        "/assets/destinations/thailand.jpg",
       imageAlt:
         "Minh họa điểm đến Thái Lan",
       flagUrl:
@@ -70,7 +70,7 @@ export const destinationPresentation:
       slug:
         "singapore",
       imageUrl:
-        "/ui-preview/destinations/singapore.svg",
+        "/assets/destinations/singapore.jpg",
       imageAlt:
         "Minh họa điểm đến Singapore",
       flagUrl:
@@ -85,7 +85,7 @@ export const destinationPresentation:
       slug:
         "usa",
       imageUrl:
-        "/ui-preview/destinations/usa.svg",
+        "/assets/destinations/usa.jpg",
       imageAlt:
         "Minh họa điểm đến Hoa Kỳ",
       flagUrl:
@@ -100,7 +100,7 @@ export const destinationPresentation:
       slug:
         "europe",
       imageUrl:
-        "/ui-preview/destinations/europe.svg",
+        "/assets/destinations/europe.jpg",
       imageAlt:
         "Minh họa điểm đến Châu Âu",
       flagUrl:

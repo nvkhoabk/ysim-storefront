@@ -63,6 +63,7 @@ export const homeHero:
     ],
 
     media: {
+	  imageUrl: "/assets/heroes/home-hero.png",
       eyebrow:
         "Travel connected",
       alt:
@@ -202,7 +203,7 @@ export const heroSearchPreviewItems:
       description:
         "Kiểm tra nhanh trước khi mua",
       href:
-        "/guides/cach-kiem-tra-dien-thoai-ho-tro-esim",
+        "/guides/cach-kiem-tra-dien-thoai-co-ho-tro-esim",
       keywords: [
         "kiem tra",
         "dien thoai",

@@ -46,6 +46,7 @@ export const guideLandingHero:
       },
     ],
     media: {
+	  imageUrl: "/assets/heroes/guides-hero.png",
       eyebrow: "Travel knowledge",
       alt: "Minh họa cẩm nang và hướng dẫn eSIM",
     },

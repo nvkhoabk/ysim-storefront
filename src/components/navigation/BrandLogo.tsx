@@ -26,7 +26,7 @@ export function BrandLogo({
       )}
     >
       <Image
-        src="/ysim-logo.png"
+        src="/assets/brand/ysim-logo.png"
         alt="YSim"
         width={126}
         height={40}

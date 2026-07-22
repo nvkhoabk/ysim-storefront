@@ -38,7 +38,7 @@ export function FooterBrand() {
         className="inline-block rounded-md focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
         <Image
-          src="/images/brand/ysim-logo.png"
+          src="/assets/brand/ysim-logo.png"
           alt="YSim - Kết nối mọi hành trình"
           width={220}
           height={82}

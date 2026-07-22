@@ -137,12 +137,14 @@ function parseStoredSession(
 }
 
 export function PaymentCandidateClient({
+  showDiagnostics = true,
   config,
   resultOnly = false,
 }: {
   config:
     PaymentCandidateConfigViewModel;
   resultOnly?: boolean;
+  showDiagnostics?: boolean;
 }) {
   const [
     handoff,
@@ -322,11 +324,14 @@ export function PaymentCandidateClient({
           </Container>
         </Section>
 
-        <PaymentCandidateDiagnostics
-          config={
-            config
-          }
-        />
+        {showDiagnostics
+          ? (
+            <PaymentCandidateDiagnostics
+                      config={
+                        config
+                      }        />
+            )
+          : null}
       </PageShell>
     );
   }
@@ -362,11 +367,14 @@ export function PaymentCandidateClient({
           </Container>
         </Section>
 
-        <PaymentCandidateDiagnostics
-          config={
-            config
-          }
-        />
+        {showDiagnostics
+          ? (
+            <PaymentCandidateDiagnostics
+                      config={
+                        config
+                      }        />
+            )
+          : null}
       </PageShell>
     );
   }
@@ -462,11 +470,14 @@ export function PaymentCandidateClient({
             : null
         }
 
-        <PaymentCandidateDiagnostics
-          config={
-            config
-          }
-        />
+        {showDiagnostics
+          ? (
+            <PaymentCandidateDiagnostics
+                      config={
+                        config
+                      }        />
+            )
+          : null}
       </>
     );
   }
@@ -499,11 +510,14 @@ export function PaymentCandidateClient({
           </Container>
         </Section>
 
-        <PaymentCandidateDiagnostics
-          config={
-            config
-          }
-        />
+        {showDiagnostics
+          ? (
+            <PaymentCandidateDiagnostics
+                      config={
+                        config
+                      }        />
+            )
+          : null}
       </PageShell>
     );
   }
@@ -669,11 +683,14 @@ export function PaymentCandidateClient({
         </Container>
       </Section>
 
-      <PaymentCandidateDiagnostics
-        config={
-          config
-        }
-      />
+      {showDiagnostics
+        ? (
+          <PaymentCandidateDiagnostics
+                  config={
+                    config
+                  }      />
+          )
+        : null}
     </PageShell>
   );
 }

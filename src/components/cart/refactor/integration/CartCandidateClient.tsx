@@ -90,10 +90,12 @@ function variationLabels(
 }
 
 export function CartCandidateClient({
+  showDiagnostics = true,
   candidate,
 }: {
   candidate:
     CartRouteCandidateViewModel;
+  showDiagnostics?: boolean;
 }) {
   const cartState =
     useWooCommerceCart();
@@ -145,11 +147,14 @@ export function CartCandidateClient({
           </Container>
         </Section>
 
-        <CartRouteCandidateNotice
-          candidate={
-            candidate
-          }
-        />
+        {showDiagnostics
+          ? (
+            <CartRouteCandidateNotice
+                      candidate={
+                        candidate
+                      }        />
+            )
+          : null}
       </PageShell>
     );
   }
@@ -188,11 +193,14 @@ export function CartCandidateClient({
           </Container>
         </Section>
 
-        <CartRouteCandidateNotice
-          candidate={
-            candidate
-          }
-        />
+        {showDiagnostics
+          ? (
+            <CartRouteCandidateNotice
+                      candidate={
+                        candidate
+                      }        />
+            )
+          : null}
       </PageShell>
     );
   }
@@ -228,11 +236,14 @@ export function CartCandidateClient({
           </Container>
         </Section>
 
-        <CartRouteCandidateNotice
-          candidate={
-            candidate
-          }
-        />
+        {showDiagnostics
+          ? (
+            <CartRouteCandidateNotice
+                      candidate={
+                        candidate
+                      }        />
+            )
+          : null}
       </PageShell>
     );
   }
@@ -692,11 +703,14 @@ export function CartCandidateClient({
         </Container>
       </Section>
 
-      <CartRouteCandidateNotice
-        candidate={
-          candidate
-        }
-      />
+      {showDiagnostics
+        ? (
+          <CartRouteCandidateNotice
+                  candidate={
+                    candidate
+                  }      />
+          )
+        : null}
     </PageShell>
   );
 }

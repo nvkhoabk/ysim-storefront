@@ -13,7 +13,7 @@ export function createCartRouteCandidateViewModel():
       process.env
         .YSIM_CART_CHECKOUT_CANDIDATE_PATH
         ?.trim() ||
-      "/ui-preview/checkout-refactor",
+      "/ui-preview/checkout-route-candidate",
     diagnostics: [
       {
         domain:
