@@ -5,6 +5,44 @@ export interface WooCommerceAdminOrderBilling {
   phone?: string;
 }
 
+export interface WooCommerceAdminOrderMetaData {
+  id?: number;
+  key: string;
+  value: unknown;
+  display_key?: string;
+  display_value?: unknown;
+}
+
+export interface WooCommerceAdminOrderImage {
+  id?: number;
+  src?: string;
+}
+
+export interface WooCommerceAdminOrderLineItem {
+  id: number;
+  name: string;
+  product_id: number;
+  variation_id: number;
+  quantity: number;
+  subtotal: string;
+  subtotal_tax?: string;
+  total: string;
+  total_tax?: string;
+  price?: number;
+  sku?: string;
+  image?:
+    WooCommerceAdminOrderImage;
+  meta_data?:
+    WooCommerceAdminOrderMetaData[];
+}
+
+export interface WooCommerceAdminOrderCouponLine {
+  id: number;
+  code: string;
+  discount: string;
+  discount_tax?: string;
+}
+
 export interface WooCommerceAdminOrder {
   id: number;
   number: string;
@@ -12,9 +50,24 @@ export interface WooCommerceAdminOrder {
   status: string;
   currency: string;
   total: string;
+  discount_total?: string;
+  shipping_total?: string;
+  transaction_id?: string;
+  payment_method?: string;
+  payment_method_title?: string;
+  customer_note?: string;
+  date_created?: string;
+  date_created_gmt?: string;
+  date_paid?: string;
+  date_paid_gmt?: string;
   billing:
     WooCommerceAdminOrderBilling;
-  date_created_gmt?: string;
+  line_items?:
+    WooCommerceAdminOrderLineItem[];
+  coupon_lines?:
+    WooCommerceAdminOrderCouponLine[];
+  meta_data?:
+    WooCommerceAdminOrderMetaData[];
 }
 
 function requiredEnvironment(

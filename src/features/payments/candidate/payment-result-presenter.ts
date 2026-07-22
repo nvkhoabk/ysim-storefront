@@ -291,9 +291,11 @@ export function presentPaymentCandidateResult({
       actions: [
         {
           label:
-            "Xem giỏ hàng",
+            "Xem đơn hàng",
           href:
-            "/ui-preview/cart-route-candidate",
+            `/ui-preview/order-route-candidate/${encodeURIComponent(
+              handoff.orderNumber,
+            )}`,
           variant:
             "secondary",
         },

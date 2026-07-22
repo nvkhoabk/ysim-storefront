@@ -94,11 +94,11 @@ export function CheckoutCandidateSuccess({
         </Link>
 
         <Link
-          href="/ui-preview/order-result-refactor/YSIM-CANDIDATE"
+          href={`/ui-preview/order-route-candidate/${encodeURIComponent(handoff.orderNumber)}`}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--ysim-radius-md)] border border-[var(--ysim-color-brand-700)] px-5 text-sm font-bold text-[var(--ysim-color-brand-700)]"
         >
           <ReceiptText className="h-4 w-4" />
-          Xem Order UI
+          Xem đơn hàng
         </Link>
       </div>
 
