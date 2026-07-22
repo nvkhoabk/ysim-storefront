@@ -11,8 +11,15 @@ export interface WooCommerceCartItemQuantityLimits {
 }
 
 export interface WooCommerceCartItemVariation {
+  raw_attribute?: string;
   attribute: string;
   value: string;
+}
+
+export interface WooCommerceCartItemData {
+  key: string;
+  value: string;
+  display?: string;
 }
 
 export interface WooCommerceCartItem {
@@ -24,23 +31,10 @@ export interface WooCommerceCartItem {
   description?: string;
   sku?: string;
   type?: string;
+  permalink?: string;
 
-  /**
-   * Thuộc tính của variation mà khách đã chọn.
-   *
-   * Ví dụ:
-   * [
-   *   {
-   *     attribute: "dung-luong",
-   *     value: "3GB/ ngày"
-   *   },
-   *   {
-   *     attribute: "so-ngay",
-   *     value: "15"
-   *   }
-   * ]
-   */
   variation?: WooCommerceCartItemVariation[];
+  item_data?: WooCommerceCartItemData[];
 
   quantity_limits: WooCommerceCartItemQuantityLimits;
 
@@ -51,7 +45,6 @@ export interface WooCommerceCartItem {
       min_amount: string;
       max_amount: string;
     } | null;
-
     raw_prices?: {
       precision: number;
       price: string;
@@ -65,7 +58,6 @@ export interface WooCommerceCartItem {
     line_subtotal_tax: string;
     line_total: string;
     line_total_tax: string;
-
     currency_code: string;
     currency_symbol: string;
     currency_minor_unit: number;
@@ -101,30 +93,21 @@ export interface WooCommerceCart {
   items: WooCommerceCartItem[];
   items_count: number;
   items_weight: number;
-
   coupons: Array<{
     code: string;
-
     totals: {
       total_discount: string;
       total_discount_tax: string;
     };
   }>;
-
   fees: unknown[];
-
   totals: WooCommerceCartTotals;
-
   shipping_address: Record<string, string>;
   billing_address: Record<string, string>;
-
   needs_payment: boolean;
   needs_shipping: boolean;
-
   payment_requirements: string[];
-
   has_calculated_shipping: boolean;
-
   shipping_rates: unknown[];
   cross_sells: unknown[];
   errors: unknown[];
