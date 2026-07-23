@@ -3,6 +3,7 @@ import {
 } from "next/server";
 
 import {
+  reconcileVerifiedGPayCallback,
   verifyGPayGatewayCallback,
 } from "@/lib/payment/adapters/gpay";
 
@@ -21,13 +22,17 @@ export async function POST(
 ) {
   try {
     const body =
-      (await request.json()) as
+      (
+        await request.json()
+      ) as
         VerifyCallbackRequest;
 
     const queryString =
-      typeof body.queryString ===
+      typeof body
+        .queryString ===
         "string"
-        ? body.queryString
+        ? body
+            .queryString
         : "";
 
     const result =
@@ -35,12 +40,28 @@ export async function POST(
         queryString,
       );
 
+    const reconciliation =
+      result.verified
+        ? await reconcileVerifiedGPayCallback(
+            result,
+          )
+        : null;
+
     return NextResponse.json(
       {
-        success: true,
+        success:
+          true,
 
         verified:
           result.verified,
+
+        contractVersion:
+          result
+            .contractVersion,
+
+        canonicalSha256:
+          result
+            .canonicalSha256,
 
         verificationStrategy:
           result
@@ -52,27 +73,33 @@ export async function POST(
 
         callback: {
           embedData:
-            result.callback
+            result
+              .callback
               .embedData,
 
           gpayBillId:
-            result.callback
+            result
+              .callback
               .gpayBillId,
 
           gpayTransactionId:
-            result.callback
+            result
+              .callback
               .gpayTransactionId,
 
           merchantOrderId:
-            result.callback
+            result
+              .callback
               .merchantOrderId,
 
           status:
-            result.callback
+            result
+              .callback
               .status,
 
           userPaymentMethod:
-            result.callback
+            result
+              .callback
               .userPaymentMethod,
         },
 
@@ -81,9 +108,12 @@ export async function POST(
             ? result
                 .parsedEmbedData
             : null,
+
+        reconciliation,
       },
       {
-        status: 200,
+        status:
+          200,
 
         headers: {
           "Cache-Control":
@@ -91,24 +121,34 @@ export async function POST(
         },
       },
     );
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "Cannot verify GPay Gateway callback:",
-      error,
+      error instanceof
+        Error
+        ? error.message
+        : "unknown error",
     );
 
     return NextResponse.json(
       {
-        success: false,
-        verified: false,
+        success:
+          false,
+
+        verified:
+          false,
 
         message:
-          error instanceof Error
+          error instanceof
+            Error
             ? error.message
             : "Không thể xác minh callback GPay.",
       },
       {
-        status: 400,
+        status:
+          400,
 
         headers: {
           "Cache-Control":

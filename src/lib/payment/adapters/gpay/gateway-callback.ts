@@ -1,6 +1,22 @@
 import {
+  createHash,
+} from "node:crypto";
+
+import {
   verifyGPayProviderSignature,
 } from "./crypto";
+
+export const GPAY_CALLBACK_CONTRACT_VERSION =
+  "gpay-confirmed-callback-v1";
+
+export const GPAY_GATEWAY_CALLBACK_CANONICAL_FIELDS = [
+  "merchant_order_id",
+  "gpay_trans_id",
+  "gpay_bill_id",
+  "status",
+  "embed_data",
+  "user_payment_method",
+] as const;
 
 export type GPayGatewayNormalizedStatus =
   | "SUCCESS"
@@ -21,122 +37,69 @@ export interface GPayGatewayCallbackData {
 
 export interface GPayGatewayCallbackVerification {
   verified: boolean;
-  verificationStrategy: string | null;
-  normalizedStatus: GPayGatewayNormalizedStatus;
-  callback: GPayGatewayCallbackData;
-  parsedEmbedData: Record<string, unknown> | null;
+  verificationStrategy:
+    | typeof GPAY_CALLBACK_CONTRACT_VERSION
+    | null;
+  normalizedStatus:
+    GPayGatewayNormalizedStatus;
+  callback:
+    GPayGatewayCallbackData;
+  parsedEmbedData:
+    Record<string, unknown> |
+    null;
+  canonicalSha256: string;
+  contractVersion:
+    typeof GPAY_CALLBACK_CONTRACT_VERSION;
 }
 
-const CALLBACK_FIELD_ORDER = [
-  "embed_data",
-  "gpay_bill_id",
-  "gpay_trans_id",
-  "merchant_order_id",
-  "status",
-  "user_payment_method",
-] as const;
+type GPayCallbackRecord =
+  Record<
+    string,
+    unknown
+  >;
 
-function safeDecodeURIComponent(
-  value: string,
+function stringValue(
+  value: unknown,
 ): string {
-  try {
-    return decodeURIComponent(
-      value.replace(/\+/g, "%20"),
-    );
-  } catch {
-    return value;
-  }
-}
-
-function removeSignatureFromRawQuery(
-  rawQueryString: string,
-): string {
-  return rawQueryString
-    .replace(/^\?/, "")
-    .split("&")
-    .filter(Boolean)
-    .filter((segment) => {
-      const equalsIndex =
-        segment.indexOf("=");
-
-      const rawKey =
-        equalsIndex >= 0
-          ? segment.slice(
-              0,
-              equalsIndex,
-            )
-          : segment;
-
-      return (
-        safeDecodeURIComponent(
-          rawKey,
-        ) !== "signature"
-      );
-    })
-    .join("&");
-}
-
-function createCallbackData(
-  searchParams: URLSearchParams,
-): GPayGatewayCallbackData {
-  return {
-    embedData:
-      searchParams.get(
-        "embed_data",
-      ) ?? "",
-
-    gpayBillId:
-      searchParams.get(
-        "gpay_bill_id",
-      ) ?? "",
-
-    gpayTransactionId:
-      searchParams.get(
-        "gpay_trans_id",
-      ) ?? "",
-
-    merchantOrderId:
-      searchParams.get(
-        "merchant_order_id",
-      ) ?? "",
-
-    status:
-      searchParams.get(
-        "status",
-      ) ?? "",
-
-    userPaymentMethod:
-      searchParams.get(
-        "user_payment_method",
-      ) ?? "",
-
-    signature:
-      searchParams.get(
-        "signature",
-      ) ?? "",
-  };
+  return typeof value ===
+    "string"
+    ? value
+    : value == null
+      ? ""
+      : String(
+          value,
+        );
 }
 
 function parseEmbedData(
   value: string,
 ): Record<string, unknown> | null {
-  if (!value.trim()) {
+  if (
+    !value.trim()
+  ) {
     return null;
   }
 
   try {
     const parsed =
-      JSON.parse(value) as unknown;
+      JSON.parse(
+        value,
+      ) as unknown;
 
     if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      !Array.isArray(parsed)
+      typeof parsed ===
+        "object" &&
+      parsed !==
+        null &&
+      !Array.isArray(
+        parsed,
+      )
     ) {
-      return parsed as Record<
-        string,
-        unknown
-      >;
+      return parsed as
+        Record<
+          string,
+          unknown
+        >;
     }
   } catch {
     return null;
@@ -145,117 +108,144 @@ function parseEmbedData(
   return null;
 }
 
-function createVerificationCandidates(
+function callbackFromRecord(
+  record:
+    GPayCallbackRecord,
+): GPayGatewayCallbackData {
+  return {
+    merchantOrderId:
+      stringValue(
+        record
+          .merchant_order_id,
+      ),
+
+    gpayTransactionId:
+      stringValue(
+        record
+          .gpay_trans_id,
+      ),
+
+    gpayBillId:
+      stringValue(
+        record
+          .gpay_bill_id,
+      ),
+
+    status:
+      stringValue(
+        record.status,
+      ),
+
+    embedData:
+      stringValue(
+        record.embed_data,
+      ),
+
+    userPaymentMethod:
+      stringValue(
+        record
+          .user_payment_method,
+      ),
+
+    signature:
+      stringValue(
+        record.signature,
+      ),
+  };
+}
+
+export function createGPayGatewayCallbackData(
+  source:
+    URLSearchParams |
+    GPayCallbackRecord,
+): GPayGatewayCallbackData {
+  if (
+    source instanceof
+    URLSearchParams
+  ) {
+    return callbackFromRecord(
+      Object.fromEntries(
+        source.entries(),
+      ),
+    );
+  }
+
+  return callbackFromRecord(
+    source,
+  );
+}
+
+export function parseGPayGatewayCallbackQuery(
   rawQueryString: string,
-  searchParams: URLSearchParams,
-): Array<{
-  strategy: string;
-  rawInput: string;
-}> {
-  const orderedEntries =
-    CALLBACK_FIELD_ORDER.map(
-      (field) =>
-        [
-          field,
-          searchParams.get(
-            field,
-          ) ?? "",
-        ] as const,
-    );
-
-  const sortedEntries =
-    [...orderedEntries].sort(
-      ([left], [right]) =>
-        left.localeCompare(
-          right,
-        ),
-    );
-
-  const candidates = [
-    {
-      strategy:
-        "raw-query-without-signature",
-
-      rawInput:
-        removeSignatureFromRawQuery(
-          rawQueryString,
-        ),
-    },
-
-    {
-      strategy:
-        "ordered-key-value",
-
-      rawInput:
-        orderedEntries
-          .map(
-            ([key, value]) =>
-              `${key}=${value}`,
-          )
-          .join("&"),
-    },
-
-    {
-      strategy:
-        "sorted-key-value",
-
-      rawInput:
-        sortedEntries
-          .map(
-            ([key, value]) =>
-              `${key}=${value}`,
-          )
-          .join("&"),
-    },
-
-    {
-      strategy:
-        "ordered-values-concatenated",
-
-      rawInput:
-        orderedEntries
-          .map(
-            ([, value]) =>
-              value,
-          )
-          .join(""),
-    },
-
-    {
-      strategy:
-        "ordered-values-ampersand",
-
-      rawInput:
-        orderedEntries
-          .map(
-            ([, value]) =>
-              value,
-          )
-          .join("&"),
-    },
-  ];
-
-  const seen =
-    new Set<string>();
-
-  return candidates.filter(
-    (candidate) => {
-      if (
-        !candidate.rawInput ||
-        seen.has(
-          candidate.rawInput,
-        )
-      ) {
-        return false;
-      }
-
-      seen.add(
-        candidate.rawInput,
+): GPayGatewayCallbackData {
+  const normalized =
+    rawQueryString
+      .trim()
+      .replace(
+        /^\?/,
+        "",
       );
 
-      return true;
-    },
+  if (!normalized) {
+    throw new Error(
+      "Callback GPay không có query string.",
+    );
+  }
+
+  return createGPayGatewayCallbackData(
+    new URLSearchParams(
+      normalized,
+    ),
   );
+}
+
+export function buildGPayGatewayCallbackCanonicalString(
+  callback:
+    GPayGatewayCallbackData,
+): string {
+  return [
+    [
+      "merchant_order_id",
+      callback
+        .merchantOrderId,
+    ],
+    [
+      "gpay_trans_id",
+      callback
+        .gpayTransactionId,
+    ],
+    [
+      "gpay_bill_id",
+      callback
+        .gpayBillId,
+    ],
+    [
+      "status",
+      callback.status,
+    ],
+    [
+      "embed_data",
+      callback
+        .embedData,
+    ],
+    [
+      "user_payment_method",
+      callback
+        .userPaymentMethod,
+    ],
+  ]
+    .map(
+      (
+        [
+          key,
+          value,
+        ],
+      ) =>
+        `${key}=${value}`,
+    )
+    .join(
+      "&",
+    );
 }
 
 export function normalizeGPayGatewayStatus(
@@ -290,84 +280,89 @@ export function normalizeGPayGatewayStatus(
   }
 }
 
-export async function verifyGPayGatewayCallback(
-  rawQueryString: string,
-): Promise<GPayGatewayCallbackVerification> {
-  const normalizedRawQuery =
-    rawQueryString.replace(
-      /^\?/,
-      "",
-    );
-
-  if (!normalizedRawQuery) {
-    throw new Error(
-      "Callback GPay không có query string.",
-    );
-  }
-
-  const searchParams =
-    new URLSearchParams(
-      normalizedRawQuery,
-    );
-
-  const callback =
-    createCallbackData(
-      searchParams,
-    );
-
+function validateCallbackIdentity(
+  callback:
+    GPayGatewayCallbackData,
+): void {
   if (
-    !callback.signature.trim()
-  ) {
-    throw new Error(
-      "Callback GPay không có chữ ký.",
-    );
-  }
-
-  if (
-    !callback.gpayBillId.trim() ||
     !callback
       .merchantOrderId
       .trim()
   ) {
     throw new Error(
-      "Callback GPay thiếu mã hóa đơn hoặc mã đơn Merchant.",
+      "Callback GPay thiếu merchant_order_id.",
     );
   }
 
-  const candidates =
-    createVerificationCandidates(
-      normalizedRawQuery,
-      searchParams,
+  if (
+    !callback
+      .gpayBillId
+      .trim()
+  ) {
+    throw new Error(
+      "Callback GPay thiếu gpay_bill_id.",
+    );
+  }
+
+  if (
+    !callback
+      .status
+      .trim()
+  ) {
+    throw new Error(
+      "Callback GPay thiếu status.",
+    );
+  }
+
+  if (
+    !callback
+      .signature
+      .trim()
+  ) {
+    throw new Error(
+      "Callback GPay không có signature.",
+    );
+  }
+}
+
+export async function verifyGPayGatewayCallbackData(
+  callback:
+    GPayGatewayCallbackData,
+): Promise<GPayGatewayCallbackVerification> {
+  validateCallbackIdentity(
+    callback,
+  );
+
+  const canonicalString =
+    buildGPayGatewayCallbackCanonicalString(
+      callback,
     );
 
-  let verificationStrategy:
-    | string
-    | null = null;
-
-  for (
-    const candidate
-    of candidates
-  ) {
-    const verified =
-      await verifyGPayProviderSignature(
-        candidate.rawInput,
-        callback.signature,
+  const canonicalSha256 =
+    createHash(
+      "sha256",
+    )
+      .update(
+        canonicalString,
+        "utf8",
+      )
+      .digest(
+        "hex",
       );
 
-    if (verified) {
-      verificationStrategy =
-        candidate.strategy;
-
-      break;
-    }
-  }
+  const verified =
+    await verifyGPayProviderSignature(
+      canonicalString,
+      callback.signature,
+    );
 
   return {
-    verified:
-      verificationStrategy !==
-      null,
+    verified,
 
-    verificationStrategy,
+    verificationStrategy:
+      verified
+        ? GPAY_CALLBACK_CONTRACT_VERSION
+        : null,
 
     normalizedStatus:
       normalizeGPayGatewayStatus(
@@ -380,5 +375,20 @@ export async function verifyGPayGatewayCallback(
       parseEmbedData(
         callback.embedData,
       ),
+
+    canonicalSha256,
+
+    contractVersion:
+      GPAY_CALLBACK_CONTRACT_VERSION,
   };
+}
+
+export async function verifyGPayGatewayCallback(
+  rawQueryString: string,
+): Promise<GPayGatewayCallbackVerification> {
+  return verifyGPayGatewayCallbackData(
+    parseGPayGatewayCallbackQuery(
+      rawQueryString,
+    ),
+  );
 }

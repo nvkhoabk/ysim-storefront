@@ -8,26 +8,93 @@ import {
 } from "next/server";
 
 import {
+  createGPayGatewayCallbackData,
+  getGPayCallbackReconciliationMode,
+  GPAY_CALLBACK_CONTRACT_VERSION,
+  reconcileVerifiedGPayCallback,
+  verifyGPayGatewayCallbackData,
   writeGPayDebugEvent,
 } from "@/lib/payment/adapters/gpay";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime =
+  "nodejs";
 
-function headersToRecord(
-  headers: Headers,
-): Record<string, string> {
-  return Object.fromEntries(
-    Array.from(headers.entries()),
+export const dynamic =
+  "force-dynamic";
+
+type CallbackRecord =
+  Record<
+    string,
+    unknown
+  >;
+
+const CALLBACK_FIELDS = [
+  "merchant_order_id",
+  "gpay_trans_id",
+  "gpay_bill_id",
+  "status",
+  "embed_data",
+  "user_payment_method",
+  "signature",
+] as const;
+
+function isRecord(
+  value: unknown,
+): value is CallbackRecord {
+  return (
+    typeof value ===
+      "object" &&
+    value !==
+      null &&
+    !Array.isArray(
+      value,
+    )
   );
 }
 
-function parseWebhookBody(
+function hasCallbackField(
+  value:
+    CallbackRecord,
+): boolean {
+  return CALLBACK_FIELDS
+    .some(
+      (field) =>
+        field in
+        value,
+    );
+}
+
+function getFirstHeader(
+  headers:
+    Headers,
+  names:
+    readonly string[],
+): string | null {
+  for (
+    const name
+    of names
+  ) {
+    const value =
+      headers.get(
+        name,
+      );
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function parseBodyRecord(
   rawBody: string,
   contentType: string,
-): unknown {
-  if (!rawBody) {
-    return null;
+): CallbackRecord {
+  if (
+    !rawBody
+  ) {
+    return {};
   }
 
   if (
@@ -35,17 +102,22 @@ function parseWebhookBody(
       "application/json",
     )
   ) {
-    try {
-      return JSON.parse(
+    const parsed =
+      JSON.parse(
         rawBody,
       ) as unknown;
-    } catch {
-      return {
-        parseError:
-          "INVALID_JSON",
-        rawBody,
-      };
+
+    if (
+      !isRecord(
+        parsed,
+      )
+    ) {
+      throw new Error(
+        "Webhook GPay JSON phải là object.",
+      );
     }
+
+    return parsed;
   }
 
   if (
@@ -56,27 +128,105 @@ function parseWebhookBody(
     return Object.fromEntries(
       new URLSearchParams(
         rawBody,
-      ).entries(),
+      )
+        .entries(),
     );
   }
 
-  return rawBody;
-}
+  try {
+    const parsed =
+      JSON.parse(
+        rawBody,
+      ) as unknown;
 
-function getFirstHeader(
-  headers: Headers,
-  names: string[],
-): string | null {
-  for (const name of names) {
-    const value =
-      headers.get(name);
-
-    if (value) {
-      return value;
+    if (
+      isRecord(
+        parsed,
+      )
+    ) {
+      return parsed;
     }
+  } catch {
+    return Object.fromEntries(
+      new URLSearchParams(
+        rawBody,
+      )
+        .entries(),
+    );
   }
 
-  return null;
+  return {};
+}
+
+function selectCallbackRecord({
+  requestUrl,
+  body,
+  signatureHeader,
+}: {
+  requestUrl: string;
+  body:
+    CallbackRecord;
+  signatureHeader:
+    string | null;
+}): CallbackRecord {
+  const query =
+    Object.fromEntries(
+      new URL(
+        requestUrl,
+      )
+        .searchParams
+        .entries(),
+    );
+
+  const selected =
+    hasCallbackField(
+      body,
+    )
+      ? {
+          ...body,
+        }
+      : {
+          ...query,
+        };
+
+  if (
+    !selected
+      .signature &&
+    signatureHeader
+  ) {
+    selected.signature =
+      signatureHeader;
+  }
+
+  return selected;
+}
+
+function fieldLengths(
+  record:
+    CallbackRecord,
+): Record<string, number> {
+  return Object.fromEntries(
+    CALLBACK_FIELDS.map(
+      (field) => {
+        const value =
+          record[
+            field
+          ];
+
+        return [
+          field,
+          typeof value ===
+            "string"
+            ? value.length
+            : value == null
+              ? 0
+              : String(
+                  value,
+                ).length,
+        ];
+      },
+    ),
+  );
 }
 
 export async function POST(
@@ -86,178 +236,384 @@ export async function POST(
     randomUUID();
 
   const receivedAt =
-    new Date().toISOString();
+    new Date()
+      .toISOString();
 
-  const rawBody =
-    await request.text();
+  try {
+    const rawBody =
+      await request.text();
 
-  const contentType =
-    request.headers.get(
-      "content-type",
-    ) ?? "";
+    const contentType =
+      request.headers.get(
+        "content-type",
+      ) ??
+      "";
 
-  const parsedBody =
-    parseWebhookBody(
-      rawBody,
-      contentType,
-    );
+    const signatureHeader =
+      getFirstHeader(
+        request.headers,
+        [
+          "signature",
+          "x-signature",
+          "x-gpay-signature",
+          "webhook-signature",
+        ],
+      );
 
-  const rawBodySha256 =
-    createHash("sha256")
-      .update(rawBody, "utf8")
-      .digest("hex");
+    const providerRequestId =
+      getFirstHeader(
+        request.headers,
+        [
+          "x-request-id",
+          "x-requests-id",
+          "request-id",
+          "webhook-id",
+        ],
+      );
 
-  const signature =
-    getFirstHeader(
-      request.headers,
-      [
-        "signature",
-        "x-signature",
-        "x-gpay-signature",
-        "webhook-signature",
-      ],
-    );
+    const bodyRecord =
+      parseBodyRecord(
+        rawBody,
+        contentType,
+      );
 
-  const certificate =
-    getFirstHeader(
-      request.headers,
-      [
-        "x-certificate",
-        "certificate",
-        "x-gpay-certificate",
-      ],
-    );
+    const callbackRecord =
+      selectCallbackRecord({
+        requestUrl:
+          request.url,
 
-  const providerRequestId =
-    getFirstHeader(
-      request.headers,
-      [
-        "x-request-id",
-        "x-requests-id",
-        "request-id",
-        "webhook-id",
-      ],
-    );
+        body:
+          bodyRecord,
 
-  const providerTimestamp =
-    getFirstHeader(
-      request.headers,
-      [
-        "x-timestamp",
-        "timestamp",
-        "webhook-timestamp",
-      ],
-    );
+        signatureHeader,
+      });
 
-  await writeGPayDebugEvent({
-    type: "webhook.received",
+    const callback =
+      createGPayGatewayCallbackData(
+        callbackRecord,
+      );
 
-    requestId:
-      providerRequestId ??
-      localRequestId,
+    const verification =
+      await verifyGPayGatewayCallbackData(
+        callback,
+      );
 
-    operation:
-      "gpay.webhook",
+    await writeGPayDebugEvent({
+      type:
+        "webhook.parsed",
 
-    data: {
-      localRequestId,
+      requestId:
+        providerRequestId ??
+        localRequestId,
 
-      providerRequestId,
+      operation:
+        "gpay.webhook.verify",
+
+      data: {
+        receivedAt,
+
+        contractVersion:
+          verification
+            .contractVersion,
+
+        verified:
+          verification
+            .verified,
+
+        canonicalSha256:
+          verification
+            .canonicalSha256,
+
+        merchantOrderId:
+          callback
+            .merchantOrderId,
+
+        gpayBillId:
+          callback
+            .gpayBillId,
+
+        normalizedStatus:
+          verification
+            .normalizedStatus,
+
+        fieldLengths:
+          fieldLengths(
+            callbackRecord,
+          ),
+
+        rawBodySha256:
+          createHash(
+            "sha256",
+          )
+            .update(
+              rawBody,
+              "utf8",
+            )
+            .digest(
+              "hex",
+            ),
+      },
+    });
+
+    if (
+      !verification
+        .verified
+    ) {
+      return NextResponse.json(
+        {
+          success:
+            false,
+
+          acknowledged:
+            false,
+
+          code:
+            "INVALID_SIGNATURE",
+
+          contractVersion:
+            verification
+              .contractVersion,
+
+          canonicalSha256:
+            verification
+              .canonicalSha256,
+
+          requestId:
+            providerRequestId ??
+            localRequestId,
+        },
+        {
+          status:
+            401,
+
+          headers: {
+            "Cache-Control":
+              "no-store",
+          },
+        },
+      );
+    }
+
+    const reconciliation =
+      await reconcileVerifiedGPayCallback(
+        verification,
+      );
+
+    if (
+      reconciliation
+        .attempted &&
+      reconciliation
+        .confirmed ===
+        false
+    ) {
+      await writeGPayDebugEvent({
+        type:
+          "payment.event",
+
+        requestId:
+          providerRequestId ??
+          localRequestId,
+
+        operation:
+          "gpay.webhook.reconciliation",
+
+        data: {
+          merchantOrderId:
+            callback
+              .merchantOrderId,
+
+          gpayBillId:
+            callback
+              .gpayBillId,
+
+          ...reconciliation,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success:
+            false,
+
+          acknowledged:
+            false,
+
+          code:
+            "RECONCILIATION_MISMATCH",
+
+          requestId:
+            providerRequestId ??
+            localRequestId,
+
+          contractVersion:
+            verification
+              .contractVersion,
+
+          reconciliation,
+        },
+        {
+          status:
+            409,
+
+          headers: {
+            "Cache-Control":
+              "no-store",
+          },
+        },
+      );
+    }
+
+    const responseBody = {
+      success:
+        true,
+
+      received:
+        true,
+
+      acknowledged:
+        true,
+
+      verified:
+        true,
+
+      requestId:
+        providerRequestId ??
+        localRequestId,
 
       receivedAt,
 
-      method:
-        request.method,
+      contractVersion:
+        verification
+          .contractVersion,
 
-      url:
-        request.url,
+      normalizedStatus:
+        verification
+          .normalizedStatus,
 
-      contentType,
+      reconciliation,
 
-      contentLength:
-        rawBody.length,
+      commerceStateChanged:
+        false,
+    };
 
-      rawBodySha256,
+    await writeGPayDebugEvent({
+      type:
+        "webhook.response",
 
-      headers:
-        headersToRecord(
-          request.headers,
-        ),
+      requestId:
+        providerRequestId ??
+        localRequestId,
 
-      detection: {
-        hasSignature:
-          Boolean(signature),
+      operation:
+        "gpay.webhook",
 
-        signatureHeader:
-          signature
-            ? "detected"
-            : null,
+      data: {
+        status:
+          200,
 
-        hasCertificate:
-          Boolean(certificate),
+        verified:
+          true,
 
-        certificateHeader:
-          certificate
-            ? "detected"
-            : null,
+        reconciliationMode:
+          reconciliation.mode,
 
-        providerTimestamp,
+        reconciliationConfirmed:
+          reconciliation
+            .confirmed,
+
+        merchantOrderId:
+          callback
+            .merchantOrderId,
+
+        gpayBillId:
+          callback
+            .gpayBillId,
+
+        normalizedStatus:
+          verification
+            .normalizedStatus,
+
+        commerceStateChanged:
+          false,
       },
+    });
 
-      payload:
-        process.env
-          .GPAY_WEBHOOK_CAPTURE_ENABLED ===
-        "true"
-          ? parsedBody
-          : "[WEBHOOK_CAPTURE_DISABLED]",
-    },
-  });
+    return NextResponse.json(
+      responseBody,
+      {
+        status:
+          200,
 
-  /*
-   * Trong giai đoạn quan sát:
-   * - chưa cập nhật order;
-   * - chưa xác nhận thanh toán;
-   * - chưa fulfillment.
-   */
-  const responseBody = {
-    success: true,
-
-    received: true,
-
-    requestId:
-      providerRequestId ??
-      localRequestId,
-
-    receivedAt,
-  };
-
-  await writeGPayDebugEvent({
-    type: "webhook.response",
-
-    requestId:
-      providerRequestId ??
-      localRequestId,
-
-    operation:
-      "gpay.webhook",
-
-    data: {
-      status: 200,
-      body: responseBody,
-    },
-  });
-
-  return NextResponse.json(
-    responseBody,
-    {
-      status: 200,
-
-      headers: {
-        "Cache-Control":
-          "no-store",
+        headers: {
+          "Cache-Control":
+            "no-store",
+        },
       },
-    },
-  );
+    );
+  } catch (
+    error
+  ) {
+    console.error(
+      "Cannot process GPay webhook:",
+      error instanceof
+        Error
+        ? error.message
+        : "unknown error",
+    );
+
+    await writeGPayDebugEvent({
+      type:
+        "webhook.response",
+
+      requestId:
+        localRequestId,
+
+      operation:
+        "gpay.webhook",
+
+      data: {
+        status:
+          400,
+
+        error:
+          error instanceof
+            Error
+            ? error.message
+            : "unknown error",
+      },
+    });
+
+    return NextResponse.json(
+      {
+        success:
+          false,
+
+        acknowledged:
+          false,
+
+        code:
+          "INVALID_CALLBACK",
+
+        message:
+          error instanceof
+            Error
+            ? error.message
+            : "Webhook GPay không hợp lệ.",
+
+        requestId:
+          localRequestId,
+      },
+      {
+        status:
+          400,
+
+        headers: {
+          "Cache-Control":
+            "no-store",
+        },
+      },
+    );
+  }
 }
 
 export async function GET() {
@@ -266,15 +622,32 @@ export async function GET() {
       service:
         "YSim GPay webhook",
 
-      status: "ready",
+      status:
+        "ready",
 
       environment:
         process.env
           .GPAY_ENVIRONMENT ??
         "sandbox",
 
+      contractVersion:
+        GPAY_CALLBACK_CONTRACT_VERSION,
+
+      reconciliationMode:
+        getGPayCallbackReconciliationMode(),
+
+      signatureAlgorithm:
+        "SHA256withRSA",
+
+      signatureEncoding:
+        "standard-base64",
+
+      commerceStateChanges:
+        false,
+
       timestamp:
-        new Date().toISOString(),
+        new Date()
+          .toISOString(),
     },
     {
       headers: {
