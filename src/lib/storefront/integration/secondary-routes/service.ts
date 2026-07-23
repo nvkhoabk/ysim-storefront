@@ -89,7 +89,7 @@ export async function loadCatalog() {
     {
       label: "Product source",
       status: "live",
-      message: `${mapped.length} sản phẩm từ Product Localization API; filter index dùng toàn bộ category và attribute.`,
+      message: `${mapped.length} sản phẩm từ WooCommerce Store API; category là nguồn destination chính, attribute chỉ dùng fallback.`,
     },
     {
       label: "Product links",

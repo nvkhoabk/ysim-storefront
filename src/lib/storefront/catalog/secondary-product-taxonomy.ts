@@ -1,318 +1,103 @@
+import type { WooCommerceProduct } from "@/lib/woocommerce/types";
 import {
-  esimDestinationExplorer,
-} from "@/config/esim-destination-explorer";
-
-import type {
-  WooCommerceProduct,
-} from "@/lib/woocommerce/types";
+  createWooCategoryTaxonomy,
+  normalizeCategoryToken,
+  productDestinationDescriptors,
+} from "./woocommerce-category-taxonomy";
 
 export interface SecondaryProductCatalogIdentity {
   destination?: string;
-  filterTerms:
-    readonly string[];
+  filterTerms: readonly string[];
 }
 
-interface KnownDestination {
-  label: string;
-  aliases:
-    readonly string[];
-}
+const destinationAttributeAliases = new Set([
+  "destination code",
+  "destination_code",
+  "pa destination code",
+]);
 
-const genericCategoryAliases =
-  new Set([
-    "esim",
-    "esim du lich",
-    "travel esim",
-    "san pham",
-    "products",
-  ]);
-
-function normalize(
-  value: string,
-): string {
-  return value
-    .normalize(
-      "NFD",
-    )
-    .replace(
-      /[\u0300-\u036f]/g,
-      "",
-    )
-    .toLowerCase()
-    .replace(
-      /đ/g,
-      "d",
-    )
-    .replace(
-      /[^a-z0-9]+/g,
-      " ",
-    )
-    .trim()
-    .replace(
-      /\s+/g,
-      " ",
-    );
-}
-
-function unique(
-  values:
-    readonly (
-      string |
-      undefined
-    )[],
-): readonly string[] {
+function unique(values: readonly (string | undefined)[]): readonly string[] {
   return Array.from(
-    new Set(
-      values
-        .filter(
-          (
-            value,
-          ): value is string =>
-            Boolean(
-              value
-                ?.trim(),
-            ),
-        )
-        .map(
-          (
-            value,
-          ) =>
-            value.trim(),
-        ),
-    ),
+    new Set(values.filter((value): value is string => Boolean(value?.trim())).map((value) => value.trim())),
   );
 }
 
-const knownDestinations:
-  readonly KnownDestination[] = [
-    ...esimDestinationExplorer
-      .primaryContinents,
-    ...esimDestinationExplorer
-      .secondaryContinents,
-  ]
-    .flatMap(
-      (
-        continent,
-      ) =>
-        continent
-          .destinations,
-    )
-    .map(
-      (
-        destination,
-      ) => ({
-        label:
-          destination.label,
-
-        aliases:
-          unique([
-            destination.slug,
-            destination.label,
-            destination.countryCode,
-          ])
-            .map(
-              normalize,
-            )
-            .filter(Boolean),
-      }),
-    );
-
-function rawCategoryTerms(
-  product:
-    WooCommerceProduct,
-): readonly string[] {
-  return (
-    product.categories ||
-    []
-  )
-    .flatMap(
-      (
-        category,
-      ) => [
-        category.name,
-        category.slug,
-      ],
-    )
+function rawCategoryTerms(product: WooCommerceProduct): readonly string[] {
+  return (product.categories || [])
+    .flatMap((category) => [category.name, category.slug])
     .filter(Boolean);
 }
 
 function rawAttributeTerms(
-  product:
-    WooCommerceProduct,
+  product: WooCommerceProduct,
+  includeDestinationCode: boolean,
 ): readonly string[] {
-  return (
-    product.attributes ||
-    []
-  )
-    .flatMap(
-      (
-        attribute,
-      ) => [
-        attribute.name,
-        attribute.taxonomy,
-        ...(
-          attribute.terms ||
-          []
-        ).flatMap(
-          (
-            term,
-          ) => [
-            term.name,
-            term.slug,
-          ],
-        ),
-      ],
-    )
-    .filter(
-      (
-        value,
-      ): value is string =>
-        Boolean(
-          value,
-        ),
-    );
+  return (product.attributes || [])
+    .filter((attribute) => {
+      if (includeDestinationCode) {
+        return true;
+      }
+      const keys = [attribute.name, attribute.taxonomy || ""].map(normalizeCategoryToken);
+      return !keys.some((key) => destinationAttributeAliases.has(key) || key.replace(/\s+/g, "_") === "destination_code");
+    })
+    .flatMap((attribute) => [
+      attribute.name,
+      attribute.taxonomy || undefined,
+      ...(attribute.terms || []).flatMap((term) => [term.name, term.slug]),
+    ])
+    .filter((value): value is string => Boolean(value));
 }
 
-function containsAlias(
-  value: string,
-  alias: string,
-): boolean {
-  if (
-    !alias
-  ) {
-    return false;
+function primaryDestinationLabel(product: WooCommerceProduct): string | undefined {
+  const taxonomy = createWooCategoryTaxonomy();
+  const destinations = productDestinationDescriptors(product, taxonomy)
+    .filter((descriptor) => descriptor.canonicalSlug !== "global");
+
+  if (destinations.length === 1) {
+    return destinations[0]?.label;
+  }
+  if (destinations.length > 1) {
+    return "Đa quốc gia";
   }
 
-  if (
-    alias.length <=
-    2
-  ) {
-    return value ===
-      alias;
-  }
-
-  return (
-    value ===
-      alias ||
-    ` ${value} `
-      .includes(
-        ` ${alias} `,
-      )
-  );
+  const globalDestination = productDestinationDescriptors(product, taxonomy)
+    .find((descriptor) => descriptor.canonicalSlug === "global");
+  return globalDestination?.label;
 }
 
-function findKnownDestination(
-  rawTerms:
-    readonly string[],
-):
-  KnownDestination |
-  undefined {
-  const normalizedTerms =
-    rawTerms
-      .map(
-        normalize,
-      )
-      .filter(Boolean);
-
-  return knownDestinations
-    .find(
-      (
-        destination,
-      ) =>
-        destination
-          .aliases
-          .some(
-            (
-              alias,
-            ) =>
-              normalizedTerms
-                .some(
-                  (
-                    term,
-                  ) =>
-                    containsAlias(
-                      term,
-                      alias,
-                    ),
-                ),
-          ),
-    );
-}
-
-function fallbackDestination(
-  product:
-    WooCommerceProduct,
-): string | undefined {
-  return (
-    product.categories ||
-    []
-  )
-    .find(
-      (
-        category,
-      ) =>
-        !genericCategoryAliases
-          .has(
-            normalize(
-              category.name,
-            ),
-          ) &&
-        !genericCategoryAliases
-          .has(
-            normalize(
-              category.slug,
-            ),
-          ),
-    )
-    ?.name;
-}
-
+/**
+ * Build the /esim filter identity from Woo categories first.
+ *
+ * A category assignment is authoritative. Legacy destination_code attributes
+ * are ignored whenever categories exist because several imported products have
+ * destination_code=JP even though their category is Korea, China or Thailand.
+ */
 export function createSecondaryProductCatalogIdentity(
-  product:
-    WooCommerceProduct,
+  product: WooCommerceProduct,
 ): SecondaryProductCatalogIdentity {
-  const categories =
-    rawCategoryTerms(
-      product,
-    );
+  const taxonomy = createWooCategoryTaxonomy();
+  const categories = rawCategoryTerms(product);
+  const destinations = productDestinationDescriptors(product, taxonomy);
+  const hasCategoryEvidence = (product.categories || []).length > 0;
+  const attributes = rawAttributeTerms(product, !hasCategoryEvidence);
+  const destinationTerms = destinations.flatMap((descriptor) => [
+    descriptor.canonicalSlug,
+    descriptor.label,
+    descriptor.countryCode,
+    ...descriptor.aliases,
+    descriptor.continent,
+    descriptor.continentLabel,
+  ]);
 
-  const attributes =
-    rawAttributeTerms(
-      product,
-    );
-
-  const baseTerms =
-    unique([
+  return {
+    destination: primaryDestinationLabel(product),
+    filterTerms: unique([
       product.name,
       product.slug,
       product.sku,
       ...categories,
+      ...destinationTerms,
       ...attributes,
-    ]);
-
-  const knownDestination =
-    findKnownDestination(
-      baseTerms,
-    );
-
-  return {
-    destination:
-      knownDestination
-        ?.label ||
-      fallbackDestination(
-        product,
-      ),
-
-    filterTerms:
-      unique([
-        ...baseTerms,
-        knownDestination
-          ?.label,
-        ...(
-          knownDestination
-            ?.aliases ||
-          []
-        ),
-      ]),
+    ]),
   };
 }
