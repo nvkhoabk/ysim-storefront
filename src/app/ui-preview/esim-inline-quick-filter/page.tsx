@@ -1,9 +1,3 @@
-/* YSIM_PACKAGE_41_ROUTE:esim-inline-quick-filter */
-
-import type {
-  Metadata,
-} from "next";
-
 import {
   EsimInlineQuickFilterPage,
 } from "@/components/catalog";
@@ -20,17 +14,16 @@ import {
 export const dynamic =
   "force-dynamic";
 
-export const metadata:
-  Metadata = {
-    title:
-      "Mua eSIM du lịch | YSim",
-    description:
-      "Chọn điểm đến, lọc và sắp xếp các gói eSIM du lịch ngay trên một trang.",
-    alternates: {
-      canonical:
-        "/esim",
-    },
-  };
+export const metadata = {
+  title:
+    "eSIM Inline Quick Filter | YSim",
+  robots: {
+    index:
+      false,
+    follow:
+      false,
+  },
+};
 
 export default async function Page({
   searchParams,

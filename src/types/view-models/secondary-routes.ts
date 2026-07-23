@@ -8,6 +8,7 @@ export interface SecondaryProductViewModel {
   slug: string;
   name: string;
   destination?: string;
+  filterTerms?: readonly string[];
   imageUrl: string;
   price: number;
   regularPrice?: number;

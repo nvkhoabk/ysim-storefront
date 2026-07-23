@@ -2,6 +2,10 @@ import {
   getProducts,
 } from "@/lib/woocommerce/products";
 
+import {
+  createSecondaryProductCatalogIdentity,
+} from "@/lib/storefront/catalog/secondary-product-taxonomy";
+
 import type {
   WooCommercePrice,
   WooCommerceProduct,
@@ -41,11 +45,21 @@ function mapProduct(
   const price = money(product.prices, "price");
   const regular = money(product.prices, "regular_price");
 
+  const catalogIdentity =
+    createSecondaryProductCatalogIdentity(
+      product,
+    );
+
   return {
     id: product.id,
     slug: product.slug,
     name: product.name,
-    destination: product.categories?.[0]?.name,
+    destination:
+      catalogIdentity
+        .destination,
+    filterTerms:
+      catalogIdentity
+        .filterTerms,
     imageUrl: (
       product.images?.[0]?.src || fallbackImage
     ).replace(
@@ -75,7 +89,7 @@ export async function loadCatalog() {
     {
       label: "Product source",
       status: "live",
-      message: `${mapped.length} sản phẩm từ Product Localization API.`,
+      message: `${mapped.length} sản phẩm từ Product Localization API; filter index dùng toàn bộ category và attribute.`,
     },
     {
       label: "Product links",
