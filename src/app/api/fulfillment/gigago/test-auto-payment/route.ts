@@ -8,6 +8,7 @@ import {
   type GPayGatewayCallbackVerification,
 } from "@/lib/payment/adapters/gpay";
 import {
+  assertGPayCommerceOrderEligible,
   runGPayCommerceAutomation,
   type GPayCommerceAutomationMode,
 } from "@/lib/fulfillment/gigago/gpay-commerce-automation";
@@ -103,6 +104,36 @@ export async function POST(request: Request) {
     }
 
     const order = await getWooCommerceAdminOrder(orderId);
+    const amount = Number(order.total);
+    const currency = order.currency.trim().toUpperCase();
+
+    try {
+      assertGPayCommerceOrderEligible(order, {
+        amount,
+        currency,
+        requireLineItems: true,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "INELIGIBLE_TEST_ORDER",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Woo test order không hợp lệ.",
+          order: {
+            id: order.id,
+            status: order.status,
+            currency: order.currency,
+            total: order.total,
+            lineItemCount: order.line_items?.length ?? 0,
+          },
+        },
+        { status: 422 },
+      );
+    }
+
     const merchantOrderId = `YSIM-F04-TEST-${order.id}`;
     const gpayBillId = `F04-BILL-${order.id}`;
     const gpayTransactionId = `F04-TRANS-${order.id}`;
@@ -113,6 +144,8 @@ export async function POST(request: Request) {
       orderKey: order.order_key,
       paymentProvider: "gpay_gateway_all",
       merchantOrderId,
+      amount,
+      currency,
     };
     const canonicalSha256 = createHash("sha256")
       .update(
@@ -121,6 +154,8 @@ export async function POST(request: Request) {
           gpayBillId,
           gpayTransactionId,
           orderKey: order.order_key,
+          amount,
+          currency,
         }),
         "utf8",
       )

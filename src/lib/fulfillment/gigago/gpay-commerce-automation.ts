@@ -50,6 +50,8 @@ interface GPayEmbedData {
   orderKey: string;
   paymentProvider: string;
   merchantOrderId: string;
+  amount: number;
+  currency: string;
 }
 
 const PAYMENT_META = {
@@ -67,6 +69,13 @@ const PAYMENT_META = {
   fulfillmentResult: "_ysim_gigago_auto_result",
   fulfillmentError: "_ysim_gigago_auto_error",
 } as const;
+
+const DEFAULT_ALLOWED_ORDER_STATUSES = [
+  "pending",
+  "on-hold",
+  "processing",
+  "completed",
+] as const;
 
 const inFlight = new Map<number, Promise<GPayCommerceAutomationResult>>();
 
@@ -119,6 +128,83 @@ function parsePositiveInteger(value: unknown): number | null {
   return null;
 }
 
+function allowedOrderStatuses(): Set<string> {
+  const configured = process.env.GPAY_COMMERCE_ALLOWED_ORDER_STATUSES?.trim();
+  const values = configured
+    ? configured
+        .split(",")
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean)
+    : [...DEFAULT_ALLOWED_ORDER_STATUSES];
+
+  return new Set(values);
+}
+
+function parseWooVndTotal(value: string): number | null {
+  const parsed = Number(value);
+
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+export function isWooCommerceOrderPaid(order: WooCommerceAdminOrder): boolean {
+  return (
+    Boolean(order.date_paid) ||
+    Boolean(order.date_paid_gmt) ||
+    order.status === "processing" ||
+    order.status === "completed"
+  );
+}
+
+export function assertGPayCommerceOrderEligible(
+  order: WooCommerceAdminOrder,
+  expectation: {
+    amount: number;
+    currency: string;
+    requireLineItems?: boolean;
+  },
+): void {
+  const status = order.status.trim().toLowerCase();
+
+  if (!allowedOrderStatuses().has(status)) {
+    throw new Error(
+      `WooCommerce order trạng thái ${order.status} không được phép tự động ghi nhận payment.`,
+    );
+  }
+
+  const currency = order.currency.trim().toUpperCase();
+  const expectedCurrency = expectation.currency.trim().toUpperCase();
+  const wooTotal = parseWooVndTotal(order.total);
+
+  if (currency !== "VND" || expectedCurrency !== "VND") {
+    throw new Error("GPay commerce automation chỉ chấp nhận Woo order VND.");
+  }
+
+  if (!wooTotal) {
+    throw new Error(
+      "WooCommerce order phải có tổng tiền VND nguyên lớn hơn 0.",
+    );
+  }
+
+  if (
+    !Number.isInteger(expectation.amount) ||
+    expectation.amount <= 0 ||
+    expectation.amount !== wooTotal
+  ) {
+    throw new Error(
+      `Số tiền GPay ${expectation.amount} không khớp Woo order ${wooTotal}.`,
+    );
+  }
+
+  if (
+    expectation.requireLineItems !== false &&
+    (!Array.isArray(order.line_items) || order.line_items.length === 0)
+  ) {
+    throw new Error(
+      "WooCommerce order phải có ít nhất một line item trước fulfillment.",
+    );
+  }
+}
+
 function parseEmbedData(
   verification: GPayGatewayCallbackVerification,
 ): GPayEmbedData {
@@ -133,6 +219,8 @@ function parseEmbedData(
   const orderKey = cleanString(value.orderKey);
   const paymentProvider = cleanString(value.paymentProvider);
   const merchantOrderId = cleanString(value.merchantOrderId);
+  const amount = parsePositiveInteger(value.amount);
+  const currency = cleanString(value.currency)?.toUpperCase() ?? null;
   const source = cleanString(value.source);
 
   if (
@@ -141,6 +229,8 @@ function parseEmbedData(
     !orderKey ||
     !paymentProvider ||
     !merchantOrderId ||
+    !amount ||
+    !currency ||
     source !== "ysim-storefront"
   ) {
     throw new Error("GPay embed_data thiếu định danh WooCommerce bắt buộc.");
@@ -157,6 +247,8 @@ function parseEmbedData(
     orderKey,
     paymentProvider,
     merchantOrderId,
+    amount,
+    currency,
   };
 }
 
@@ -175,6 +267,12 @@ function validateOrderIdentity(
   if (!embed.paymentProvider.startsWith("gpay_")) {
     throw new Error("Payment provider trong embed_data không phải GPay.");
   }
+
+  assertGPayCommerceOrderEligible(order, {
+    amount: embed.amount,
+    currency: embed.currency,
+    requireLineItems: true,
+  });
 }
 
 function eligibleReconciliation(
@@ -268,13 +366,19 @@ async function persistPaymentSuccess({
     [PAYMENT_META.automationSource]: source,
   });
 
-  await updateWooCommerceAdminOrder(order.id, {
+  const updatedOrder = await updateWooCommerceAdminOrder(order.id, {
     transaction_id: transactionId(verification, reconciliation),
     payment_method: embed.paymentProvider,
     payment_method_title: "GPay",
     ...(!alreadyPaid ? { set_paid: true } : {}),
     meta_data: metadata,
   });
+
+  if (!isWooCommerceOrderPaid(updatedOrder)) {
+    throw new Error(
+      "WooCommerce không xác nhận order đã paid; Gigago fulfillment bị chặn.",
+    );
+  }
 
   return {
     duplicate,
@@ -381,6 +485,14 @@ async function executeUnlocked(
     options.fulfillmentModeOverride ?? ("live" as const);
 
   try {
+    const persistedOrder = await getWooCommerceAdminOrder(order.id);
+
+    if (!isWooCommerceOrderPaid(persistedOrder)) {
+      throw new Error(
+        "WooCommerce paid postcondition was lost before fulfillment.",
+      );
+    }
+
     const fulfillment = await submitGigagoFulfillment(
       order.id,
       selectedFulfillmentMode,
