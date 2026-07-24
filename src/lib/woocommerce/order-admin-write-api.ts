@@ -4,6 +4,11 @@ import type {
 } from "./order-admin-api";
 
 export interface WooCommerceAdminOrderUpdate {
+  status?: string;
+  transaction_id?: string;
+  payment_method?: string;
+  payment_method_title?: string;
+  set_paid?: boolean;
   meta_data?: WooCommerceAdminOrderMetaData[];
 }
 
@@ -72,7 +77,6 @@ export async function updateWooCommerceAdminOrder(
     body: JSON.stringify(update),
     cache: "no-store",
   });
-
   const body = await parseResponse(response);
 
   if (!response.ok) {
