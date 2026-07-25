@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import {
   createGPayGatewayCallbackData,
@@ -14,9 +14,17 @@ import {
   getGPayCommerceAutomationMode,
   runGPayCommerceAutomation,
 } from "@/lib/fulfillment/gigago/gpay-commerce-automation";
+import {
+  enqueueGPayDelayedReconciliation,
+  getGPayReconciliationRetryDelaysSeconds,
+  isGPayDelayedReconciliationCandidate,
+  isGPayDelayedReconciliationEnabled,
+  runGPayDelayedReconciliationSchedule,
+} from "@/lib/fulfillment/gigago/gpay-delayed-reconciliation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 180;
 
 type CallbackRecord = Record<string, unknown>;
 
@@ -228,6 +236,80 @@ export async function POST(request: Request) {
 
     const reconciliation = await reconcileVerifiedGPayCallback(verification);
 
+    const commerceAutomationMode = getGPayCommerceAutomationMode();
+    const delayedCandidate =
+      commerceAutomationMode !== "disabled" &&
+      isGPayDelayedReconciliationEnabled() &&
+      isGPayDelayedReconciliationCandidate(verification, reconciliation);
+
+    if (delayedCandidate) {
+      const delayed = await enqueueGPayDelayedReconciliation({
+        verification,
+        reconciliation,
+        automationMode: commerceAutomationMode,
+        fulfillmentMode: "live",
+      });
+
+      if (delayed.scheduleRecommended) {
+        after(async () => {
+          try {
+            await runGPayDelayedReconciliationSchedule(delayed.orderId);
+          } catch (error) {
+            console.error("Delayed GPay reconciliation schedule failed:", {
+              orderId: delayed.orderId,
+              message: error instanceof Error ? error.message : "unknown error",
+            });
+          }
+        });
+      }
+
+      await writeGPayDebugEvent({
+        type: "payment.event",
+        requestId: providerRequestId ?? localRequestId,
+        operation: "gpay.webhook.delayed-reconciliation",
+        data: {
+          orderId: delayed.orderId,
+          state: delayed.state,
+          attempts: delayed.attempts,
+          maxAttempts: delayed.maxAttempts,
+          nextAttemptAt: delayed.nextAttemptAt,
+          duplicate: delayed.duplicate,
+          automationMode: delayed.automationMode,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          received: true,
+          acknowledged: true,
+          verified: true,
+          requestId: providerRequestId ?? localRequestId,
+          receivedAt,
+          contractVersion: verification.contractVersion,
+          normalizedStatus: verification.normalizedStatus,
+          reconciliation,
+          commerceStateChanged: false,
+          commerceAutomation: {
+            mode: commerceAutomationMode,
+            attempted: false,
+            paymentRecorded: false,
+            commerceStateChanged: false,
+            fulfillmentAttempted: false,
+            fulfillmentSucceeded: null,
+            duplicatePaymentEvent: delayed.duplicate,
+            orderId: delayed.orderId,
+            reason: "DELAYED_RECONCILIATION_ENQUEUED",
+          },
+          delayedReconciliation: delayed,
+        },
+        {
+          status: 200,
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
+    }
+
     if (reconciliation.attempted && reconciliation.confirmed === false) {
       await writeGPayDebugEvent({
         type: "payment.event",
@@ -378,6 +460,9 @@ export async function GET() {
       commerceAutomationRequiresQuery:
         process.env.GPAY_COMMERCE_AUTOMATION_REQUIRE_QUERY?.trim().toLowerCase() !==
         "false",
+      delayedReconciliationEnabled: isGPayDelayedReconciliationEnabled(),
+      delayedReconciliationRetryDelaysSeconds:
+        getGPayReconciliationRetryDelaysSeconds(),
       timestamp: new Date().toISOString(),
     },
     { headers: { "Cache-Control": "no-store" } },

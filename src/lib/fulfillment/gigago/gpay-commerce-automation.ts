@@ -23,7 +23,11 @@ export type GPayCommerceAutomationMode = "disabled" | "record" | "fulfill";
 export interface GPayCommerceAutomationOptions {
   modeOverride?: GPayCommerceAutomationMode;
   fulfillmentModeOverride?: GigagoFulfillmentMode;
-  source?: "gpay-webhook" | "protected-test";
+  source?:
+    | "gpay-webhook"
+    | "protected-test"
+    | "gpay-reconciliation-retry"
+    | "protected-reconciliation-test";
 }
 
 export interface GPayCommerceAutomationResult {
@@ -43,7 +47,7 @@ export interface GPayCommerceAutomationResult {
   };
 }
 
-interface GPayEmbedData {
+export interface GPayEmbedData {
   source: string;
   orderId: number;
   orderNumber: string;
@@ -205,7 +209,7 @@ export function assertGPayCommerceOrderEligible(
   }
 }
 
-function parseEmbedData(
+export function parseGPayCommerceEmbedData(
   verification: GPayGatewayCallbackVerification,
 ): GPayEmbedData {
   const value = verification.parsedEmbedData;
@@ -254,7 +258,7 @@ function parseEmbedData(
   };
 }
 
-function validateOrderIdentity(
+export function assertGPayCommerceOrderIdentity(
   order: WooCommerceAdminOrder,
   embed: GPayEmbedData,
 ): void {
@@ -335,7 +339,11 @@ async function persistPaymentSuccess({
   verification: GPayGatewayCallbackVerification;
   reconciliation: GPayCallbackReconciliationResult;
   mode: GPayCommerceAutomationMode;
-  source: "gpay-webhook" | "protected-test";
+  source:
+    | "gpay-webhook"
+    | "protected-test"
+    | "gpay-reconciliation-retry"
+    | "protected-reconciliation-test";
 }): Promise<{
   duplicate: boolean;
   stateChanged: boolean;
@@ -450,10 +458,10 @@ async function executeUnlocked(
     };
   }
 
-  const embed = parseEmbedData(verification);
+  const embed = parseGPayCommerceEmbedData(verification);
   const order = await getWooCommerceAdminOrder(embed.orderId);
 
-  validateOrderIdentity(order, embed);
+  assertGPayCommerceOrderIdentity(order, embed);
 
   const payment = await persistPaymentSuccess({
     order,
