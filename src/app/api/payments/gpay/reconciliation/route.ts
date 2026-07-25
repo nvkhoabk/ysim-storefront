@@ -3,6 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import {
+  getGPayCommerceRetryDelaysSeconds,
   getGPayDelayedReconciliationStatus,
   getGPayReconciliationRetryDelaysSeconds,
   isGPayDelayedReconciliationEnabled,
@@ -121,5 +122,7 @@ export async function GET() {
     authentication: "x-ysim-reconciliation-secret",
     enabled: isGPayDelayedReconciliationEnabled(),
     retryDelaysSeconds: getGPayReconciliationRetryDelaysSeconds(),
+    commerceRetryDelaysSeconds: getGPayCommerceRetryDelaysSeconds(),
+    exhaustedSuccessRecovery: true,
   });
 }

@@ -30,6 +30,18 @@ export interface GPayCommerceAutomationOptions {
     | "protected-reconciliation-test";
 }
 
+export interface GPayWooPaymentDiagnostic {
+  initialStatus: string;
+  initialDatePaidPresent: boolean;
+  pendingBridgeApplied: boolean;
+  updateResponseStatus: string;
+  updateResponseDatePaidPresent: boolean;
+  confirmedStatus: string;
+  confirmedDatePaidPresent: boolean;
+  transactionIdPresent: boolean;
+  refetchCount: number;
+}
+
 export interface GPayCommerceAutomationResult {
   mode: GPayCommerceAutomationMode;
   attempted: boolean;
@@ -40,6 +52,7 @@ export interface GPayCommerceAutomationResult {
   duplicatePaymentEvent: boolean;
   orderId: number | null;
   reason: string;
+  paymentDiagnostic?: GPayWooPaymentDiagnostic;
   fulfillment?: GigagoFulfillmentSubmission;
   fulfillmentError?: {
     name: string;
@@ -326,6 +339,68 @@ function transactionId(
   );
 }
 
+const WOO_PAID_RECHECK_DELAYS_MS = [250, 750, 1500] as const;
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function paidDatePresent(order: WooCommerceAdminOrder): boolean {
+  return Boolean(order.date_paid || order.date_paid_gmt);
+}
+
+async function confirmWooPaidPostcondition({
+  orderId,
+  initialOrder,
+  updateResponse,
+  pendingBridgeApplied,
+}: {
+  orderId: number;
+  initialOrder: WooCommerceAdminOrder;
+  updateResponse: WooCommerceAdminOrder;
+  pendingBridgeApplied: boolean;
+}): Promise<{
+  order: WooCommerceAdminOrder;
+  diagnostic: GPayWooPaymentDiagnostic;
+}> {
+  let confirmedOrder = updateResponse;
+  let refetchCount = 0;
+
+  if (!isWooCommerceOrderPaid(confirmedOrder)) {
+    for (const delay of WOO_PAID_RECHECK_DELAYS_MS) {
+      await sleep(delay);
+      confirmedOrder = await getWooCommerceAdminOrder(orderId);
+      refetchCount += 1;
+
+      if (isWooCommerceOrderPaid(confirmedOrder)) {
+        break;
+      }
+    }
+  }
+
+  const diagnostic: GPayWooPaymentDiagnostic = {
+    initialStatus: initialOrder.status,
+    initialDatePaidPresent: paidDatePresent(initialOrder),
+    pendingBridgeApplied,
+    updateResponseStatus: updateResponse.status,
+    updateResponseDatePaidPresent: paidDatePresent(updateResponse),
+    confirmedStatus: confirmedOrder.status,
+    confirmedDatePaidPresent: paidDatePresent(confirmedOrder),
+    transactionIdPresent: Boolean(confirmedOrder.transaction_id),
+    refetchCount,
+  };
+
+  if (!isWooCommerceOrderPaid(confirmedOrder)) {
+    throw new Error(
+      `WooCommerce không xác nhận order đã paid sau re-fetch; Gigago fulfillment bị chặn. Diagnostic=${JSON.stringify(
+        diagnostic,
+      )}`,
+    );
+  }
+
+  return { order: confirmedOrder, diagnostic };
+}
+
 async function persistPaymentSuccess({
   order,
   embed,
@@ -347,6 +422,8 @@ async function persistPaymentSuccess({
 }): Promise<{
   duplicate: boolean;
   stateChanged: boolean;
+  paidOrder: WooCommerceAdminOrder;
+  diagnostic: GPayWooPaymentDiagnostic;
 }> {
   const previousHash = readWooCommerceOrderMetaString(
     order,
@@ -354,6 +431,8 @@ async function persistPaymentSuccess({
   );
   const duplicate = previousHash === verification.canonicalSha256;
   const alreadyPaid = isWooCommerceOrderPaid(order);
+  const requiresPendingBridge =
+    !alreadyPaid && order.status.trim().toLowerCase() === "on-hold";
   const paidAt =
     readWooCommerceOrderMetaString(order, PAYMENT_META.paidAt) ||
     new Date().toISOString();
@@ -374,6 +453,7 @@ async function persistPaymentSuccess({
   });
 
   const updatedOrder = await updateWooCommerceAdminOrder(order.id, {
+    ...(requiresPendingBridge ? { status: "pending" } : {}),
     transaction_id: transactionId(verification, reconciliation),
     payment_method: embed.paymentProvider,
     payment_method_title: "GPay",
@@ -381,15 +461,18 @@ async function persistPaymentSuccess({
     meta_data: metadata,
   });
 
-  if (!isWooCommerceOrderPaid(updatedOrder)) {
-    throw new Error(
-      "WooCommerce không xác nhận order đã paid; Gigago fulfillment bị chặn.",
-    );
-  }
+  const confirmation = await confirmWooPaidPostcondition({
+    orderId: order.id,
+    initialOrder: order,
+    updateResponse: updatedOrder,
+    pendingBridgeApplied: requiresPendingBridge,
+  });
 
   return {
     duplicate,
     stateChanged: !alreadyPaid,
+    paidOrder: confirmation.order,
+    diagnostic: confirmation.diagnostic,
   };
 }
 
@@ -485,6 +568,7 @@ async function executeUnlocked(
       reason: payment.duplicate
         ? "PAYMENT_RECORDED_DUPLICATE"
         : "PAYMENT_RECORDED",
+      paymentDiagnostic: payment.diagnostic,
     };
   }
 
@@ -519,6 +603,7 @@ async function executeUnlocked(
       reason: fulfillment.recovered
         ? "FULFILLMENT_RECOVERED"
         : "FULFILLMENT_SUBMITTED",
+      paymentDiagnostic: payment.diagnostic,
       fulfillment,
     };
   } catch (error) {
@@ -538,6 +623,7 @@ async function executeUnlocked(
       duplicatePaymentEvent: payment.duplicate,
       orderId: order.id,
       reason: "FULFILLMENT_FAILED",
+      paymentDiagnostic: payment.diagnostic,
       fulfillmentError: {
         name: error instanceof Error ? error.name : "UnknownError",
         message:

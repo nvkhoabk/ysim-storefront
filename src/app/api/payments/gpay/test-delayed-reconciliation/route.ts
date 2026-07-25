@@ -7,7 +7,11 @@ import {
   type GPayCallbackReconciliationResult,
   type GPayGatewayCallbackVerification,
 } from "@/lib/payment/adapters/gpay";
-import type { GPayCommerceAutomationMode } from "@/lib/fulfillment/gigago/gpay-commerce-automation";
+import {
+  assertGPayCommerceOrderEligible,
+  isWooCommerceOrderPaid,
+  type GPayCommerceAutomationMode,
+} from "@/lib/fulfillment/gigago/gpay-commerce-automation";
 import {
   enqueueGPayDelayedReconciliation,
   getGPayDelayedReconciliationStatus,
@@ -15,6 +19,7 @@ import {
 } from "@/lib/fulfillment/gigago/gpay-delayed-reconciliation";
 import type { GigagoFulfillmentMode } from "@/lib/fulfillment/gigago/gigago-fulfillment-service";
 import { getWooCommerceAdminOrder } from "@/lib/woocommerce/order-admin-api";
+import { updateWooCommerceAdminOrder } from "@/lib/woocommerce/order-admin-write-api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -104,7 +109,10 @@ export async function POST(request: Request) {
 
     if (
       !selectedOrderId ||
-      (action !== "enqueue" && action !== "process" && action !== "status")
+      (action !== "prepare-on-hold" &&
+        action !== "enqueue" &&
+        action !== "process" &&
+        action !== "status")
     ) {
       return NextResponse.json(
         {
@@ -113,6 +121,67 @@ export async function POST(request: Request) {
         },
         { status: 400 },
       );
+    }
+
+    if (action === "prepare-on-hold") {
+      const order = await getWooCommerceAdminOrder(selectedOrderId);
+      const amount = Number(order.total);
+      const currency = order.currency.trim().toUpperCase();
+
+      assertGPayCommerceOrderEligible(order, {
+        amount,
+        currency,
+        requireLineItems: true,
+      });
+
+      if (isWooCommerceOrderPaid(order)) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: "ORDER_ALREADY_PAID",
+          },
+          { status: 409 },
+        );
+      }
+
+      if (order.status !== "pending" && order.status !== "on-hold") {
+        return NextResponse.json(
+          {
+            success: false,
+            code: "INVALID_PREPARE_STATUS",
+            order: {
+              id: order.id,
+              status: order.status,
+            },
+          },
+          { status: 422 },
+        );
+      }
+
+      if (order.status !== "on-hold") {
+        await updateWooCommerceAdminOrder(order.id, {
+          status: "on-hold",
+        });
+      }
+
+      const prepared = await getWooCommerceAdminOrder(order.id);
+
+      return NextResponse.json({
+        success: true,
+        protectedTest: true,
+        action,
+        result: {
+          orderId: prepared.id,
+          status: prepared.status,
+          currency: prepared.currency,
+          total: prepared.total,
+          lineItemCount: prepared.line_items?.length ?? 0,
+          paid: isWooCommerceOrderPaid(prepared),
+          datePaidPresent: Boolean(
+            prepared.date_paid || prepared.date_paid_gmt,
+          ),
+        },
+      });
     }
 
     if (action === "status") {
@@ -243,10 +312,11 @@ export async function POST(request: Request) {
 
 export async function GET() {
   return NextResponse.json({
-    service: "YSim F04.2 delayed reconciliation test",
+    service: "YSim F04.2.1 on-hold reconciliation test",
     status: "ready",
+    contractVersion: "gpay-onhold-recovery-f04-2-1-r2",
     sandboxOnly: true,
-    actions: ["enqueue", "process", "status"],
+    actions: ["prepare-on-hold", "enqueue", "process", "status"],
     providerStatuses: ["PENDING", "SUCCESS", "FAILED"],
   });
 }

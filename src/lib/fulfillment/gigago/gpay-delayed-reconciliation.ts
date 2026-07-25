@@ -25,11 +25,19 @@ import {
   runGPayCommerceAutomation,
   type GPayCommerceAutomationMode,
   type GPayCommerceAutomationResult,
+  type GPayWooPaymentDiagnostic,
 } from "./gpay-commerce-automation";
 import type { GigagoFulfillmentMode } from "./gigago-fulfillment-service";
 
 export type GPayDelayedReconciliationState =
-  "pending" | "processing" | "succeeded" | "failed" | "mismatch" | "exhausted";
+  | "pending"
+  | "processing"
+  | "provider-confirmed"
+  | "pending-commerce"
+  | "succeeded"
+  | "failed"
+  | "mismatch"
+  | "exhausted";
 
 interface StoredVerification {
   verified: true;
@@ -41,13 +49,25 @@ interface StoredVerification {
   contractVersion: string;
 }
 
+interface ConfirmedQuerySnapshot {
+  gpayTransactionId: string;
+  status: string;
+  userPaymentMethod: string;
+  queriedAt: string;
+}
+
 interface GPayDelayedReconciliationJob {
-  version: "f04.2";
+  version: "f04.2" | "f04.2.1";
   orderId: number;
   state: GPayDelayedReconciliationState;
   attempts: number;
   maxAttempts: number;
   retryDelaysSeconds: number[];
+  commerceAttempts: number;
+  maxCommerceAttempts: number;
+  commerceRetryDelaysSeconds: number[];
+  providerConfirmedAt: string | null;
+  confirmedQuery: ConfirmedQuerySnapshot | null;
   nextAttemptAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -64,6 +84,7 @@ interface GPayDelayedReconciliationJob {
     commerceStateChanged: boolean;
     fulfillmentAttempted: boolean;
     fulfillmentSucceeded: boolean | null;
+    paymentDiagnostic?: GPayWooPaymentDiagnostic;
   } | null;
 }
 
@@ -82,6 +103,11 @@ export interface GPayDelayedReconciliationView {
   state: GPayDelayedReconciliationState;
   attempts: number;
   maxAttempts: number;
+  providerAttempts: number;
+  commerceAttempts: number;
+  maxCommerceAttempts: number;
+  providerConfirmed: boolean;
+  providerConfirmedAt: string | null;
   nextAttemptAt: string | null;
   automationMode: Exclude<GPayCommerceAutomationMode, "disabled">;
   fulfillmentMode: GigagoFulfillmentMode;
@@ -111,6 +137,7 @@ const META = {
 } as const;
 
 const DEFAULT_RETRY_DELAYS_SECONDS = [5, 15, 30, 60];
+const DEFAULT_COMMERCE_RETRY_DELAYS_SECONDS = [1, 3, 10];
 const processing = new Map<number, Promise<GPayDelayedReconciliationView>>();
 
 function nowIso(): string {
@@ -139,6 +166,23 @@ export function getGPayReconciliationRetryDelaysSeconds(): number[] {
     .filter((value): value is number => value !== null);
 
   return parsed.length > 0 ? parsed : [...DEFAULT_RETRY_DELAYS_SECONDS];
+}
+
+export function getGPayCommerceRetryDelaysSeconds(): number[] {
+  const configured = process.env.GPAY_COMMERCE_RETRY_DELAYS_SECONDS?.trim();
+
+  if (!configured) {
+    return [...DEFAULT_COMMERCE_RETRY_DELAYS_SECONDS];
+  }
+
+  const parsed = configured
+    .split(",")
+    .map(parsePositiveSeconds)
+    .filter((value): value is number => value !== null);
+
+  return parsed.length > 0
+    ? parsed
+    : [...DEFAULT_COMMERCE_RETRY_DELAYS_SECONDS];
 }
 
 export function isGPayDelayedReconciliationEnabled(): boolean {
@@ -172,9 +216,80 @@ function parseJob(
   }
 
   try {
-    const parsed = JSON.parse(raw) as GPayDelayedReconciliationJob;
+    const parsed = JSON.parse(raw) as Partial<GPayDelayedReconciliationJob>;
 
-    return parsed?.version === "f04.2" ? parsed : null;
+    if (parsed.version !== "f04.2" && parsed.version !== "f04.2.1") {
+      return null;
+    }
+
+    if (
+      !parsed.verification ||
+      typeof parsed.orderId !== "number" ||
+      !parsed.state ||
+      !parsed.automationMode ||
+      !parsed.fulfillmentMode
+    ) {
+      return null;
+    }
+
+    const providerConfirmed = parsed.lastQueriedStatus === "SUCCESS";
+    const commerceRetryDelaysSeconds =
+      Array.isArray(parsed.commerceRetryDelaysSeconds) &&
+      parsed.commerceRetryDelaysSeconds.length > 0
+        ? parsed.commerceRetryDelaysSeconds
+        : getGPayCommerceRetryDelaysSeconds();
+    const callback = parsed.verification.callback;
+    const confirmedQuery =
+      parsed.confirmedQuery ??
+      (providerConfirmed
+        ? {
+            gpayTransactionId: callback.gpayTransactionId || "",
+            status: "ORDER_SUCCESS",
+            userPaymentMethod: callback.userPaymentMethod || "",
+            queriedAt: parsed.updatedAt || nowIso(),
+          }
+        : null);
+
+    return {
+      ...(parsed as GPayDelayedReconciliationJob),
+      version: "f04.2.1",
+      attempts:
+        Number.isInteger(parsed.attempts) && (parsed.attempts ?? 0) >= 0
+          ? (parsed.attempts ?? 0)
+          : 0,
+      maxAttempts:
+        Number.isInteger(parsed.maxAttempts) && (parsed.maxAttempts ?? 0) > 0
+          ? (parsed.maxAttempts ?? 1)
+          : getGPayReconciliationRetryDelaysSeconds().length,
+      retryDelaysSeconds:
+        Array.isArray(parsed.retryDelaysSeconds) &&
+        parsed.retryDelaysSeconds.length > 0
+          ? parsed.retryDelaysSeconds
+          : getGPayReconciliationRetryDelaysSeconds(),
+      commerceAttempts:
+        Number.isInteger(parsed.commerceAttempts) &&
+        (parsed.commerceAttempts ?? 0) >= 0
+          ? (parsed.commerceAttempts ?? 0)
+          : 0,
+      maxCommerceAttempts:
+        Number.isInteger(parsed.maxCommerceAttempts) &&
+        (parsed.maxCommerceAttempts ?? 0) > 0
+          ? (parsed.maxCommerceAttempts ?? 1)
+          : commerceRetryDelaysSeconds.length,
+      commerceRetryDelaysSeconds,
+      providerConfirmedAt:
+        parsed.providerConfirmedAt ??
+        (providerConfirmed ? (parsed.updatedAt ?? nowIso()) : null),
+      confirmedQuery,
+      nextAttemptAt: parsed.nextAttemptAt ?? null,
+      createdAt: parsed.createdAt ?? nowIso(),
+      updatedAt: parsed.updatedAt ?? nowIso(),
+      lastQueriedStatus: parsed.lastQueriedStatus ?? null,
+      lastError: parsed.lastError ?? null,
+      lockToken: null,
+      lockExpiresAt: null,
+      result: parsed.result ?? null,
+    };
   } catch {
     return null;
   }
@@ -188,6 +303,11 @@ function view(
     state: job.state,
     attempts: job.attempts,
     maxAttempts: job.maxAttempts,
+    providerAttempts: job.attempts,
+    commerceAttempts: job.commerceAttempts,
+    maxCommerceAttempts: job.maxCommerceAttempts,
+    providerConfirmed: job.lastQueriedStatus === "SUCCESS",
+    providerConfirmedAt: job.providerConfirmedAt,
     nextAttemptAt: job.nextAttemptAt,
     automationMode: job.automationMode,
     fulfillmentMode: job.fulfillmentMode,
@@ -313,12 +433,17 @@ export async function enqueueGPayDelayedReconciliation({
   const createdAt = nowIso();
   const delays = getGPayReconciliationRetryDelaysSeconds();
   const job: GPayDelayedReconciliationJob = {
-    version: "f04.2",
+    version: "f04.2.1",
     orderId: order.id,
     state: "pending",
     attempts: 0,
     maxAttempts: delays.length,
     retryDelaysSeconds: delays,
+    commerceAttempts: 0,
+    maxCommerceAttempts: getGPayCommerceRetryDelaysSeconds().length,
+    commerceRetryDelaysSeconds: getGPayCommerceRetryDelaysSeconds(),
+    providerConfirmedAt: null,
+    confirmedQuery: null,
     nextAttemptAt: addSeconds(createdAt, delays[0]),
     createdAt,
     updatedAt: createdAt,
@@ -434,7 +559,121 @@ function resultSummary(
     commerceStateChanged: result.commerceStateChanged,
     fulfillmentAttempted: result.fulfillmentAttempted,
     fulfillmentSucceeded: result.fulfillmentSucceeded,
+    paymentDiagnostic: result.paymentDiagnostic,
   };
+}
+
+function confirmedReconciliation(
+  job: GPayDelayedReconciliationJob,
+): GPayCallbackReconciliationResult {
+  const query = job.confirmedQuery ?? {
+    gpayTransactionId: job.verification.callback.gpayTransactionId || "",
+    status: "ORDER_SUCCESS",
+    userPaymentMethod: job.verification.callback.userPaymentMethod || "",
+    queriedAt: job.providerConfirmedAt ?? nowIso(),
+  };
+
+  return {
+    mode: "query",
+    attempted: true,
+    confirmed: true,
+    reason: "DELAYED_QUERY_SUCCESS_CONFIRMED",
+    callbackStatus: "SUCCESS",
+    queriedStatus: "SUCCESS",
+    merchantOrderIdMatches: true,
+    gpayBillIdMatches: true,
+    statusCompatible: true,
+    embedDataMatches: true,
+    query,
+  };
+}
+
+async function persistAndView(
+  orderId: number,
+  job: GPayDelayedReconciliationJob,
+): Promise<GPayDelayedReconciliationView> {
+  const refreshed = await getWooCommerceAdminOrder(orderId);
+  await persistJob(refreshed, job);
+
+  return view(job);
+}
+
+async function applyConfirmedCommerce(
+  orderId: number,
+  job: GPayDelayedReconciliationJob,
+  options: ProcessGPayDelayedReconciliationOptions,
+): Promise<GPayDelayedReconciliationView> {
+  const verification = restoreVerification(job.verification);
+  const currentOrder = await getWooCommerceAdminOrder(orderId);
+
+  expectedOrderIdentityMatches(currentOrder, verification);
+
+  job.state = "processing";
+  job.updatedAt = nowIso();
+  job.lockToken = randomUUID();
+  job.lockExpiresAt = addSeconds(job.updatedAt, 45);
+  job.nextAttemptAt = null;
+  await persistJob(currentOrder, job);
+
+  try {
+    job.commerceAttempts += 1;
+    const automation = await runGPayCommerceAutomation(
+      verification,
+      confirmedReconciliation(job),
+      {
+        modeOverride: job.automationMode,
+        fulfillmentModeOverride: job.fulfillmentMode,
+        source:
+          options.syntheticStatus != null
+            ? "protected-reconciliation-test"
+            : "gpay-reconciliation-retry",
+      },
+    );
+
+    job.result = resultSummary(automation);
+    job.updatedAt = nowIso();
+    job.lockToken = null;
+    job.lockExpiresAt = null;
+    job.nextAttemptAt = null;
+
+    if (
+      automation.paymentRecorded &&
+      (!automation.fulfillmentAttempted ||
+        automation.fulfillmentSucceeded === true)
+    ) {
+      job.state = "succeeded";
+      job.lastError = null;
+    } else {
+      job.state = "failed";
+      job.lastError =
+        automation.fulfillmentError?.message ??
+        "Commerce automation không hoàn tất.";
+    }
+
+    return persistAndView(orderId, job);
+  } catch (error) {
+    job.updatedAt = nowIso();
+    job.lockToken = null;
+    job.lockExpiresAt = null;
+    job.lastError = safeError(error);
+
+    if (job.commerceAttempts >= job.maxCommerceAttempts) {
+      job.state = "exhausted";
+      job.nextAttemptAt = null;
+    } else {
+      const delay =
+        job.commerceRetryDelaysSeconds[
+          Math.min(
+            job.commerceAttempts - 1,
+            job.commerceRetryDelaysSeconds.length - 1,
+          )
+        ];
+      job.state = "pending-commerce";
+      job.nextAttemptAt = addSeconds(nowIso(), delay);
+    }
+
+    return persistAndView(orderId, job);
+  }
 }
 
 async function processUnlocked(
@@ -453,8 +692,14 @@ async function processUnlocked(
   if (
     job.state === "succeeded" ||
     job.state === "failed" ||
-    job.state === "mismatch" ||
-    job.state === "exhausted"
+    job.state === "mismatch"
+  ) {
+    return view(job);
+  }
+
+  if (
+    job.state === "exhausted" &&
+    !(options.force && job.lastQueriedStatus === "SUCCESS")
   ) {
     return view(job);
   }
@@ -465,6 +710,10 @@ async function processUnlocked(
     Date.parse(job.nextAttemptAt) > Date.now()
   ) {
     return view(job);
+  }
+
+  if (job.lastQueriedStatus === "SUCCESS") {
+    return applyConfirmedCommerce(orderId, job, options);
   }
 
   const processingAt = nowIso();
@@ -497,10 +746,7 @@ async function processUnlocked(
       job.lastError =
         "GPay query identity/embed_data không khớp callback đã xác minh.";
 
-      const refreshed = await getWooCommerceAdminOrder(orderId);
-      await persistJob(refreshed, job);
-
-      return view(job);
+      return persistAndView(orderId, job);
     }
 
     if (queriedStatus === "FAILED") {
@@ -508,51 +754,23 @@ async function processUnlocked(
       job.nextAttemptAt = null;
       job.lastError = "GPay query trả trạng thái thất bại.";
 
-      const refreshed = await getWooCommerceAdminOrder(orderId);
-      await persistJob(refreshed, job);
-
-      return view(job);
+      return persistAndView(orderId, job);
     }
 
     if (queriedStatus === "SUCCESS") {
-      const verification = restoreVerification(job.verification);
-      const currentOrder = await getWooCommerceAdminOrder(orderId);
-
-      expectedOrderIdentityMatches(currentOrder, verification);
-
-      const automation = await runGPayCommerceAutomation(
-        verification,
-        reconciliation,
-        {
-          modeOverride: job.automationMode,
-          fulfillmentModeOverride: job.fulfillmentMode,
-          source:
-            options.syntheticStatus != null
-              ? "protected-reconciliation-test"
-              : "gpay-reconciliation-retry",
-        },
-      );
-
-      job.result = resultSummary(automation);
+      job.state = "provider-confirmed";
+      job.providerConfirmedAt = query.queriedAt;
+      job.confirmedQuery = {
+        gpayTransactionId: query.gpayTransactionId || "",
+        status: query.status || "ORDER_SUCCESS",
+        userPaymentMethod: query.userPaymentMethod || "",
+        queriedAt: query.queriedAt,
+      };
       job.nextAttemptAt = null;
 
-      if (
-        automation.paymentRecorded &&
-        (!automation.fulfillmentAttempted ||
-          automation.fulfillmentSucceeded === true)
-      ) {
-        job.state = "succeeded";
-      } else {
-        job.state = "failed";
-        job.lastError =
-          automation.fulfillmentError?.message ??
-          "Commerce automation không hoàn tất.";
-      }
+      await persistAndView(orderId, job);
 
-      const refreshed = await getWooCommerceAdminOrder(orderId);
-      await persistJob(refreshed, job);
-
-      return view(job);
+      return applyConfirmedCommerce(orderId, job, options);
     }
 
     if (job.attempts >= job.maxAttempts) {
@@ -568,10 +786,7 @@ async function processUnlocked(
       job.nextAttemptAt = addSeconds(nowIso(), nextDelay);
     }
 
-    const refreshed = await getWooCommerceAdminOrder(orderId);
-    await persistJob(refreshed, job);
-
-    return view(job);
+    return persistAndView(orderId, job);
   } catch (error) {
     job.attempts += 1;
     job.updatedAt = nowIso();
@@ -591,10 +806,7 @@ async function processUnlocked(
       job.nextAttemptAt = addSeconds(nowIso(), nextDelay);
     }
 
-    const refreshed = await getWooCommerceAdminOrder(orderId);
-    await persistJob(refreshed, job);
-
-    return view(job);
+    return persistAndView(orderId, job);
   }
 }
 
