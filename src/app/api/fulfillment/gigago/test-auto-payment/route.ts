@@ -50,7 +50,10 @@ function authorize(request: Request): NextResponse | null {
 
   if (!safeEqual(supplied, expected)) {
     return NextResponse.json(
-      { success: false, code: "INVALID_TEST_SECRET" },
+      {
+        success: false,
+        code: "INVALID_TEST_SECRET",
+      },
       { status: 401 },
     );
   }
@@ -72,11 +75,20 @@ function fulfillmentMode(value: unknown): GigagoFulfillmentMode | null {
   return value === "demo" || value === "live" ? value : null;
 }
 
+function orderAmount(total: string): number | null {
+  const amount = Number(total);
+
+  return Number.isInteger(amount) && amount > 0 ? amount : null;
+}
+
 export async function POST(request: Request) {
   try {
     if (process.env.GIGAGO_ENV?.trim().toLowerCase() !== "sandbox") {
       return NextResponse.json(
-        { success: false, code: "SANDBOX_ONLY" },
+        {
+          success: false,
+          code: "SANDBOX_ONLY",
+        },
         { status: 404 },
       );
     }
@@ -98,19 +110,40 @@ export async function POST(request: Request) {
       (action === "fulfill" && !selectedFulfillmentMode)
     ) {
       return NextResponse.json(
-        { success: false, code: "INVALID_TEST_REQUEST" },
+        {
+          success: false,
+          code: "INVALID_TEST_REQUEST",
+        },
         { status: 400 },
       );
     }
 
     const order = await getWooCommerceAdminOrder(orderId);
-    const amount = Number(order.total);
-    const currency = order.currency.trim().toUpperCase();
+    const amount = orderAmount(order.total);
+
+    if (!amount) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "INELIGIBLE_TEST_ORDER",
+          message:
+            "Protected test yêu cầu Woo order có tổng tiền VND lớn hơn 0.",
+          order: {
+            id: order.id,
+            status: order.status,
+            currency: order.currency,
+            total: order.total,
+            lineItemCount: order.line_items?.length ?? 0,
+          },
+        },
+        { status: 422 },
+      );
+    }
 
     try {
       assertGPayCommerceOrderEligible(order, {
         amount,
-        currency,
+        currency: order.currency,
         requireLineItems: true,
       });
     } catch (error) {
@@ -134,6 +167,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const currency = order.currency.trim().toUpperCase();
     const merchantOrderId = `YSIM-F04-TEST-${order.id}`;
     const gpayBillId = `F04-BILL-${order.id}`;
     const gpayTransactionId = `F04-TRANS-${order.id}`;
@@ -209,11 +243,20 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json(
-      { success: true, protectedTest: true, result },
-      { status: 200, headers: { "Cache-Control": "no-store" } },
+      {
+        success: true,
+        protectedTest: true,
+        result,
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
     );
   } catch (error) {
-    console.error("F04 protected test failed:", error);
+    console.error("F04.1 protected test failed:", error);
 
     return NextResponse.json(
       {
@@ -229,9 +272,14 @@ export async function POST(request: Request) {
 
 export async function GET() {
   return NextResponse.json({
-    service: "YSim F04 protected auto-payment test",
+    service: "YSim F04.1 protected auto-payment test",
     status: "ready",
     sandboxOnly: true,
+    safety: {
+      positiveOrderTotalRequired: true,
+      lineItemsRequired: true,
+      paidPostconditionRequiredBeforeFulfillment: true,
+    },
     actions: ["record", "fulfill"],
     fulfillmentModes: ["demo", "live"],
   });
