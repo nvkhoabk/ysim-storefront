@@ -20,6 +20,10 @@ import {
   type GigagoOrderMappingIssue,
 } from "./gigago-order-mapping";
 import { resolveGigagoMappingForOrder } from "./gigago-readiness-gate";
+import {
+  persistGigagoSecureDeliverySnapshot,
+  type GigagoDeliverySnapshotSource,
+} from "./gigago-delivery-snapshot";
 import type {
   GigagoAgencyOrder,
   GigagoCreateOrderExtra,
@@ -244,6 +248,7 @@ async function persistSubmission(
   items: readonly GigagoMappedOrderItem[],
   createResult: GigagoCreateOrderExtra | null,
   snapshot: GigagoFulfillmentSnapshot,
+  source: GigagoDeliverySnapshotSource,
 ): Promise<void> {
   const keys = metadataKeys(mode);
   const now = new Date().toISOString();
@@ -273,8 +278,18 @@ async function persistSubmission(
     [keys.lastCheckedAt]: now,
   });
 
-  await updateWooCommerceAdminOrder(order.id, {
+  const updatedOrder = await updateWooCommerceAdminOrder(order.id, {
     meta_data: meta,
+  });
+
+  await persistGigagoSecureDeliverySnapshot({
+    order: updatedOrder,
+    mode,
+    requestId,
+    agencyOrders: snapshot.agencyOrders,
+    deliveredEsims: snapshot.deliveredEsims,
+    expectedItems: items,
+    source,
   });
 }
 
@@ -342,6 +357,7 @@ export async function submitGigagoFulfillment(
       preview.items,
       null,
       existingSnapshot,
+      "fulfillment-recovery",
     );
 
     return {
@@ -374,6 +390,7 @@ export async function submitGigagoFulfillment(
     preview.items,
     createResult,
     snapshot,
+    "fulfillment-submit",
   );
 
   return {
@@ -412,7 +429,15 @@ export async function getGigagoFulfillmentStatus(
   const snapshot = await querySnapshot(client, requestId);
 
   if (snapshot.agencyOrders.length > 0 || snapshot.deliveredEsims.length > 0) {
-    await persistSubmission(order, mode, requestId, [], null, snapshot);
+    await persistSubmission(
+      order,
+      mode,
+      requestId,
+      [],
+      null,
+      snapshot,
+      "fulfillment-status",
+    );
   }
 
   return {

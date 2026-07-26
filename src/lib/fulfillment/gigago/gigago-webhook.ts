@@ -13,6 +13,7 @@ import {
 import { GigagoClient } from "./gigago.client";
 import { getGigagoConfig } from "./gigago.config";
 import { GigagoError } from "./gigago.errors";
+import { persistGigagoSecureDeliverySnapshot } from "./gigago-delivery-snapshot";
 import type { GigagoAgencyOrder, GigagoDeliveredEsim } from "./gigago.types";
 import type {
   GigagoPersistedEsim,
@@ -453,8 +454,17 @@ async function persistWebhookReconciliation({
     [keys.esims]: persistedEsims(snapshot.deliveredEsims),
   });
 
-  await updateWooCommerceAdminOrder(order.id, {
+  const updatedOrder = await updateWooCommerceAdminOrder(order.id, {
     meta_data: meta,
+  });
+
+  await persistGigagoSecureDeliverySnapshot({
+    order: updatedOrder,
+    mode,
+    requestId: parsed.envelope.extra.request_id,
+    agencyOrders: snapshot.agencyOrders,
+    deliveredEsims: snapshot.deliveredEsims,
+    source: "gigago-webhook",
   });
 
   return {
