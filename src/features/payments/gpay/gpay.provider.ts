@@ -2,6 +2,7 @@ import {
   initGPayGatewayOrder,
   type GPayGatewayPaymentMethod,
 } from "@/lib/payment/adapters/gpay";
+import { enforceGigagoReadinessBeforePayment } from "@/lib/fulfillment/gigago/gigago-readiness-gate";
 import type {
   CreatePaymentInput,
   PaymentProvider,
@@ -47,6 +48,11 @@ function createGPayGatewayProvider(
       if (!Number.isInteger(input.amount) || input.amount <= 0) {
         throw new Error("Số tiền gửi GPay phải là số nguyên VND lớn hơn 0.");
       }
+
+      await enforceGigagoReadinessBeforePayment({
+        orderId: input.orderId,
+        paymentProvider: definition.id,
+      });
 
       const storefrontBaseUrl = requireEnvironmentVariable(
         "GPAY_STOREFRONT_BASE_URL",

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { createPaymentSession } from "@/features/payments/payment.service";
 import { createPaymentSchema } from "@/features/payments/payment.validation";
 
+import { GigagoReadinessError } from "@/lib/fulfillment/gigago/gigago-readiness-gate";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -42,14 +44,42 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof GigagoReadinessError) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: error.code,
+          message: error.message,
+
+          // Giữ tương thích với frontend đang đọc trường error.
+          error: error.message,
+
+          details: {
+            orderId: error.details.orderId,
+            readinessStatus: error.details.status,
+            environment: error.details.environment,
+            issues: error.details.issues,
+          },
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
     console.error("Cannot create payment:", error);
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Không thể khởi tạo phiên thanh toán.";
 
     return NextResponse.json(
       {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Không thể khởi tạo thanh toán.",
+        success: false,
+        code: "PAYMENT_CREATE_FAILED",
+        message,
+        error: message,
       },
       {
         status: 500,

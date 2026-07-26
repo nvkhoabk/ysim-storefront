@@ -16,10 +16,10 @@ import { getGigagoConfig } from "./gigago.config";
 import { GigagoError } from "./gigago.errors";
 import {
   mapGigagoDemoPlan,
-  mapWooOrderToGigagoPlans,
   type GigagoMappedOrderItem,
   type GigagoOrderMappingIssue,
 } from "./gigago-order-mapping";
+import { resolveGigagoMappingForOrder } from "./gigago-readiness-gate";
 import type {
   GigagoAgencyOrder,
   GigagoCreateOrderExtra,
@@ -174,7 +174,7 @@ async function loadPreview(
           packages,
           process.env.GIGAGO_F02_DEMO_PLAN_ID?.trim() || "GIGA-DEMO",
         )
-      : mapWooOrderToGigagoPlans(order, packages);
+      : resolveGigagoMappingForOrder(order, packages);
   const orderEligibility = eligibility(order, mode);
   const keys = metadataKeys(mode);
   const requestId =
