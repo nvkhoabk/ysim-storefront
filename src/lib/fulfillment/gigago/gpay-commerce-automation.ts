@@ -13,6 +13,10 @@ import {
 } from "@/lib/woocommerce/order-admin-write-api";
 
 import {
+  assessGigagoSubmissionDelivery,
+  type GigagoDeliveryAssessment,
+} from "./gigago-delivery-assessment";
+import {
   submitGigagoFulfillment,
   type GigagoFulfillmentMode,
   type GigagoFulfillmentSubmission,
@@ -49,6 +53,8 @@ export interface GPayCommerceAutomationResult {
   commerceStateChanged: boolean;
   fulfillmentAttempted: boolean;
   fulfillmentSucceeded: boolean | null;
+  fulfillmentState: "not-started" | "processing" | "succeeded" | "failed";
+  fulfillmentAssessment?: GigagoDeliveryAssessment;
   duplicatePaymentEvent: boolean;
   orderId: number | null;
   reason: string;
@@ -85,6 +91,7 @@ const PAYMENT_META = {
   fulfillmentAttemptedAt: "_ysim_gigago_auto_attempted_at",
   fulfillmentResult: "_ysim_gigago_auto_result",
   fulfillmentError: "_ysim_gigago_auto_error",
+  fulfillmentAssessment: "_ysim_gigago_auto_assessment",
 } as const;
 
 const DEFAULT_ALLOWED_ORDER_STATUSES = [
@@ -478,19 +485,23 @@ async function persistPaymentSuccess({
 
 async function persistFulfillmentOutcome({
   orderId,
-  succeeded,
+  state,
+  assessment,
   error,
 }: {
   orderId: number;
-  succeeded: boolean;
+  state: "processing" | "succeeded" | "failed";
+  assessment?: GigagoDeliveryAssessment;
   error?: unknown;
 }): Promise<void> {
   const order = await getWooCommerceAdminOrder(orderId);
   const metadata = upsertWooCommerceOrderMeta(order, {
     [PAYMENT_META.fulfillmentAttemptedAt]: new Date().toISOString(),
-    [PAYMENT_META.fulfillmentResult]: succeeded ? "submitted" : "failed",
+    [PAYMENT_META.fulfillmentResult]:
+      state === "succeeded" ? "delivered" : state,
+    [PAYMENT_META.fulfillmentAssessment]: assessment ?? "",
     [PAYMENT_META.fulfillmentError]:
-      !succeeded && error
+      state === "failed" && error
         ? {
             name: error instanceof Error ? error.name : "UnknownError",
             message:
@@ -521,6 +532,7 @@ async function executeUnlocked(
       commerceStateChanged: false,
       fulfillmentAttempted: false,
       fulfillmentSucceeded: null,
+      fulfillmentState: "not-started",
       duplicatePaymentEvent: false,
       orderId: null,
       reason: "AUTOMATION_DISABLED",
@@ -535,6 +547,7 @@ async function executeUnlocked(
       commerceStateChanged: false,
       fulfillmentAttempted: false,
       fulfillmentSucceeded: null,
+      fulfillmentState: "not-started",
       duplicatePaymentEvent: false,
       orderId: null,
       reason: eligibility.reason,
@@ -563,6 +576,7 @@ async function executeUnlocked(
       commerceStateChanged: payment.stateChanged,
       fulfillmentAttempted: false,
       fulfillmentSucceeded: null,
+      fulfillmentState: "not-started",
       duplicatePaymentEvent: payment.duplicate,
       orderId: order.id,
       reason: payment.duplicate
@@ -588,8 +602,17 @@ async function executeUnlocked(
       order.id,
       selectedFulfillmentMode,
     );
+    const fulfillmentAssessment = assessGigagoSubmissionDelivery(fulfillment);
+    const fulfillmentSucceeded = fulfillmentAssessment.delivered ? true : null;
+    const fulfillmentState = fulfillmentAssessment.delivered
+      ? ("succeeded" as const)
+      : ("processing" as const);
 
-    await persistFulfillmentOutcome({ orderId: order.id, succeeded: true });
+    await persistFulfillmentOutcome({
+      orderId: order.id,
+      state: fulfillmentState,
+      assessment: fulfillmentAssessment,
+    });
 
     return {
       mode,
@@ -597,19 +620,25 @@ async function executeUnlocked(
       paymentRecorded: true,
       commerceStateChanged: payment.stateChanged,
       fulfillmentAttempted: true,
-      fulfillmentSucceeded: true,
+      fulfillmentSucceeded,
+      fulfillmentState,
+      fulfillmentAssessment,
       duplicatePaymentEvent: payment.duplicate,
       orderId: order.id,
-      reason: fulfillment.recovered
-        ? "FULFILLMENT_RECOVERED"
-        : "FULFILLMENT_SUBMITTED",
+      reason: fulfillmentAssessment.delivered
+        ? fulfillment.recovered
+          ? "FULFILLMENT_RECOVERED_DELIVERED"
+          : "FULFILLMENT_DELIVERED"
+        : fulfillment.recovered
+          ? "FULFILLMENT_RECOVERED_PROCESSING"
+          : "FULFILLMENT_SUBMITTED_PROCESSING",
       paymentDiagnostic: payment.diagnostic,
       fulfillment,
     };
   } catch (error) {
     await persistFulfillmentOutcome({
       orderId: order.id,
-      succeeded: false,
+      state: "failed",
       error,
     });
 
@@ -620,6 +649,7 @@ async function executeUnlocked(
       commerceStateChanged: payment.stateChanged,
       fulfillmentAttempted: true,
       fulfillmentSucceeded: false,
+      fulfillmentState: "failed",
       duplicatePaymentEvent: payment.duplicate,
       orderId: order.id,
       reason: "FULFILLMENT_FAILED",

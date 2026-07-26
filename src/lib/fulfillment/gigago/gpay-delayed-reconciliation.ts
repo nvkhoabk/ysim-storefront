@@ -27,6 +27,7 @@ import {
   type GPayCommerceAutomationResult,
   type GPayWooPaymentDiagnostic,
 } from "./gpay-commerce-automation";
+import type { GigagoDeliveryAssessment } from "./gigago-delivery-assessment";
 import type { GigagoFulfillmentMode } from "./gigago-fulfillment-service";
 
 export type GPayDelayedReconciliationState =
@@ -34,6 +35,8 @@ export type GPayDelayedReconciliationState =
   | "processing"
   | "provider-confirmed"
   | "pending-commerce"
+  | "pending-fulfillment"
+  | "action-required"
   | "succeeded"
   | "failed"
   | "mismatch"
@@ -57,7 +60,7 @@ interface ConfirmedQuerySnapshot {
 }
 
 interface GPayDelayedReconciliationJob {
-  version: "f04.2" | "f04.2.1";
+  version: "f04.2" | "f04.2.1" | "f04.3.2";
   orderId: number;
   state: GPayDelayedReconciliationState;
   attempts: number;
@@ -66,6 +69,9 @@ interface GPayDelayedReconciliationJob {
   commerceAttempts: number;
   maxCommerceAttempts: number;
   commerceRetryDelaysSeconds: number[];
+  fulfillmentPollAttempts: number;
+  maxFulfillmentPollAttempts: number;
+  fulfillmentPollDelaysSeconds: number[];
   providerConfirmedAt: string | null;
   confirmedQuery: ConfirmedQuerySnapshot | null;
   nextAttemptAt: string | null;
@@ -84,6 +90,8 @@ interface GPayDelayedReconciliationJob {
     commerceStateChanged: boolean;
     fulfillmentAttempted: boolean;
     fulfillmentSucceeded: boolean | null;
+    fulfillmentState?: "not-started" | "processing" | "succeeded" | "failed";
+    fulfillmentAssessment?: GigagoDeliveryAssessment;
     paymentDiagnostic?: GPayWooPaymentDiagnostic;
   } | null;
 }
@@ -106,6 +114,8 @@ export interface GPayDelayedReconciliationView {
   providerAttempts: number;
   commerceAttempts: number;
   maxCommerceAttempts: number;
+  fulfillmentPollAttempts: number;
+  maxFulfillmentPollAttempts: number;
   providerConfirmed: boolean;
   providerConfirmedAt: string | null;
   nextAttemptAt: string | null;
@@ -138,6 +148,7 @@ const META = {
 
 const DEFAULT_RETRY_DELAYS_SECONDS = [5, 15, 30, 60];
 const DEFAULT_COMMERCE_RETRY_DELAYS_SECONDS = [1, 3, 10];
+const DEFAULT_FULFILLMENT_POLL_DELAYS_SECONDS = [15, 30, 60, 120, 300, 300];
 const processing = new Map<number, Promise<GPayDelayedReconciliationView>>();
 
 function nowIso(): string {
@@ -185,6 +196,23 @@ export function getGPayCommerceRetryDelaysSeconds(): number[] {
     : [...DEFAULT_COMMERCE_RETRY_DELAYS_SECONDS];
 }
 
+export function getGPayFulfillmentPollDelaysSeconds(): number[] {
+  const configured = process.env.GPAY_FULFILLMENT_POLL_DELAYS_SECONDS?.trim();
+
+  if (!configured) {
+    return [...DEFAULT_FULFILLMENT_POLL_DELAYS_SECONDS];
+  }
+
+  const parsed = configured
+    .split(",")
+    .map(parsePositiveSeconds)
+    .filter((value): value is number => value !== null);
+
+  return parsed.length > 0
+    ? parsed
+    : [...DEFAULT_FULFILLMENT_POLL_DELAYS_SECONDS];
+}
+
 export function isGPayDelayedReconciliationEnabled(): boolean {
   return (
     process.env.GPAY_DELAYED_RECONCILIATION_ENABLED?.trim().toLowerCase() ===
@@ -218,7 +246,11 @@ function parseJob(
   try {
     const parsed = JSON.parse(raw) as Partial<GPayDelayedReconciliationJob>;
 
-    if (parsed.version !== "f04.2" && parsed.version !== "f04.2.1") {
+    if (
+      parsed.version !== "f04.2" &&
+      parsed.version !== "f04.2.1" &&
+      parsed.version !== "f04.3.2"
+    ) {
       return null;
     }
 
@@ -238,6 +270,11 @@ function parseJob(
       parsed.commerceRetryDelaysSeconds.length > 0
         ? parsed.commerceRetryDelaysSeconds
         : getGPayCommerceRetryDelaysSeconds();
+    const fulfillmentPollDelaysSeconds =
+      Array.isArray(parsed.fulfillmentPollDelaysSeconds) &&
+      parsed.fulfillmentPollDelaysSeconds.length > 0
+        ? parsed.fulfillmentPollDelaysSeconds
+        : getGPayFulfillmentPollDelaysSeconds();
     const callback = parsed.verification.callback;
     const confirmedQuery =
       parsed.confirmedQuery ??
@@ -252,7 +289,7 @@ function parseJob(
 
     return {
       ...(parsed as GPayDelayedReconciliationJob),
-      version: "f04.2.1",
+      version: "f04.3.2",
       attempts:
         Number.isInteger(parsed.attempts) && (parsed.attempts ?? 0) >= 0
           ? (parsed.attempts ?? 0)
@@ -277,6 +314,17 @@ function parseJob(
           ? (parsed.maxCommerceAttempts ?? 1)
           : commerceRetryDelaysSeconds.length,
       commerceRetryDelaysSeconds,
+      fulfillmentPollAttempts:
+        Number.isInteger(parsed.fulfillmentPollAttempts) &&
+        (parsed.fulfillmentPollAttempts ?? 0) >= 0
+          ? (parsed.fulfillmentPollAttempts ?? 0)
+          : 0,
+      maxFulfillmentPollAttempts:
+        Number.isInteger(parsed.maxFulfillmentPollAttempts) &&
+        (parsed.maxFulfillmentPollAttempts ?? 0) > 0
+          ? (parsed.maxFulfillmentPollAttempts ?? 1)
+          : fulfillmentPollDelaysSeconds.length,
+      fulfillmentPollDelaysSeconds,
       providerConfirmedAt:
         parsed.providerConfirmedAt ??
         (providerConfirmed ? (parsed.updatedAt ?? nowIso()) : null),
@@ -306,6 +354,8 @@ function view(
     providerAttempts: job.attempts,
     commerceAttempts: job.commerceAttempts,
     maxCommerceAttempts: job.maxCommerceAttempts,
+    fulfillmentPollAttempts: job.fulfillmentPollAttempts,
+    maxFulfillmentPollAttempts: job.maxFulfillmentPollAttempts,
     providerConfirmed: job.lastQueriedStatus === "SUCCESS",
     providerConfirmedAt: job.providerConfirmedAt,
     nextAttemptAt: job.nextAttemptAt,
@@ -426,14 +476,18 @@ export async function enqueueGPayDelayedReconciliation({
       ...view(existing),
       duplicate: true,
       scheduleRecommended:
-        existing.state === "pending" || existing.state === "processing",
+        existing.state === "pending" ||
+        existing.state === "processing" ||
+        existing.state === "pending-commerce" ||
+        existing.state === "pending-fulfillment" ||
+        existing.state === "provider-confirmed",
     };
   }
 
   const createdAt = nowIso();
   const delays = getGPayReconciliationRetryDelaysSeconds();
   const job: GPayDelayedReconciliationJob = {
-    version: "f04.2.1",
+    version: "f04.3.2",
     orderId: order.id,
     state: "pending",
     attempts: 0,
@@ -442,6 +496,9 @@ export async function enqueueGPayDelayedReconciliation({
     commerceAttempts: 0,
     maxCommerceAttempts: getGPayCommerceRetryDelaysSeconds().length,
     commerceRetryDelaysSeconds: getGPayCommerceRetryDelaysSeconds(),
+    fulfillmentPollAttempts: 0,
+    maxFulfillmentPollAttempts: getGPayFulfillmentPollDelaysSeconds().length,
+    fulfillmentPollDelaysSeconds: getGPayFulfillmentPollDelaysSeconds(),
     providerConfirmedAt: null,
     confirmedQuery: null,
     nextAttemptAt: addSeconds(createdAt, delays[0]),
@@ -559,6 +616,8 @@ function resultSummary(
     commerceStateChanged: result.commerceStateChanged,
     fulfillmentAttempted: result.fulfillmentAttempted,
     fulfillmentSucceeded: result.fulfillmentSucceeded,
+    fulfillmentState: result.fulfillmentState,
+    fulfillmentAssessment: result.fulfillmentAssessment,
     paymentDiagnostic: result.paymentDiagnostic,
   };
 }
@@ -605,6 +664,7 @@ async function applyConfirmedCommerce(
 ): Promise<GPayDelayedReconciliationView> {
   const verification = restoreVerification(job.verification);
   const currentOrder = await getWooCommerceAdminOrder(orderId);
+  const resumingFulfillment = job.state === "pending-fulfillment";
 
   expectedOrderIdentityMatches(currentOrder, verification);
 
@@ -616,7 +676,10 @@ async function applyConfirmedCommerce(
   await persistJob(currentOrder, job);
 
   try {
-    job.commerceAttempts += 1;
+    if (!resumingFulfillment) {
+      job.commerceAttempts += 1;
+    }
+
     const automation = await runGPayCommerceAutomation(
       verification,
       confirmedReconciliation(job),
@@ -636,18 +699,58 @@ async function applyConfirmedCommerce(
     job.lockExpiresAt = null;
     job.nextAttemptAt = null;
 
-    if (
+    if (automation.paymentRecorded && !automation.fulfillmentAttempted) {
+      job.state = "succeeded";
+      job.lastError = null;
+    } else if (
       automation.paymentRecorded &&
-      (!automation.fulfillmentAttempted ||
-        automation.fulfillmentSucceeded === true)
+      automation.fulfillmentSucceeded === true
     ) {
       job.state = "succeeded";
       job.lastError = null;
+    } else if (
+      automation.paymentRecorded &&
+      automation.fulfillmentAttempted &&
+      automation.fulfillmentSucceeded === null
+    ) {
+      job.fulfillmentPollAttempts += 1;
+
+      if (job.fulfillmentPollAttempts >= job.maxFulfillmentPollAttempts) {
+        job.state = "action-required";
+        job.nextAttemptAt = null;
+        job.lastError =
+          "Gigago vẫn chưa Delivered sau toàn bộ số lần fulfillment polling.";
+      } else {
+        const delay =
+          job.fulfillmentPollDelaysSeconds[
+            Math.min(
+              job.fulfillmentPollAttempts - 1,
+              job.fulfillmentPollDelaysSeconds.length - 1,
+            )
+          ];
+        job.state = "pending-fulfillment";
+        job.nextAttemptAt = addSeconds(nowIso(), delay);
+        job.lastError = null;
+      }
     } else {
-      job.state = "failed";
       job.lastError =
         automation.fulfillmentError?.message ??
         "Commerce automation không hoàn tất.";
+
+      if (job.commerceAttempts >= job.maxCommerceAttempts) {
+        job.state = "action-required";
+        job.nextAttemptAt = null;
+      } else {
+        const delay =
+          job.commerceRetryDelaysSeconds[
+            Math.min(
+              job.commerceAttempts - 1,
+              job.commerceRetryDelaysSeconds.length - 1,
+            )
+          ];
+        job.state = "pending-commerce";
+        job.nextAttemptAt = addSeconds(nowIso(), delay);
+      }
     }
 
     return persistAndView(orderId, job);
@@ -657,8 +760,25 @@ async function applyConfirmedCommerce(
     job.lockExpiresAt = null;
     job.lastError = safeError(error);
 
-    if (job.commerceAttempts >= job.maxCommerceAttempts) {
-      job.state = "exhausted";
+    if (resumingFulfillment) {
+      job.fulfillmentPollAttempts += 1;
+
+      if (job.fulfillmentPollAttempts >= job.maxFulfillmentPollAttempts) {
+        job.state = "action-required";
+        job.nextAttemptAt = null;
+      } else {
+        const delay =
+          job.fulfillmentPollDelaysSeconds[
+            Math.min(
+              job.fulfillmentPollAttempts - 1,
+              job.fulfillmentPollDelaysSeconds.length - 1,
+            )
+          ];
+        job.state = "pending-fulfillment";
+        job.nextAttemptAt = addSeconds(nowIso(), delay);
+      }
+    } else if (job.commerceAttempts >= job.maxCommerceAttempts) {
+      job.state = "action-required";
       job.nextAttemptAt = null;
     } else {
       const delay =
@@ -692,7 +812,8 @@ async function processUnlocked(
   if (
     job.state === "succeeded" ||
     job.state === "failed" ||
-    job.state === "mismatch"
+    job.state === "mismatch" ||
+    job.state === "action-required"
   ) {
     return view(job);
   }
@@ -852,7 +973,8 @@ export async function runGPayDelayedReconciliationSchedule(
       current.state === "succeeded" ||
       current.state === "failed" ||
       current.state === "mismatch" ||
-      current.state === "exhausted"
+      current.state === "exhausted" ||
+      current.state === "action-required"
     ) {
       return current;
     }

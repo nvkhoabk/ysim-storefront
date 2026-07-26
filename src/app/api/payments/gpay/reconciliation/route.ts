@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import {
   getGPayCommerceRetryDelaysSeconds,
   getGPayDelayedReconciliationStatus,
+  getGPayFulfillmentPollDelaysSeconds,
   getGPayReconciliationRetryDelaysSeconds,
   isGPayDelayedReconciliationEnabled,
   processGPayDelayedReconciliation,
@@ -123,6 +124,8 @@ export async function GET() {
     enabled: isGPayDelayedReconciliationEnabled(),
     retryDelaysSeconds: getGPayReconciliationRetryDelaysSeconds(),
     commerceRetryDelaysSeconds: getGPayCommerceRetryDelaysSeconds(),
+    fulfillmentPollDelaysSeconds: getGPayFulfillmentPollDelaysSeconds(),
     exhaustedSuccessRecovery: true,
+    pendingFulfillmentLifecycle: true,
   });
 }
