@@ -127,5 +127,7 @@ export async function GET() {
     fulfillmentPollDelaysSeconds: getGPayFulfillmentPollDelaysSeconds(),
     exhaustedSuccessRecovery: true,
     pendingFulfillmentLifecycle: true,
+    immediateSuccessDurability: true,
+    immediateSuccessDurabilityVersion: "f04.3.3.1",
   });
 }

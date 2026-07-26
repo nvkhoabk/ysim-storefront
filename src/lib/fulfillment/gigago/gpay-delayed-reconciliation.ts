@@ -60,7 +60,7 @@ interface ConfirmedQuerySnapshot {
 }
 
 interface GPayDelayedReconciliationJob {
-  version: "f04.2" | "f04.2.1" | "f04.3.2";
+  version: "f04.2" | "f04.2.1" | "f04.3.2" | "f04.3.3" | "f04.3.3.1";
   orderId: number;
   state: GPayDelayedReconciliationState;
   attempts: number;
@@ -127,6 +127,11 @@ export interface GPayDelayedReconciliationView {
 }
 
 export interface EnqueueGPayDelayedReconciliationResult extends GPayDelayedReconciliationView {
+  duplicate: boolean;
+  scheduleRecommended: boolean;
+}
+
+export interface PersistGPayImmediateSuccessDurabilityResult extends GPayDelayedReconciliationView {
   duplicate: boolean;
   scheduleRecommended: boolean;
 }
@@ -249,7 +254,9 @@ function parseJob(
     if (
       parsed.version !== "f04.2" &&
       parsed.version !== "f04.2.1" &&
-      parsed.version !== "f04.3.2"
+      parsed.version !== "f04.3.2" &&
+      parsed.version !== "f04.3.3" &&
+      parsed.version !== "f04.3.3.1"
     ) {
       return null;
     }
@@ -289,7 +296,7 @@ function parseJob(
 
     return {
       ...(parsed as GPayDelayedReconciliationJob),
-      version: "f04.3.2",
+      version: "f04.3.3.1",
       attempts:
         Number.isInteger(parsed.attempts) && (parsed.attempts ?? 0) >= 0
           ? (parsed.attempts ?? 0)
@@ -487,7 +494,7 @@ export async function enqueueGPayDelayedReconciliation({
   const createdAt = nowIso();
   const delays = getGPayReconciliationRetryDelaysSeconds();
   const job: GPayDelayedReconciliationJob = {
-    version: "f04.3.2",
+    version: "f04.3.3.1",
     orderId: order.id,
     state: "pending",
     attempts: 0,
@@ -520,6 +527,173 @@ export async function enqueueGPayDelayedReconciliation({
     ...view(job),
     duplicate: false,
     scheduleRecommended: true,
+  };
+}
+
+export function isGPayImmediateSuccessDurabilityCandidate(
+  verification: GPayGatewayCallbackVerification,
+  reconciliation: GPayCallbackReconciliationResult,
+): boolean {
+  if (
+    !verification.verified ||
+    verification.normalizedStatus !== "SUCCESS" ||
+    reconciliation.mode !== "query" ||
+    reconciliation.attempted !== true ||
+    reconciliation.confirmed !== true ||
+    reconciliation.queriedStatus !== "SUCCESS"
+  ) {
+    return false;
+  }
+
+  return (
+    reconciliation.merchantOrderIdMatches !== false &&
+    reconciliation.gpayBillIdMatches !== false &&
+    reconciliation.embedDataMatches !== false
+  );
+}
+
+export async function persistGPayImmediateSuccessDurability({
+  verification,
+  reconciliation,
+  automation,
+  automationMode = getGPayCommerceAutomationMode(),
+  fulfillmentMode = "live",
+}: {
+  verification: GPayGatewayCallbackVerification;
+  reconciliation: GPayCallbackReconciliationResult;
+  automation: GPayCommerceAutomationResult;
+  automationMode?: GPayCommerceAutomationMode;
+  fulfillmentMode?: GigagoFulfillmentMode;
+}): Promise<PersistGPayImmediateSuccessDurabilityResult> {
+  if (automationMode === "disabled") {
+    throw new Error(
+      "Không tạo immediate-success durability job khi commerce automation đang disabled.",
+    );
+  }
+
+  if (
+    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
+  ) {
+    throw new Error(
+      "Callback GPay không đủ điều kiện immediate-success durability.",
+    );
+  }
+
+  const embed = parseGPayCommerceEmbedData(verification);
+  const order = await getWooCommerceAdminOrder(embed.orderId);
+
+  assertGPayCommerceOrderIdentity(order, embed);
+
+  const existing = parseJob(order);
+
+  if (
+    existing &&
+    existing.verification.canonicalSha256 === verification.canonicalSha256
+  ) {
+    return {
+      ...view(existing),
+      duplicate: true,
+      scheduleRecommended:
+        existing.state === "pending" ||
+        existing.state === "processing" ||
+        existing.state === "pending-commerce" ||
+        existing.state === "pending-fulfillment" ||
+        existing.state === "provider-confirmed",
+    };
+  }
+
+  const createdAt = nowIso();
+  const retryDelaysSeconds = getGPayReconciliationRetryDelaysSeconds();
+  const commerceRetryDelaysSeconds = getGPayCommerceRetryDelaysSeconds();
+  const fulfillmentPollDelaysSeconds = getGPayFulfillmentPollDelaysSeconds();
+  const confirmedAt = reconciliation.query?.queriedAt ?? createdAt;
+  const commerceAttempts = automation.attempted ? 1 : 0;
+  let fulfillmentPollAttempts = 0;
+  let state: GPayDelayedReconciliationState;
+  let nextAttemptAt: string | null = null;
+  let lastError: string | null = null;
+
+  if (automation.paymentRecorded && !automation.fulfillmentAttempted) {
+    state = "succeeded";
+  } else if (
+    automation.paymentRecorded &&
+    automation.fulfillmentSucceeded === true
+  ) {
+    state = "succeeded";
+  } else if (
+    automation.paymentRecorded &&
+    automation.fulfillmentAttempted &&
+    automation.fulfillmentSucceeded === null
+  ) {
+    fulfillmentPollAttempts = 1;
+
+    if (fulfillmentPollAttempts >= fulfillmentPollDelaysSeconds.length) {
+      state = "action-required";
+      lastError =
+        "Gigago vẫn chưa Delivered sau toàn bộ số lần fulfillment polling.";
+    } else {
+      state = "pending-fulfillment";
+      nextAttemptAt = addSeconds(createdAt, fulfillmentPollDelaysSeconds[0]);
+    }
+  } else if (commerceAttempts >= commerceRetryDelaysSeconds.length) {
+    state = "action-required";
+    lastError =
+      automation.fulfillmentError?.message ??
+      "Immediate-success commerce automation không hoàn tất.";
+  } else {
+    state = "pending-commerce";
+    nextAttemptAt = addSeconds(createdAt, commerceRetryDelaysSeconds[0]);
+    lastError =
+      automation.fulfillmentError?.message ??
+      "Immediate-success commerce automation chưa hoàn tất.";
+  }
+
+  const job: GPayDelayedReconciliationJob = {
+    version: "f04.3.3.1",
+    orderId: order.id,
+    state,
+    attempts: 1,
+    maxAttempts: retryDelaysSeconds.length,
+    retryDelaysSeconds,
+    commerceAttempts,
+    maxCommerceAttempts: commerceRetryDelaysSeconds.length,
+    commerceRetryDelaysSeconds,
+    fulfillmentPollAttempts,
+    maxFulfillmentPollAttempts: fulfillmentPollDelaysSeconds.length,
+    fulfillmentPollDelaysSeconds,
+    providerConfirmedAt: confirmedAt,
+    confirmedQuery: {
+      gpayTransactionId:
+        reconciliation.query?.gpayTransactionId ||
+        verification.callback.gpayTransactionId ||
+        "",
+      status: reconciliation.query?.status || "ORDER_SUCCESS",
+      userPaymentMethod:
+        reconciliation.query?.userPaymentMethod ||
+        verification.callback.userPaymentMethod ||
+        "",
+      queriedAt: confirmedAt,
+    },
+    nextAttemptAt,
+    createdAt,
+    updatedAt: createdAt,
+    automationMode,
+    fulfillmentMode,
+    verification: storedVerification(verification),
+    lastQueriedStatus: "SUCCESS",
+    lastError,
+    lockToken: null,
+    lockExpiresAt: null,
+    result: resultSummary(automation),
+  };
+
+  await persistJob(order, job);
+
+  return {
+    ...view(job),
+    duplicate: false,
+    scheduleRecommended:
+      state === "pending-commerce" || state === "pending-fulfillment",
   };
 }
 

@@ -19,6 +19,8 @@ import {
   getGPayReconciliationRetryDelaysSeconds,
   isGPayDelayedReconciliationCandidate,
   isGPayDelayedReconciliationEnabled,
+  isGPayImmediateSuccessDurabilityCandidate,
+  persistGPayImmediateSuccessDurability,
   runGPayDelayedReconciliationSchedule,
 } from "@/lib/fulfillment/gigago/gpay-delayed-reconciliation";
 
@@ -136,6 +138,8 @@ function safeAutomationView(value: {
   commerceStateChanged: boolean;
   fulfillmentAttempted: boolean;
   fulfillmentSucceeded: boolean | null;
+  fulfillmentState?: "not-started" | "processing" | "succeeded" | "failed";
+  fulfillmentAssessment?: unknown;
   duplicatePaymentEvent: boolean;
   orderId: number | null;
   reason: string;
@@ -154,6 +158,8 @@ function safeAutomationView(value: {
     commerceStateChanged: value.commerceStateChanged,
     fulfillmentAttempted: value.fulfillmentAttempted,
     fulfillmentSucceeded: value.fulfillmentSucceeded,
+    fulfillmentState: value.fulfillmentState,
+    fulfillmentAssessment: value.fulfillmentAssessment,
     duplicatePaymentEvent: value.duplicatePaymentEvent,
     orderId: value.orderId,
     reason: value.reason,
@@ -354,6 +360,7 @@ export async function POST(request: Request) {
         commerceStateChanged: false,
         fulfillmentAttempted: false,
         fulfillmentSucceeded: false,
+        fulfillmentState: "failed" as const,
         duplicatePaymentEvent: false,
         orderId: null,
         reason: "AUTOMATION_EXCEPTION",
@@ -375,6 +382,90 @@ export async function POST(request: Request) {
       });
     }
 
+    let immediateSuccessDurability = null;
+
+    if (
+      commerceAutomationMode !== "disabled" &&
+      isGPayDelayedReconciliationEnabled() &&
+      isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
+    ) {
+      try {
+        immediateSuccessDurability =
+          await persistGPayImmediateSuccessDurability({
+            verification,
+            reconciliation,
+            automation: commerceAutomation,
+            automationMode: commerceAutomationMode,
+            fulfillmentMode: "live",
+          });
+      } catch (error) {
+        await writeGPayDebugEvent({
+          type: "payment.event",
+          requestId: providerRequestId ?? localRequestId,
+          operation: "gpay.webhook.immediate-success-durability-failed",
+          data: {
+            merchantOrderId: callback.merchantOrderId,
+            gpayBillId: callback.gpayBillId,
+            message:
+              error instanceof Error
+                ? error.message
+                : "Immediate-success durability persistence failed.",
+          },
+        });
+
+        return NextResponse.json(
+          {
+            success: false,
+            received: true,
+            acknowledged: false,
+            verified: true,
+            code: "IMMEDIATE_SUCCESS_DURABILITY_FAILED",
+            requestId: providerRequestId ?? localRequestId,
+            receivedAt,
+            contractVersion: verification.contractVersion,
+            normalizedStatus: verification.normalizedStatus,
+            reconciliation,
+            commerceAutomation: safeAutomationView(commerceAutomation),
+          },
+          {
+            status: 500,
+            headers: { "Cache-Control": "no-store" },
+          },
+        );
+      }
+
+      const durableJob = immediateSuccessDurability;
+
+      if (durableJob.scheduleRecommended) {
+        after(async () => {
+          try {
+            await runGPayDelayedReconciliationSchedule(durableJob.orderId);
+          } catch (error) {
+            console.error("Immediate-success durability schedule failed:", {
+              orderId: durableJob.orderId,
+              message: error instanceof Error ? error.message : "unknown error",
+            });
+          }
+        });
+      }
+
+      await writeGPayDebugEvent({
+        type: "payment.event",
+        requestId: providerRequestId ?? localRequestId,
+        operation: "gpay.webhook.immediate-success-durability",
+        data: {
+          orderId: durableJob.orderId,
+          state: durableJob.state,
+          providerAttempts: durableJob.providerAttempts,
+          commerceAttempts: durableJob.commerceAttempts,
+          fulfillmentPollAttempts: durableJob.fulfillmentPollAttempts,
+          nextAttemptAt: durableJob.nextAttemptAt,
+          duplicate: durableJob.duplicate,
+          automationMode: durableJob.automationMode,
+        },
+      });
+    }
+
     const safeCommerceAutomation = safeAutomationView(commerceAutomation);
     const responseBody = {
       success: true,
@@ -388,6 +479,7 @@ export async function POST(request: Request) {
       reconciliation,
       commerceStateChanged: safeCommerceAutomation.commerceStateChanged,
       commerceAutomation: safeCommerceAutomation,
+      immediateSuccessDurability,
     };
 
     await writeGPayDebugEvent({
@@ -406,6 +498,8 @@ export async function POST(request: Request) {
         commerceAutomationMode: commerceAutomation.mode,
         commerceAutomationReason: commerceAutomation.reason,
         fulfillmentSucceeded: commerceAutomation.fulfillmentSucceeded,
+        immediateSuccessDurabilityState:
+          immediateSuccessDurability?.state ?? null,
       },
     });
 
@@ -461,6 +555,8 @@ export async function GET() {
         process.env.GPAY_COMMERCE_AUTOMATION_REQUIRE_QUERY?.trim().toLowerCase() !==
         "false",
       delayedReconciliationEnabled: isGPayDelayedReconciliationEnabled(),
+      immediateSuccessDurability: true,
+      immediateSuccessDurabilityVersion: "f04.3.3.1",
       delayedReconciliationRetryDelaysSeconds:
         getGPayReconciliationRetryDelaysSeconds(),
       timestamp: new Date().toISOString(),
