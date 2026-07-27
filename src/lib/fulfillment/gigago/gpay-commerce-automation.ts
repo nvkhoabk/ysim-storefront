@@ -31,6 +31,7 @@ export interface GPayCommerceAutomationOptions {
     | "gpay-webhook"
     | "protected-test"
     | "gpay-reconciliation-retry"
+    | "gpay-va-webhook"
     | "protected-reconciliation-test";
 }
 
@@ -425,6 +426,7 @@ async function persistPaymentSuccess({
     | "gpay-webhook"
     | "protected-test"
     | "gpay-reconciliation-retry"
+    | "gpay-va-webhook"
     | "protected-reconciliation-test";
 }): Promise<{
   duplicate: boolean;

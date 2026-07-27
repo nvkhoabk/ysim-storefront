@@ -15,34 +15,17 @@ export const dynamic = "force-dynamic";
 const paymentMethods: PaymentMethodOption[] = [
   {
     id: "gpay_gateway_all",
-    title: "GPay – Tất cả phương thức",
+    title: "Thanh toán qua cổng GPay",
     description:
-      "Chọn thẻ quốc tế, thẻ ATM nội địa hoặc QR chuyển khoản trên trang thanh toán GPay.",
+      "Chuyển sang cổng thanh toán GPay để chọn phương thức được hỗ trợ.",
   },
   {
-    id: "gpay_gateway_card",
-    title: "Thẻ quốc tế qua GPay",
-    description: "Thanh toán bằng thẻ quốc tế trên cổng thanh toán bảo mật GPay.",
-  },
-  {
-    id: "gpay_gateway_atm",
-    title: "Thẻ ATM nội địa qua GPay",
-    description: "Thanh toán bằng thẻ ATM nội địa và Internet Banking qua GPay.",
-  },
-  {
-    id: "gpay_gateway_qr",
-    title: "QR chuyển khoản ngân hàng qua GPay",
-    description: "Quét QR bằng ứng dụng ngân hàng trên trang thanh toán GPay.",
-  },
-  {
-    id: "cash_agent",
-    title: "Thanh toán tiền mặt",
+    id: "gpay_virtual_account",
+    title: "Chuyển khoản QR qua tài khoản ảo GPay",
     description:
-      "Thanh toán trực tiếp cho nhân viên hoặc đại lý YSim. Đơn chỉ được xử lý sau khi nhân viên xác nhận.",
+      "YSim tạo tài khoản ảo dùng một lần và hiển thị VietQR ngay trên trang.",
   },
 ];
-
-const WOO_ORDER_CREATION_GATEWAY = "bacs";
 
 export async function GET() {
   try {
@@ -170,7 +153,7 @@ export async function POST(request: Request) {
     const result = await processWooCheckout(
       {
         billingAddress,
-        paymentMethod: WOO_ORDER_CREATION_GATEWAY,
+        paymentMethod: values.paymentMethod,
         customerNote,
         additionalFields: {},
         paymentData: [],
