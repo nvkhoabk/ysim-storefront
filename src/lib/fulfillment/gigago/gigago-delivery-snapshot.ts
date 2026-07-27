@@ -29,10 +29,31 @@ export const GIGAGO_DELIVERY_META = {
   customerEmailSentAt: "_ysim_esim_customer_email_sent_at",
   customerEmailAttempts: "_ysim_esim_customer_email_attempts",
   customerEmailError: "_ysim_esim_customer_email_error",
+  customerEmailLastAttemptAt: "_ysim_esim_customer_email_last_attempt_at",
+  customerEmailDeliveryHash: "_ysim_esim_customer_email_delivery_hash",
+  customerEmailActionId: "_ysim_esim_customer_email_action_id",
   adminEmailStatus: "_ysim_esim_admin_email_status",
   adminEmailSentAt: "_ysim_esim_admin_email_sent_at",
   adminEmailAttempts: "_ysim_esim_admin_email_attempts",
   adminEmailError: "_ysim_esim_admin_email_error",
+  adminEmailLastAttemptAt: "_ysim_esim_admin_email_last_attempt_at",
+  adminEmailDeliveryHash: "_ysim_esim_admin_email_delivery_hash",
+  adminEmailActionId: "_ysim_esim_admin_email_action_id",
+  actionRequiredEmailStatus: "_ysim_esim_action_required_email_status",
+  actionRequiredEmailSentAt: "_ysim_esim_action_required_email_sent_at",
+  actionRequiredEmailAttempts: "_ysim_esim_action_required_email_attempts",
+  actionRequiredEmailError: "_ysim_esim_action_required_email_error",
+  actionRequiredEmailLastAttemptAt:
+    "_ysim_esim_action_required_email_last_attempt_at",
+  actionRequiredEmailHash: "_ysim_esim_action_required_email_hash",
+  actionRequiredEmailActionId: "_ysim_esim_action_required_email_action_id",
+  actionRequiredEmailReason: "_ysim_esim_action_required_email_reason",
+  mailOrchestrationVersion: "_ysim_esim_mail_orchestration_version",
+  mailOrchestrationStatus: "_ysim_esim_mail_orchestration_status",
+  mailOrchestrationRequestedAt: "_ysim_esim_mail_orchestration_requested_at",
+  mailOrchestrationRequestedHash:
+    "_ysim_esim_mail_orchestration_requested_hash",
+  mailOrchestrationError: "_ysim_esim_mail_orchestration_error",
 } as const;
 
 export type GigagoDeliverySnapshotSource =
@@ -95,6 +116,10 @@ export interface GigagoSecureDeliveryStatus {
   source: string | null;
   customerEmailStatus: string | null;
   adminEmailStatus: string | null;
+  mailOrchestrationVersion: string | null;
+  mailOrchestrationStatus: string | null;
+  mailOrchestrationRequestedAt: string | null;
+  mailOrchestrationRequestMatchesDeliveryHash: boolean;
   items: Array<{
     planId: string;
     maskedIccid: string;
@@ -423,10 +448,29 @@ export async function persistGigagoSecureDeliverySnapshot(input: {
     [GIGAGO_DELIVERY_META.customerEmailSentAt]: "",
     [GIGAGO_DELIVERY_META.customerEmailAttempts]: 0,
     [GIGAGO_DELIVERY_META.customerEmailError]: "",
+    [GIGAGO_DELIVERY_META.customerEmailLastAttemptAt]: "",
+    [GIGAGO_DELIVERY_META.customerEmailDeliveryHash]: "",
+    [GIGAGO_DELIVERY_META.customerEmailActionId]: 0,
     [GIGAGO_DELIVERY_META.adminEmailStatus]: "pending",
     [GIGAGO_DELIVERY_META.adminEmailSentAt]: "",
     [GIGAGO_DELIVERY_META.adminEmailAttempts]: 0,
     [GIGAGO_DELIVERY_META.adminEmailError]: "",
+    [GIGAGO_DELIVERY_META.adminEmailLastAttemptAt]: "",
+    [GIGAGO_DELIVERY_META.adminEmailDeliveryHash]: "",
+    [GIGAGO_DELIVERY_META.adminEmailActionId]: 0,
+    [GIGAGO_DELIVERY_META.actionRequiredEmailStatus]: "pending",
+    [GIGAGO_DELIVERY_META.actionRequiredEmailSentAt]: "",
+    [GIGAGO_DELIVERY_META.actionRequiredEmailAttempts]: 0,
+    [GIGAGO_DELIVERY_META.actionRequiredEmailError]: "",
+    [GIGAGO_DELIVERY_META.actionRequiredEmailLastAttemptAt]: "",
+    [GIGAGO_DELIVERY_META.actionRequiredEmailHash]: "",
+    [GIGAGO_DELIVERY_META.actionRequiredEmailActionId]: 0,
+    [GIGAGO_DELIVERY_META.actionRequiredEmailReason]: "",
+    [GIGAGO_DELIVERY_META.mailOrchestrationVersion]: "f05.1b2-v1",
+    [GIGAGO_DELIVERY_META.mailOrchestrationStatus]: "requested",
+    [GIGAGO_DELIVERY_META.mailOrchestrationRequestedAt]: now,
+    [GIGAGO_DELIVERY_META.mailOrchestrationRequestedHash]: hash,
+    [GIGAGO_DELIVERY_META.mailOrchestrationError]: "",
     _ysim_gigago_recovery_state: "succeeded",
     _ysim_gigago_auto_result: "delivered",
     _ysim_gigago_auto_error: "",
@@ -500,6 +544,24 @@ export async function getGigagoSecureDeliveryStatus(
       order,
       GIGAGO_DELIVERY_META.adminEmailStatus,
     ),
+    mailOrchestrationVersion: readWooCommerceOrderMetaString(
+      order,
+      GIGAGO_DELIVERY_META.mailOrchestrationVersion,
+    ),
+    mailOrchestrationStatus: readWooCommerceOrderMetaString(
+      order,
+      GIGAGO_DELIVERY_META.mailOrchestrationStatus,
+    ),
+    mailOrchestrationRequestedAt: readWooCommerceOrderMetaString(
+      order,
+      GIGAGO_DELIVERY_META.mailOrchestrationRequestedAt,
+    ),
+    mailOrchestrationRequestMatchesDeliveryHash:
+      readWooCommerceOrderMetaString(order, GIGAGO_DELIVERY_META.hash) ===
+      readWooCommerceOrderMetaString(
+        order,
+        GIGAGO_DELIVERY_META.mailOrchestrationRequestedHash,
+      ),
     items: items.flatMap((item) => {
       if (!item || typeof item !== "object" || Array.isArray(item)) {
         return [];
