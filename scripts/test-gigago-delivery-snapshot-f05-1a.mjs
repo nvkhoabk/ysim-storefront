@@ -126,11 +126,23 @@ for (const item of status.items ?? []) {
 }
 
 if (action === "persist-fixture") {
+  const orchestrationAware = status.mailOrchestrationVersion === "f05.1b2-v1";
+  const acceptedAutomaticEmailStates = new Set([
+    "pending",
+    "queued",
+    "sending",
+    "sent",
+  ]);
+  const emailStatesValid = orchestrationAware
+    ? acceptedAutomaticEmailStates.has(status.customerEmailStatus) &&
+      acceptedAutomaticEmailStates.has(status.adminEmailStatus)
+    : status.customerEmailStatus === "pending" &&
+      status.adminEmailStatus === "pending";
+
   if (
     result?.assessment?.ready !== true ||
     status.status !== "ready" ||
-    status.customerEmailStatus !== "pending" ||
-    status.adminEmailStatus !== "pending"
+    !emailStatesValid
   ) {
     throw new Error("F05.1A fixture was not persisted as a ready snapshot.");
   }

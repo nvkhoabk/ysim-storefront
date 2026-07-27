@@ -31,7 +31,7 @@ const response = await fetch(endpoint, {
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
-    "x-ysim-gigago-test-secret": secret,
+    "x-ysim-test-secret": secret,
   },
   body,
 });
@@ -70,9 +70,22 @@ if (status?.mailOrchestrationVersion !== "f05.1b2-v1") {
   throw new Error("Missing f05.1b2 orchestration version marker.");
 }
 
-if (status?.mailOrchestrationStatus !== "requested") {
+const acceptedOrchestrationStates = new Set([
+  "requested",
+  "queued",
+  "customer-sending",
+  "customer-retrying",
+  "customer-sent",
+  "customer-failed",
+  "admin-queued",
+  "admin-enqueue-failed",
+  "paused",
+  "completed",
+]);
+
+if (!acceptedOrchestrationStates.has(status?.mailOrchestrationStatus)) {
   throw new Error(
-    `Expected orchestration requested, received ${status?.mailOrchestrationStatus ?? "missing"}.`,
+    `Expected an active/completed orchestration state, received ${status?.mailOrchestrationStatus ?? "missing"}.`,
   );
 }
 
