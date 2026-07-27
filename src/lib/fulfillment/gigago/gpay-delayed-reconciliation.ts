@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import {
   normalizeGPayGatewayStatus,
@@ -141,6 +141,47 @@ export interface ProcessGPayDelayedReconciliationOptions {
   syntheticStatus?: "PENDING" | "SUCCESS" | "FAILED";
 }
 
+export const GPAY_ACTION_REQUIRED_ALERT_VERSION = "f05.1b3-v1" as const;
+
+export type GPayActionRequiredAlertStatus =
+  | ""
+  | "requested"
+  | "queued"
+  | "sending"
+  | "retrying"
+  | "sent"
+  | "failed"
+  | "paused"
+  | "obsolete"
+  | "enqueue-failed";
+
+export interface GPayActionRequiredAlertView {
+  orderId: number;
+  orderStatus: string;
+  paid: boolean;
+  reconciliationState: GPayDelayedReconciliationState | null;
+  version: string;
+  status: GPayActionRequiredAlertStatus;
+  requestedAt: string | null;
+  completedAt: string | null;
+  incidentHashPrefix: string | null;
+  incidentHashMatchesJob: boolean;
+  reason: string | null;
+  source: string | null;
+  fulfillmentPollAttempts: number;
+  maxFulfillmentPollAttempts: number;
+  commerceAttempts: number;
+  maxCommerceAttempts: number;
+  email: {
+    status: string | null;
+    attempts: number;
+    sentAt: string | null;
+    hashMatchesIncident: boolean;
+    errorPresent: boolean;
+    actionId: number;
+  };
+}
+
 const META = {
   job: "_ysim_gpay_reconciliation_job",
   state: "_ysim_gpay_reconciliation_state",
@@ -150,6 +191,42 @@ const META = {
   lastStatus: "_ysim_gpay_reconciliation_last_status",
   lastError: "_ysim_gpay_reconciliation_last_error",
 } as const;
+
+const ACTION_REQUIRED_META = {
+  version: "_ysim_esim_action_required_version",
+  status: "_ysim_esim_action_required_status",
+  requestedAt: "_ysim_esim_action_required_requested_at",
+  completedAt: "_ysim_esim_action_required_completed_at",
+  incidentHash: "_ysim_esim_action_required_incident_hash",
+  reason: "_ysim_esim_action_required_reason",
+  source: "_ysim_esim_action_required_source",
+  error: "_ysim_esim_action_required_error",
+  fulfillmentPollAttempts:
+    "_ysim_esim_action_required_fulfillment_poll_attempts",
+  maxFulfillmentPollAttempts:
+    "_ysim_esim_action_required_max_fulfillment_poll_attempts",
+  commerceAttempts: "_ysim_esim_action_required_commerce_attempts",
+  maxCommerceAttempts: "_ysim_esim_action_required_max_commerce_attempts",
+  emailStatus: "_ysim_esim_action_required_email_status",
+  emailSentAt: "_ysim_esim_action_required_email_sent_at",
+  emailAttempts: "_ysim_esim_action_required_email_attempts",
+  emailError: "_ysim_esim_action_required_email_error",
+  emailHash: "_ysim_esim_action_required_email_hash",
+  emailActionId: "_ysim_esim_action_required_email_action_id",
+} as const;
+
+const ACTION_REQUIRED_SOURCE = "gpay-delayed-reconciliation";
+const PRESERVED_ACTION_REQUIRED_STATUSES =
+  new Set<GPayActionRequiredAlertStatus>([
+    "queued",
+    "sending",
+    "retrying",
+    "sent",
+    "failed",
+    "paused",
+    "obsolete",
+    "enqueue-failed",
+  ]);
 
 const DEFAULT_RETRY_DELAYS_SECONDS = [5, 15, 30, 60];
 const DEFAULT_COMMERCE_RETRY_DELAYS_SECONDS = [1, 3, 10];
@@ -237,6 +314,222 @@ function safeError(error: unknown): string {
   return error instanceof Error
     ? error.message
     : "Delayed GPay reconciliation failed.";
+}
+
+function orderPaid(order: WooCommerceAdminOrder): boolean {
+  return (
+    Boolean(order.date_paid || order.date_paid_gmt) ||
+    order.status === "processing" ||
+    order.status === "completed"
+  );
+}
+
+function safeMetaInteger(order: WooCommerceAdminOrder, key: string): number {
+  const raw = readWooCommerceOrderMetaString(order, key);
+  const value = raw ? Number.parseInt(raw, 10) : 0;
+
+  return Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
+function actionRequiredReason(job: GPayDelayedReconciliationJob): string {
+  if (
+    job.fulfillmentPollAttempts >= job.maxFulfillmentPollAttempts &&
+    job.maxFulfillmentPollAttempts > 0
+  ) {
+    return "gigago-fulfillment-poll-exhausted";
+  }
+
+  if (
+    job.commerceAttempts >= job.maxCommerceAttempts &&
+    job.maxCommerceAttempts > 0
+  ) {
+    return "commerce-automation-exhausted";
+  }
+
+  return "gpay-reconciliation-action-required";
+}
+
+function actionRequiredIncidentHash(
+  order: WooCommerceAdminOrder,
+  job: GPayDelayedReconciliationJob,
+): string {
+  const canonical = JSON.stringify({
+    version: GPAY_ACTION_REQUIRED_ALERT_VERSION,
+    orderId: order.id,
+    jobVersion: job.version,
+    jobCreatedAt: job.createdAt,
+    requestId:
+      readWooCommerceOrderMetaString(order, "_ysim_gigago_request_id") ?? "",
+    agencyOrderId:
+      readWooCommerceOrderMetaString(order, "_ysim_gigago_agency_order_id") ??
+      "",
+    reason: actionRequiredReason(job),
+    fulfillmentPollAttempts: job.fulfillmentPollAttempts,
+    maxFulfillmentPollAttempts: job.maxFulfillmentPollAttempts,
+    commerceAttempts: job.commerceAttempts,
+    maxCommerceAttempts: job.maxCommerceAttempts,
+  });
+
+  return createHash("sha256").update(canonical).digest("hex");
+}
+
+function normalizedActionRequiredStatus(
+  value: string | null,
+): GPayActionRequiredAlertStatus {
+  switch (value?.trim().toLowerCase()) {
+    case "requested":
+    case "queued":
+    case "sending":
+    case "retrying":
+    case "sent":
+    case "failed":
+    case "paused":
+    case "obsolete":
+    case "enqueue-failed":
+      return value.trim().toLowerCase() as GPayActionRequiredAlertStatus;
+    default:
+      return "";
+  }
+}
+
+function actionRequiredMarkerEntries(
+  order: WooCommerceAdminOrder,
+  job: GPayDelayedReconciliationJob,
+): Record<string, unknown> {
+  const incidentHash = actionRequiredIncidentHash(order, job);
+  const existingHash =
+    readWooCommerceOrderMetaString(order, ACTION_REQUIRED_META.incidentHash)
+      ?.trim()
+      .toLowerCase() ?? "";
+  const existingStatus = normalizedActionRequiredStatus(
+    readWooCommerceOrderMetaString(order, ACTION_REQUIRED_META.status),
+  );
+  const sameIncident =
+    /^[a-f0-9]{64}$/.test(existingHash) && existingHash === incidentHash;
+  const preserveStatus =
+    sameIncident && PRESERVED_ACTION_REQUIRED_STATUSES.has(existingStatus);
+  const existingRequestedAt = readWooCommerceOrderMetaString(
+    order,
+    ACTION_REQUIRED_META.requestedAt,
+  );
+  const existingCompletedAt = readWooCommerceOrderMetaString(
+    order,
+    ACTION_REQUIRED_META.completedAt,
+  );
+
+  return {
+    [ACTION_REQUIRED_META.version]: GPAY_ACTION_REQUIRED_ALERT_VERSION,
+    [ACTION_REQUIRED_META.status]: preserveStatus
+      ? existingStatus
+      : "requested",
+    [ACTION_REQUIRED_META.requestedAt]:
+      sameIncident && existingRequestedAt
+        ? existingRequestedAt
+        : job.updatedAt || nowIso(),
+    [ACTION_REQUIRED_META.completedAt]:
+      sameIncident && existingCompletedAt ? existingCompletedAt : "",
+    [ACTION_REQUIRED_META.incidentHash]: incidentHash,
+    [ACTION_REQUIRED_META.reason]: actionRequiredReason(job),
+    [ACTION_REQUIRED_META.source]: ACTION_REQUIRED_SOURCE,
+    [ACTION_REQUIRED_META.error]: sameIncident
+      ? (readWooCommerceOrderMetaString(order, ACTION_REQUIRED_META.error) ??
+        "")
+      : "",
+    [ACTION_REQUIRED_META.fulfillmentPollAttempts]: job.fulfillmentPollAttempts,
+    [ACTION_REQUIRED_META.maxFulfillmentPollAttempts]:
+      job.maxFulfillmentPollAttempts,
+    [ACTION_REQUIRED_META.commerceAttempts]: job.commerceAttempts,
+    [ACTION_REQUIRED_META.maxCommerceAttempts]: job.maxCommerceAttempts,
+  };
+}
+
+function actionRequiredAlertView(
+  order: WooCommerceAdminOrder,
+  job: GPayDelayedReconciliationJob | null,
+): GPayActionRequiredAlertView {
+  const incidentHash =
+    readWooCommerceOrderMetaString(order, ACTION_REQUIRED_META.incidentHash)
+      ?.trim()
+      .toLowerCase() ?? "";
+  const expectedHash =
+    job?.state === "action-required"
+      ? actionRequiredIncidentHash(order, job)
+      : "";
+  const emailHash =
+    readWooCommerceOrderMetaString(order, ACTION_REQUIRED_META.emailHash)
+      ?.trim()
+      .toLowerCase() ?? "";
+
+  return {
+    orderId: order.id,
+    orderStatus: order.status,
+    paid: orderPaid(order),
+    reconciliationState: job?.state ?? null,
+    version:
+      readWooCommerceOrderMetaString(order, ACTION_REQUIRED_META.version) ?? "",
+    status: normalizedActionRequiredStatus(
+      readWooCommerceOrderMetaString(order, ACTION_REQUIRED_META.status),
+    ),
+    requestedAt: readWooCommerceOrderMetaString(
+      order,
+      ACTION_REQUIRED_META.requestedAt,
+    ),
+    completedAt: readWooCommerceOrderMetaString(
+      order,
+      ACTION_REQUIRED_META.completedAt,
+    ),
+    incidentHashPrefix: /^[a-f0-9]{64}$/.test(incidentHash)
+      ? `${incidentHash.slice(0, 12)}...`
+      : null,
+    incidentHashMatchesJob:
+      /^[a-f0-9]{64}$/.test(incidentHash) &&
+      /^[a-f0-9]{64}$/.test(expectedHash) &&
+      incidentHash === expectedHash,
+    reason:
+      readWooCommerceOrderMetaString(order, ACTION_REQUIRED_META.reason) ??
+      null,
+    source:
+      readWooCommerceOrderMetaString(order, ACTION_REQUIRED_META.source) ??
+      null,
+    fulfillmentPollAttempts: safeMetaInteger(
+      order,
+      ACTION_REQUIRED_META.fulfillmentPollAttempts,
+    ),
+    maxFulfillmentPollAttempts: safeMetaInteger(
+      order,
+      ACTION_REQUIRED_META.maxFulfillmentPollAttempts,
+    ),
+    commerceAttempts: safeMetaInteger(
+      order,
+      ACTION_REQUIRED_META.commerceAttempts,
+    ),
+    maxCommerceAttempts: safeMetaInteger(
+      order,
+      ACTION_REQUIRED_META.maxCommerceAttempts,
+    ),
+    email: {
+      status: readWooCommerceOrderMetaString(
+        order,
+        ACTION_REQUIRED_META.emailStatus,
+      ),
+      attempts: safeMetaInteger(order, ACTION_REQUIRED_META.emailAttempts),
+      sentAt: readWooCommerceOrderMetaString(
+        order,
+        ACTION_REQUIRED_META.emailSentAt,
+      ),
+      hashMatchesIncident:
+        /^[a-f0-9]{64}$/.test(incidentHash) &&
+        /^[a-f0-9]{64}$/.test(emailHash) &&
+        incidentHash === emailHash,
+      errorPresent: Boolean(
+        readWooCommerceOrderMetaString(
+          order,
+          ACTION_REQUIRED_META.emailError,
+        )?.trim(),
+      ),
+      actionId: safeMetaInteger(order, ACTION_REQUIRED_META.emailActionId),
+    },
+  };
 }
 
 function parseJob(
@@ -378,6 +671,10 @@ async function persistJob(
   order: WooCommerceAdminOrder,
   job: GPayDelayedReconciliationJob,
 ): Promise<void> {
+  const actionRequiredEntries =
+    job.state === "action-required"
+      ? actionRequiredMarkerEntries(order, job)
+      : {};
   const metadata = upsertWooCommerceOrderMeta(order, {
     [META.job]: JSON.stringify(job),
     [META.state]: job.state,
@@ -386,6 +683,7 @@ async function persistJob(
     [META.updatedAt]: job.updatedAt,
     [META.lastStatus]: job.lastQueriedStatus ?? "",
     [META.lastError]: job.lastError ?? "",
+    ...actionRequiredEntries,
   });
 
   await updateWooCommerceAdminOrder(order.id, {
@@ -1131,6 +1429,45 @@ export async function getGPayDelayedReconciliationStatus(
   const job = parseJob(order);
 
   return job ? view(job) : null;
+}
+
+export async function getGPayActionRequiredAlertStatus(
+  orderId: number,
+): Promise<GPayActionRequiredAlertView> {
+  const order = await getWooCommerceAdminOrder(orderId);
+  const job = parseJob(order);
+
+  return actionRequiredAlertView(order, job);
+}
+
+export async function ensureGPayActionRequiredAlertMarker(
+  orderId: number,
+): Promise<GPayActionRequiredAlertView> {
+  const order = await getWooCommerceAdminOrder(orderId);
+  const job = parseJob(order);
+
+  if (!job) {
+    throw new Error(
+      `Woo order ${orderId} không có delayed reconciliation job.`,
+    );
+  }
+
+  if (job.state !== "action-required") {
+    throw new Error(
+      `Woo order ${orderId} chưa ở reconciliation state action-required.`,
+    );
+  }
+
+  await updateWooCommerceAdminOrder(order.id, {
+    meta_data: upsertWooCommerceOrderMeta(
+      order,
+      actionRequiredMarkerEntries(order, job),
+    ),
+  });
+
+  const refreshed = await getWooCommerceAdminOrder(orderId);
+
+  return actionRequiredAlertView(refreshed, parseJob(refreshed));
 }
 
 export async function runGPayDelayedReconciliationSchedule(
