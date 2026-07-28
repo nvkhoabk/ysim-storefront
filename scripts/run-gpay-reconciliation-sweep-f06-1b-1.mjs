@@ -1,19 +1,25 @@
 #!/usr/bin/env node
-// F06.1B-1_R5_DEPLOYMENT_RUNTIME_V1
+// F06.1B-1_R5_1_CANONICAL_RECONCILIATION_CONVERGENCE_V1
+
 const arg = (name, fallback = null) => {
-  const p = `--${name}=`;
-  const f = process.argv.find((v) => v.startsWith(p));
-  return f ? f.slice(p.length) : fallback;
+  const prefix = `--${name}=`;
+  const found = process.argv.find((value) => value.startsWith(prefix));
+  return found ? found.slice(prefix.length) : fallback;
 };
+
 const required = (name) => {
-  const v = process.env[name]?.trim();
-  if (!v) throw new Error(`Missing required environment variable: ${name}`);
-  return v;
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
+  return value;
 };
+
 const positiveInteger = (value, fallback, max) => {
-  const p = Number.parseInt(String(value ?? ""), 10);
-  return !Number.isInteger(p) || p <= 0 ? fallback : Math.min(p, max);
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return !Number.isInteger(parsed) || parsed <= 0
+    ? fallback
+    : Math.min(parsed, max);
 };
+
 const baseUrl = (
   arg("base-url", process.env.GPAY_RECONCILIATION_BASE_URL) ||
   "http://127.0.0.1:3001"
@@ -38,6 +44,7 @@ const limit = positiveInteger(
   100,
 );
 const dryRun = process.argv.includes("--dry-run");
+
 const activeStates = new Set([
   "pending",
   "processing",
@@ -45,103 +52,187 @@ const activeStates = new Set([
   "pending-commerce",
   "pending-fulfillment",
 ]);
+const knownStates = new Set([
+  ...activeStates,
+  "action-required",
+  "succeeded",
+  "failed",
+  "mismatch",
+  "exhausted",
+]);
 const basicAuth = `Basic ${Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64")}`;
+const sensitiveValues = [
+  consumerKey,
+  consumerSecret,
+  reconciliationSecret,
+  basicAuth,
+].filter(Boolean);
+
+const redact = (value) => {
+  let output = String(value ?? "");
+  for (const secret of sensitiveValues) {
+    output = output.split(secret).join("[REDACTED]");
+  }
+  return output;
+};
+
 const metaEntry = (order, key) =>
   Array.isArray(order.meta_data)
-    ? (order.meta_data.find((i) => i?.key === key) ?? null)
+    ? (order.meta_data.find((item) => item?.key === key) ?? null)
     : null;
+
+const metaValue = (order, key) => metaEntry(order, key)?.value;
+
 const readMeta = (order, key) => {
-  const v = metaEntry(order, key)?.value;
-  return v == null ? "" : String(v).trim();
+  const value = metaValue(order, key);
+  return value == null ? "" : String(value).trim();
 };
-const norm = (v) =>
-  String(v ?? "")
+
+const norm = (value) =>
+  String(value ?? "")
     .trim()
     .toLowerCase();
-const terminalPayment = (o) =>
-  Boolean(o?.date_paid || o?.date_paid_gmt) ||
-  norm(readMeta(o, "_ysim_payment_status")) === "success";
-const terminalFulfillment = (o) => {
-  const vals = [
-    readMeta(o, "_ysim_gigago_recovery_state"),
-    readMeta(o, "_ysim_gigago_auto_result"),
-    readMeta(o, "_ysim_gigago_order_status"),
-    readMeta(o, "_ysim_esim_delivery_status"),
+
+const parseCanonicalJob = (order) => {
+  const raw = metaValue(order, "_ysim_gpay_reconciliation_job");
+  if (raw == null || raw === "") return null;
+
+  let parsed;
+  try {
+    if (typeof raw === "string") {
+      parsed = JSON.parse(raw);
+    } else if (typeof raw === "object" && !Array.isArray(raw)) {
+      parsed = raw;
+    } else {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+
+  const state = norm(parsed.state);
+  if (!knownStates.has(state)) return null;
+
+  const hasNextAttemptAt = Object.prototype.hasOwnProperty.call(
+    parsed,
+    "nextAttemptAt",
+  );
+  const rawNextAttemptAt = hasNextAttemptAt ? parsed.nextAttemptAt : undefined;
+  const nextAttemptAt =
+    rawNextAttemptAt == null || String(rawNextAttemptAt).trim() === ""
+      ? null
+      : String(rawNextAttemptAt).trim();
+
+  return {
+    state,
+    hasNextAttemptAt,
+    nextAttemptAt,
+  };
+};
+
+const reconciliationView = (order) => {
+  const canonical = parseCanonicalJob(order);
+  const flatState = norm(readMeta(order, "_ysim_gpay_reconciliation_state"));
+  const flatNextAttemptAt =
+    readMeta(order, "_ysim_gpay_reconciliation_next_at") || null;
+
+  return {
+    state: canonical?.state ?? flatState,
+    nextAttemptAt:
+      canonical?.hasNextAttemptAt === true
+        ? canonical.nextAttemptAt
+        : flatNextAttemptAt,
+    source: canonical ? "canonical" : "flat",
+  };
+};
+
+const terminalPayment = (order) =>
+  Boolean(order?.date_paid || order?.date_paid_gmt) ||
+  norm(readMeta(order, "_ysim_payment_status")) === "success";
+
+const terminalFulfillment = (order) => {
+  const values = [
+    readMeta(order, "_ysim_gigago_recovery_state"),
+    readMeta(order, "_ysim_gigago_auto_result"),
+    readMeta(order, "_ysim_gigago_order_status"),
+    readMeta(order, "_ysim_esim_delivery_status"),
   ].map(norm);
+
   return (
-    vals.includes("succeeded") ||
-    vals.includes("delivered") ||
-    vals.includes("completed") ||
-    vals.includes("ready")
+    values.includes("succeeded") ||
+    values.includes("delivered") ||
+    values.includes("completed") ||
+    values.includes("ready")
   );
 };
-const terminalEvidence = (o) => terminalPayment(o) && terminalFulfillment(o);
-const due = (o) => {
-  const s = readMeta(o, "_ysim_gpay_reconciliation_state");
-  if (!activeStates.has(s)) return false;
-  if (terminalEvidence(o)) return true;
-  const n = readMeta(o, "_ysim_gpay_reconciliation_next_at");
-  if (!n) return true;
-  const t = Date.parse(n);
-  return Number.isNaN(t) || t <= Date.now();
+
+const terminalEvidence = (order) =>
+  terminalPayment(order) && terminalFulfillment(order);
+
+const due = (order, view) => {
+  if (!activeStates.has(view.state)) return false;
+  if (terminalEvidence(order)) return true;
+  if (!view.nextAttemptAt) return true;
+
+  const timestamp = Date.parse(view.nextAttemptAt);
+  return Number.isNaN(timestamp) || timestamp <= Date.now();
 };
-async function readJson(r, label) {
-  const t = await r.text();
+
+const responseSummary = (body) => {
+  if (!body || typeof body !== "object") return redact(body);
+  const summary = {};
+  for (const key of ["code", "message", "error", "status"]) {
+    if (typeof body[key] === "string" || typeof body[key] === "number") {
+      summary[key] = body[key];
+    }
+  }
+  return redact(
+    Object.keys(summary).length > 0
+      ? JSON.stringify(summary)
+      : JSON.stringify(body).slice(0, 300),
+  );
+};
+
+async function readJson(response, label) {
+  const text = await response.text();
   try {
-    return t ? JSON.parse(t) : null;
+    return text ? JSON.parse(text) : null;
   } catch {
-    throw new Error(`${label} returned invalid JSON: ${t.slice(0, 300)}`);
+    throw new Error(
+      `${label} returned invalid JSON: ${redact(text.slice(0, 300))}`,
+    );
   }
 }
+
 async function listOrders(page) {
-  const u = new URL(`${wooUrl}/wp-json/wc/v3/orders`);
-  u.searchParams.set("page", String(page));
-  u.searchParams.set("per_page", String(perPage));
-  u.searchParams.set("orderby", "date");
-  u.searchParams.set("order", "desc");
-  const r = await fetch(u, {
+  const url = new URL(`${wooUrl}/wp-json/wc/v3/orders`);
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("per_page", String(perPage));
+  url.searchParams.set("orderby", "date");
+  url.searchParams.set("order", "desc");
+
+  const response = await fetch(url, {
     headers: { Accept: "application/json", Authorization: basicAuth },
     cache: "no-store",
   });
-  const b = await readJson(r, "WooCommerce order sweep");
-  if (!r.ok)
+  const body = await readJson(response, "WooCommerce order sweep");
+  if (!response.ok) {
     throw new Error(
-      `WooCommerce order sweep failed: HTTP ${r.status} ${JSON.stringify(b)}`,
+      `WooCommerce order sweep failed: HTTP ${response.status} ${responseSummary(body)}`,
     );
-  if (!Array.isArray(b))
+  }
+  if (!Array.isArray(body)) {
     throw new Error("WooCommerce order sweep response is not an array.");
-  return b;
+  }
+  return body;
 }
-const metaPatch = (o, k, v) => {
-  const e = metaEntry(o, k);
-  return e?.id ? { id: e.id, key: k, value: v } : { key: k, value: v };
-};
-async function terminalizeOrder(o) {
-  const r = await fetch(`${wooUrl}/wp-json/wc/v3/orders/${o.id}`, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json",
-      Authorization: basicAuth,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      meta_data: [
-        metaPatch(o, "_ysim_gpay_reconciliation_state", "succeeded"),
-        metaPatch(o, "_ysim_gpay_reconciliation_next_at", ""),
-        metaPatch(o, "_ysim_gpay_reconciliation_last_error", ""),
-        metaPatch(o, "_ysim_gpay_reconciliation_last_status", "SUCCESS"),
-      ],
-    }),
-  });
-  const b = await readJson(r, `WooCommerce terminalization for order ${o.id}`);
-  if (!r.ok || !b?.id)
-    throw new Error(
-      `WooCommerce terminalization failed for order ${o.id}: HTTP ${r.status} ${JSON.stringify(b)}`,
-    );
-  return { state: "succeeded", nextAttemptAt: null, terminalized: true };
-}
+
 async function processOrder(orderId) {
-  const r = await fetch(`${baseUrl}/api/payments/gpay/reconciliation`, {
+  const response = await fetch(`${baseUrl}/api/payments/gpay/reconciliation`, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -150,33 +241,44 @@ async function processOrder(orderId) {
     },
     body: JSON.stringify({ action: "process", orderId, force: true }),
   });
-  const b = await readJson(r, `Reconciliation process for order ${orderId}`);
-  if (!r.ok || !b?.success)
+  const body = await readJson(
+    response,
+    `Reconciliation process for order ${orderId}`,
+  );
+  if (!response.ok || !body?.success) {
     throw new Error(
-      `Reconciliation process failed for order ${orderId}: HTTP ${r.status} ${JSON.stringify(b)}`,
+      `Reconciliation process failed for order ${orderId}: HTTP ${response.status} ${responseSummary(body)}`,
     );
-  return b.result;
+  }
+  return body.result;
 }
+
 const candidates = [];
 let scannedPages = 0;
+
 for (let page = 1; page <= pages && candidates.length < limit; page += 1) {
   const orders = await listOrders(page);
   scannedPages += 1;
+
   for (const order of orders) {
     if (candidates.length >= limit) break;
-    if (Number.isInteger(order?.id) && due(order)) {
-      candidates.push({
-        order,
-        orderId: order.id,
-        state: readMeta(order, "_ysim_gpay_reconciliation_state"),
-        nextAttemptAt:
-          readMeta(order, "_ysim_gpay_reconciliation_next_at") || null,
-        action: terminalEvidence(order) ? "terminalize" : "process",
-      });
-    }
+    if (!Number.isInteger(order?.id)) continue;
+
+    const view = reconciliationView(order);
+    if (!due(order, view)) continue;
+
+    candidates.push({
+      orderId: order.id,
+      state: view.state,
+      nextAttemptAt: view.nextAttemptAt,
+      stateSource: view.source,
+      action: terminalEvidence(order) ? "process-terminal-evidence" : "process",
+    });
   }
+
   if (orders.length < perPage) break;
 }
+
 console.log(
   JSON.stringify(
     {
@@ -184,33 +286,29 @@ console.log(
       dryRun,
       scannedPages,
       candidateCount: candidates.length,
-      candidates: candidates.map((candidate) => ({
-        orderId: candidate.orderId,
-        state: candidate.state,
-        nextAttemptAt: candidate.nextAttemptAt,
-        action: candidate.action,
-      })),
+      candidates,
     },
     null,
     2,
   ),
 );
+
 if (dryRun) process.exit(0);
+
 let failed = 0;
-for (const c of candidates) {
+for (const candidate of candidates) {
   try {
-    const result =
-      c.action === "terminalize"
-        ? await terminalizeOrder(c.order)
-        : await processOrder(c.orderId);
+    const result = await processOrder(candidate.orderId);
     console.log(
       JSON.stringify({
-        orderId: c.orderId,
-        action: c.action,
-        previousState: c.state,
+        orderId: candidate.orderId,
+        action: candidate.action,
+        previousState: candidate.state,
         state: result?.state ?? null,
         nextAttemptAt: result?.nextAttemptAt ?? null,
-        terminalized: result?.terminalized === true,
+        terminalized:
+          candidate.action === "process-terminal-evidence" &&
+          result?.state === "succeeded",
         success: true,
       }),
     );
@@ -218,16 +316,23 @@ for (const c of candidates) {
     failed += 1;
     console.error(
       JSON.stringify({
-        orderId: c.orderId,
-        action: c.action,
+        orderId: candidate.orderId,
+        action: candidate.action,
         success: false,
-        message: error instanceof Error ? error.message : "unknown error",
+        message: redact(
+          error instanceof Error ? error.message : "unknown error",
+        ),
       }),
     );
   }
 }
-if (failed > 0)
+
+if (failed > 0) {
   throw new Error(
     `GPay reconciliation sweep completed with ${failed} failed order(s).`,
   );
-console.log("PASS: F06.1B-1 R5 durable reconciliation sweep completed.");
+}
+
+console.log(
+  "PASS: F06.1B-1 R5.1 canonical reconciliation convergence sweep completed.",
+);
