@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { after, NextResponse } from "next/server";
 
+import { classifyGPayUnifiedWebhookPayload } from "@/features/payments/gpay-webhook-dispatcher";
+
 import {
   createGPayGatewayCallbackData,
   getGPayCallbackReconciliationMode,
@@ -201,6 +203,70 @@ export async function POST(request: Request) {
       body: bodyRecord,
       signatureHeader,
     });
+    // F06.1A-7 UNIFIED_GPAY_WEBHOOK_DISPATCH_V1
+    const dispatchContract = classifyGPayUnifiedWebhookPayload(callbackRecord);
+    await writeGPayDebugEvent({
+      type: "webhook.parsed",
+      requestId: providerRequestId ?? localRequestId,
+      operation: "gpay.webhook.dispatch",
+      data: {
+        receivedAt,
+        dispatchContract,
+        actionPresent:
+          typeof callbackRecord.action === "string" &&
+          callbackRecord.action.trim().length > 0,
+        hasAccountNumber:
+          typeof callbackRecord.account_number === "string" &&
+          callbackRecord.account_number.trim().length > 0,
+        hasMerchantOrderId:
+          typeof callbackRecord.merchant_order_id === "string" &&
+          callbackRecord.merchant_order_id.trim().length > 0,
+        hasGPayBillId:
+          typeof callbackRecord.gpay_bill_id === "string" &&
+          callbackRecord.gpay_bill_id.trim().length > 0,
+        hasGPayTransactionId:
+          typeof callbackRecord.gpay_trans_id === "string" &&
+          callbackRecord.gpay_trans_id.trim().length > 0,
+        rawBodySha256: createHash("sha256")
+          .update(rawBody, "utf8")
+          .digest("hex"),
+      },
+    });
+
+    if (dispatchContract === "ambiguous") {
+      return NextResponse.json(
+        {
+          success: false,
+          acknowledged: false,
+          code: "AMBIGUOUS_CALLBACK_CONTRACT",
+          message:
+            "Callback GPay chứa đồng thời định danh Gateway và Virtual Account.",
+          requestId: providerRequestId ?? localRequestId,
+        },
+        { status: 400, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    if (dispatchContract === "virtual-account") {
+      const forwardedHeaders = new Headers(request.headers);
+      forwardedHeaders.set("content-type", "application/json");
+      forwardedHeaders.set("x-ysim-gpay-dispatch-contract", "virtual-account");
+      const { POST: processGPayVirtualAccountWebhook } =
+        await import("../virtual-account/webhook/route");
+
+      return processGPayVirtualAccountWebhook(
+        new Request(request.url, {
+          method: "POST",
+          headers: forwardedHeaders,
+          body: JSON.stringify(callbackRecord),
+        }),
+      );
+    }
+
+    if (dispatchContract === "unknown") {
+      throw new Error("Không xác định được contract callback GPay.");
+    }
+
     const callback = createGPayGatewayCallbackData(callbackRecord);
     const verification = await verifyGPayGatewayCallbackData(callback);
 
@@ -547,6 +613,12 @@ export async function GET() {
       status: "ready",
       environment: process.env.GPAY_ENVIRONMENT ?? "sandbox",
       contractVersion: GPAY_CALLBACK_CONTRACT_VERSION,
+      unifiedWebhookDispatch: true,
+      publicWebhookMode: "single-merchant-endpoint",
+      supportedContracts: [
+        GPAY_CALLBACK_CONTRACT_VERSION,
+        "gpay-va-change-balance-v1",
+      ],
       reconciliationMode: getGPayCallbackReconciliationMode(),
       signatureAlgorithm: "SHA256withRSA",
       signatureEncoding: "standard-base64",
