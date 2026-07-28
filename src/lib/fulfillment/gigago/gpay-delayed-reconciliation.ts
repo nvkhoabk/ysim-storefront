@@ -135,6 +135,11 @@ export interface PersistGPayImmediateSuccessDurabilityResult extends GPayDelayed
   duplicate: boolean;
   scheduleRecommended: boolean;
 }
+export interface PersistGPayFastAckDurabilityResult extends GPayDelayedReconciliationView {
+  duplicate: boolean;
+  scheduleRecommended: boolean;
+  fastAckVersion: "f06.1b.1-v1";
+}
 
 export interface ProcessGPayDelayedReconciliationOptions {
   force?: boolean;
@@ -848,6 +853,114 @@ export function isGPayImmediateSuccessDurabilityCandidate(
     reconciliation.gpayBillIdMatches !== false &&
     reconciliation.embedDataMatches !== false
   );
+}
+
+export async function persistGPayFastAckDurability({
+  verification,
+  reconciliation,
+  paymentAutomation,
+  automationMode = getGPayCommerceAutomationMode(),
+  fulfillmentMode = "live",
+}: {
+  verification: GPayGatewayCallbackVerification;
+  reconciliation: GPayCallbackReconciliationResult;
+  paymentAutomation: GPayCommerceAutomationResult;
+  automationMode?: GPayCommerceAutomationMode;
+  fulfillmentMode?: GigagoFulfillmentMode;
+}): Promise<PersistGPayFastAckDurabilityResult> {
+  if (automationMode === "disabled") {
+    throw new Error(
+      "Không tạo fast-ACK durability job khi commerce automation đang disabled.",
+    );
+  }
+  if (
+    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
+  ) {
+    throw new Error("Callback GPay không đủ điều kiện fast-ACK durability.");
+  }
+  if (!paymentAutomation.paymentRecorded || !paymentAutomation.orderId) {
+    throw new Error(
+      "Fast ACK yêu cầu payment đã được ghi bền vững trước khi tạo fulfillment job.",
+    );
+  }
+
+  const embed = parseGPayCommerceEmbedData(verification);
+  const order = await getWooCommerceAdminOrder(embed.orderId);
+
+  assertGPayCommerceOrderIdentity(order, embed);
+
+  const existing = parseJob(order);
+  if (
+    existing &&
+    existing.verification.canonicalSha256 === verification.canonicalSha256
+  ) {
+    return {
+      ...view(existing),
+      duplicate: true,
+      scheduleRecommended:
+        existing.state === "pending" ||
+        existing.state === "processing" ||
+        existing.state === "pending-commerce" ||
+        existing.state === "pending-fulfillment" ||
+        existing.state === "provider-confirmed",
+      fastAckVersion: "f06.1b.1-v1",
+    };
+  }
+
+  const createdAt = nowIso();
+  const retryDelaysSeconds = getGPayReconciliationRetryDelaysSeconds();
+  const commerceRetryDelaysSeconds = getGPayCommerceRetryDelaysSeconds();
+  const fulfillmentPollDelaysSeconds = getGPayFulfillmentPollDelaysSeconds();
+  const confirmedAt = reconciliation.query?.queriedAt ?? createdAt;
+  const state: GPayDelayedReconciliationState =
+    automationMode === "record" ? "succeeded" : "provider-confirmed";
+  const job: GPayDelayedReconciliationJob = {
+    version: "f04.3.3.1",
+    orderId: order.id,
+    state,
+    attempts: 1,
+    maxAttempts: retryDelaysSeconds.length,
+    retryDelaysSeconds,
+    commerceAttempts: 0,
+    maxCommerceAttempts: commerceRetryDelaysSeconds.length,
+    commerceRetryDelaysSeconds,
+    fulfillmentPollAttempts: 0,
+    maxFulfillmentPollAttempts: fulfillmentPollDelaysSeconds.length,
+    fulfillmentPollDelaysSeconds,
+    providerConfirmedAt: confirmedAt,
+    confirmedQuery: {
+      gpayTransactionId:
+        reconciliation.query?.gpayTransactionId ||
+        verification.callback.gpayTransactionId ||
+        "",
+      status: reconciliation.query?.status || "ORDER_SUCCESS",
+      userPaymentMethod:
+        reconciliation.query?.userPaymentMethod ||
+        verification.callback.userPaymentMethod ||
+        "",
+      queriedAt: confirmedAt,
+    },
+    nextAttemptAt: state === "provider-confirmed" ? createdAt : null,
+    createdAt,
+    updatedAt: createdAt,
+    automationMode,
+    fulfillmentMode,
+    verification: storedVerification(verification),
+    lastQueriedStatus: "SUCCESS",
+    lastError: null,
+    lockToken: null,
+    lockExpiresAt: null,
+    result: resultSummary(paymentAutomation),
+  };
+
+  await persistJob(order, job);
+
+  return {
+    ...view(job),
+    duplicate: false,
+    scheduleRecommended: state === "provider-confirmed",
+    fastAckVersion: "f06.1b.1-v1",
+  };
 }
 
 export async function persistGPayImmediateSuccessDurability({

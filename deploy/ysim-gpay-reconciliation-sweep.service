@@ -1,0 +1,19 @@
+[Unit]
+Description=YSim GPay durable reconciliation sweep
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ysim
+Group=ysim
+WorkingDirectory=/var/www/sandbox.ysim.vn/storefront
+ExecStart=/usr/bin/node --env-file=.env.production scripts/run-gpay-reconciliation-sweep-f06-1b-1.mjs --base-url=http://127.0.0.1:3001
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/sandbox.ysim.vn/storefront /tmp
+
+[Install]
+WantedBy=multi-user.target

@@ -11,6 +11,12 @@ import {
   runGPayCommerceAutomation,
 } from "@/lib/fulfillment/gigago/gpay-commerce-automation";
 import {
+  GPAY_FAST_ACK_VERSION,
+  isGPayFastAckCandidate,
+  isGPayFastAckEnabled,
+  prepareGPayFastAck,
+} from "@/lib/fulfillment/gigago/gpay-fast-ack";
+import {
   isGPayImmediateSuccessDurabilityCandidate,
   persistGPayImmediateSuccessDurability,
   runGPayDelayedReconciliationSchedule,
@@ -332,6 +338,44 @@ export async function POST(request: Request) {
       canonicalSha256,
     });
     const automationMode = getGPayCommerceAutomationMode();
+    // F06.1B-1_FAST_ACK_DURABLE_V1
+    if (isGPayFastAckCandidate(verification, reconciliation)) {
+      const fastAck = await prepareGPayFastAck({
+        verification,
+        reconciliation,
+        source: "gpay-va-webhook",
+      });
+      const durableJob = fastAck.durability;
+
+      if (durableJob.scheduleRecommended) {
+        after(async () => {
+          try {
+            await runGPayDelayedReconciliationSchedule(durableJob.orderId);
+          } catch (error) {
+            console.error("GPay VA fast-ACK durability schedule failed:", {
+              orderId: durableJob.orderId,
+              message: error instanceof Error ? error.message : "unknown error",
+            });
+          }
+        });
+      }
+      return NextResponse.json(
+        {
+          success: true,
+          acknowledged: true,
+          verified: true,
+          fastAck: true,
+          fastAckVersion: GPAY_FAST_ACK_VERSION,
+          duplicate: durableJob.duplicate,
+          orderId: durableJob.orderId,
+          paymentRecorded: fastAck.paymentAutomation.paymentRecorded,
+          durabilityState: durableJob.state,
+          fulfillmentQueued: durableJob.scheduleRecommended,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
     const automation = await runGPayCommerceAutomation(
       verification,
       reconciliation,
@@ -413,6 +457,12 @@ export async function GET() {
       contractVersion: "gpay-va-change-balance-v1",
       signatureAlgorithm: "SHA256withRSA",
       commerceAutomationMode: getGPayCommerceAutomationMode(),
+      fastAck: {
+        enabled: isGPayFastAckEnabled(),
+        version: GPAY_FAST_ACK_VERSION,
+        durableBeforeAck: true,
+        fulfillmentAfterAck: true,
+      },
       timestamp: new Date().toISOString(),
     },
     { headers: { "Cache-Control": "no-store" } },

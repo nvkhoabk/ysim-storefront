@@ -17,6 +17,12 @@ import {
   runGPayCommerceAutomation,
 } from "@/lib/fulfillment/gigago/gpay-commerce-automation";
 import {
+  GPAY_FAST_ACK_VERSION,
+  isGPayFastAckCandidate,
+  isGPayFastAckEnabled,
+  prepareGPayFastAck,
+} from "@/lib/fulfillment/gigago/gpay-fast-ack";
+import {
   enqueueGPayDelayedReconciliation,
   getGPayReconciliationRetryDelaysSeconds,
   isGPayDelayedReconciliationCandidate,
@@ -410,6 +416,64 @@ export async function POST(request: Request) {
       );
     }
 
+    // F06.1B-1_FAST_ACK_DURABLE_V1
+    if (isGPayFastAckCandidate(verification, reconciliation)) {
+      const fastAck = await prepareGPayFastAck({
+        verification,
+        reconciliation,
+        source: "gpay-webhook",
+      });
+      const durableJob = fastAck.durability;
+
+      if (durableJob.scheduleRecommended) {
+        after(async () => {
+          try {
+            await runGPayDelayedReconciliationSchedule(durableJob.orderId);
+          } catch (error) {
+            console.error("GPay fast-ACK durability schedule failed:", {
+              orderId: durableJob.orderId,
+              message: error instanceof Error ? error.message : "unknown error",
+            });
+          }
+        });
+      }
+      await writeGPayDebugEvent({
+        type: "payment.event",
+        requestId: providerRequestId ?? localRequestId,
+        operation: "gpay.webhook.fast-ack",
+        data: {
+          version: GPAY_FAST_ACK_VERSION,
+          orderId: durableJob.orderId,
+          state: durableJob.state,
+          duplicate: durableJob.duplicate,
+          automationMode: durableJob.automationMode,
+          paymentRecorded: fastAck.paymentAutomation.paymentRecorded,
+          nextAttemptAt: durableJob.nextAttemptAt,
+        },
+      });
+      return NextResponse.json(
+        {
+          success: true,
+          received: true,
+          acknowledged: true,
+          verified: true,
+          fastAck: true,
+          fastAckVersion: GPAY_FAST_ACK_VERSION,
+          requestId: providerRequestId ?? localRequestId,
+          receivedAt,
+          contractVersion: verification.contractVersion,
+          normalizedStatus: verification.normalizedStatus,
+          reconciliation,
+          paymentRecorded: fastAck.paymentAutomation.paymentRecorded,
+          duplicate: durableJob.duplicate,
+          orderId: durableJob.orderId,
+          durabilityState: durableJob.state,
+          fulfillmentQueued: durableJob.scheduleRecommended,
+        },
+        { status: 200, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
     let commerceAutomation;
 
     try {
@@ -629,6 +693,12 @@ export async function GET() {
       delayedReconciliationEnabled: isGPayDelayedReconciliationEnabled(),
       immediateSuccessDurability: true,
       immediateSuccessDurabilityVersion: "f04.3.3.1",
+      fastAck: {
+        enabled: isGPayFastAckEnabled(),
+        version: GPAY_FAST_ACK_VERSION,
+        durableBeforeAck: true,
+        fulfillmentAfterAck: true,
+      },
       delayedReconciliationRetryDelaysSeconds:
         getGPayReconciliationRetryDelaysSeconds(),
       timestamp: new Date().toISOString(),
