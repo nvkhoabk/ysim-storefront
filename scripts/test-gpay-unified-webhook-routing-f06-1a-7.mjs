@@ -11,6 +11,9 @@ const baseUrl = (arg("base-url", "http://localhost:3000") || "").replace(
   "",
 );
 
+const merchantCode =
+  arg("merchant-code", process.env.GPAY_VA_MERCHANT_CODE || "") || "";
+
 async function readJson(response) {
   const text = await response.text();
   try {
@@ -63,13 +66,15 @@ const vaProbe = await post({
   account_number: "000000000000000000",
   amount: 1,
   message: "YSIM-1-ROUTING-PROBE",
-  merchant_code: "ROUTING-PROBE",
+  ...(merchantCode ? { merchant_code: merchantCode } : {}),
   action: "CHANGE_BALANCE",
   signature: "invalid-routing-probe-signature",
 });
 assert(
   (vaProbe.response.status === 401 &&
     vaProbe.body.code === "INVALID_SIGNATURE") ||
+    (vaProbe.response.status === 403 &&
+      vaProbe.body.code === "MERCHANT_CODE_MISMATCH") ||
     (vaProbe.response.status === 503 && vaProbe.body.code === "VA_DISABLED"),
   `VA probe was not dispatched to the VA handler: HTTP ${vaProbe.response.status} ${JSON.stringify(vaProbe.body)}`,
 );
