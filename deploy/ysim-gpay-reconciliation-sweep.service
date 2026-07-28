@@ -1,3 +1,5 @@
+# F06.1B-1_R5_DEPLOYMENT_RUNTIME_V1
+# Template only. deploy/install-sandbox-timer.sh renders the real unit.
 [Unit]
 Description=YSim GPay durable reconciliation sweep
 After=network-online.target
@@ -5,15 +7,15 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=ysim
-Group=ysim
-WorkingDirectory=/var/www/sandbox.ysim.vn/storefront
-ExecStart=/usr/bin/node --env-file=.env.production scripts/run-gpay-reconciliation-sweep-f06-1b-1.mjs --base-url=http://127.0.0.1:3001
+User=__YSIM_SERVICE_USER__
+Group=__YSIM_SERVICE_GROUP__
+WorkingDirectory=__YSIM_STOREFRONT_ROOT__
+ExecStart=__NODE_BIN__ --env-file=__ENV_FILE__ __SWEEP_SCRIPT__ --base-url=__BASE_URL__
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/var/www/sandbox.ysim.vn/storefront /tmp
+ProtectHome=read-only
+ReadWritePaths=__YSIM_STOREFRONT_ROOT__ /tmp
 
 [Install]
 WantedBy=multi-user.target
