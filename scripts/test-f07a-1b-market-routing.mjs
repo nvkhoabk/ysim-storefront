@@ -1,4 +1,4 @@
-// F07A-1B_MARKET_ROUTING_V1
+// F07A-1B_MARKET_ROUTING_R3
 
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
@@ -14,6 +14,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptPath = fileURLToPath(import.meta.url);
+const packageMarkerSource = readFileSync(
+  fileURLToPath(import.meta.url),
+  "utf8",
+);
+assert.match(packageMarkerSource, /F07A-1B_MARKET_ROUTING_R3/);
+
 const repoRoot = path.resolve(path.dirname(scriptPath), "..");
 
 function resolveTypeScript() {
@@ -47,7 +53,9 @@ function resolveTypeScript() {
 }
 
 const ts = resolveTypeScript();
-const tempRoot = mkdtempSync(path.join(tmpdir(), "ysim f07a 1b routing test "));
+const tempRoot = mkdtempSync(
+  path.join(tmpdir(), "ysim f07a 1b r2 routing test "),
+);
 
 function compile(relativePath) {
   const sourcePath = path.join(repoRoot, relativePath);
@@ -152,6 +160,20 @@ try {
     "PASS URL locale wins and rewrites to the existing production route",
   );
 
+  assert.equal(
+    requestModule.isInternalMarketRewrite(
+      headers({ [requestModule.MARKET_INTERNAL_REWRITE_HEADER]: "1" }),
+    ),
+    true,
+  );
+  assert.equal(
+    requestModule.isInternalMarketRewrite(
+      headers({ [requestModule.MARKET_INTERNAL_REWRITE_HEADER]: "0" }),
+    ),
+    false,
+  );
+  console.log("PASS internal rewrite marker bypass contract");
+
   for (const pathname of [
     "/api/payments/gpay/webhook",
     "/_next/static/chunk.js",
@@ -229,11 +251,29 @@ try {
   assert.match(proxySource, /NextResponse\.redirect/);
   assert.match(proxySource, /NextResponse\.rewrite/);
   assert.match(proxySource, /isMarketRoutingEnabled/);
+  assert.match(proxySource, /isInternalMarketRewrite/);
+  assert.match(proxySource, /MARKET_INTERNAL_REWRITE_HEADER/);
+  assert.match(
+    proxySource,
+    /headers\.delete\(MARKET_INTERNAL_REWRITE_HEADER\)/,
+  );
   assert.doesNotMatch(proxySource, /cookies\.set|MARKET_COOKIE_NAME/);
   assert.match(routeSource, /response\.cookies\.set/);
   assert.match(routeSource, /MARKET_ROUTING_DISABLED/);
   assert.match(routeSource, /marketSelectionRedirectPath/);
   assert.doesNotMatch(routeSource, /location\.href|window\./);
+
+  const markerCheckIndex = proxySource.indexOf(
+    "isInternalMarketRewrite(request.headers)",
+  );
+  const routingDecisionIndex = proxySource.indexOf("decideMarketRouting({");
+  assert.ok(markerCheckIndex >= 0);
+  assert.ok(routingDecisionIndex >= 0);
+  assert.ok(markerCheckIndex < routingDecisionIndex);
+  console.log(
+    "PASS localized rewrite recursion guard executes before market resolution",
+  );
+
   console.log(
     "PASS proxy never writes preference cookies and the explicit API owns persistence",
   );
@@ -252,7 +292,7 @@ try {
     `PASS cross-platform Node execution contract: platform=${process.platform}`,
   );
   console.log(
-    "PASS: F07A-1B market detection, cookie and locale routing contract.",
+    "PASS: F07A-1B R3 localized rewrite recursion and market routing contract.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });

@@ -1,4 +1,4 @@
-// F07A-1B_MARKET_ROUTING_V1
+// F07A-1B_MARKET_ROUTING_R3
 
 import { readMarketCookie } from "./market.cookie";
 import { resolveMarket } from "./market.resolve";
@@ -6,6 +6,7 @@ import type { MarketResolution } from "./market.types";
 
 export const MARKET_COUNTRY_HEADER = "cf-ipcountry";
 export const MARKET_TEST_COUNTRY_HEADER = "x-ysim-test-country";
+export const MARKET_INTERNAL_REWRITE_HEADER = "x-ysim-market-internal-rewrite";
 
 export interface MarketRuntimeEnvironment {
   readonly NODE_ENV?: string;
@@ -38,6 +39,10 @@ export function isMarketCountryTestModeEnabled(
   return (
     env.NODE_ENV !== "production" && enabledFlag(env.YSIM_MARKET_TEST_MODE)
   );
+}
+
+export function isInternalMarketRewrite(headers: Headers): boolean {
+  return headers.get(MARKET_INTERNAL_REWRITE_HEADER)?.trim() === "1";
 }
 
 export function readCountryCodeFromHeaders(

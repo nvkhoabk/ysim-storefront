@@ -1,10 +1,12 @@
-// F07A-1B_MARKET_ROUTING_V1
+// F07A-1B_MARKET_ROUTING_R3
 
 import { NextResponse, type NextRequest } from "next/server";
 
 import { readMarketCookie } from "@/lib/market/market.cookie";
 import {
+  isInternalMarketRewrite,
   isMarketRoutingEnabled,
+  MARKET_INTERNAL_REWRITE_HEADER,
   readCountryCodeFromHeaders,
 } from "@/lib/market/market.request";
 import { decideMarketRouting } from "@/lib/market/market.routing";
@@ -22,11 +24,18 @@ function addMarketRequestHeaders(
   source: string,
 ): Headers {
   const headers = new Headers(request.headers);
+  headers.set(MARKET_INTERNAL_REWRITE_HEADER, "1");
   headers.set(MARKET_REQUEST_HEADERS.id, market.id);
   headers.set(MARKET_REQUEST_HEADERS.locale, market.locale);
   headers.set(MARKET_REQUEST_HEADERS.currency, market.currency);
   headers.set(MARKET_REQUEST_HEADERS.source, source);
   return headers;
+}
+
+function continueInternalRewrite(request: NextRequest): NextResponse {
+  const headers = new Headers(request.headers);
+  headers.delete(MARKET_INTERNAL_REWRITE_HEADER);
+  return NextResponse.next({ request: { headers } });
 }
 
 function preventLocationCaching(response: NextResponse): NextResponse {
@@ -36,6 +45,14 @@ function preventLocationCaching(response: NextResponse): NextResponse {
 }
 
 export default function proxy(request: NextRequest) {
+  // A localized URL is rewritten once to the existing unprefixed route.
+  // Next.js may evaluate Proxy again for that internal rewrite. The marker
+  // prevents the second pass from resolving cookie/IP and redirecting away
+  // from the locale explicitly selected in the URL.
+  if (isInternalMarketRewrite(request.headers)) {
+    return continueInternalRewrite(request);
+  }
+
   const decision = decideMarketRouting({
     enabled: isMarketRoutingEnabled(),
     pathname: request.nextUrl.pathname,
