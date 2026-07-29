@@ -1,27 +1,29 @@
+// F07A-2B_R2_FUNCTIONAL_SHELL_LOCALIZATION_R3
+
 import Image from "next/image";
 import Link from "next/link";
 
-import {
-  cn,
-} from "@/lib/ui/cn";
+import { cn } from "@/lib/ui/cn";
 
 export interface BrandLogoProps {
   href?: string;
+  label?: string;
   className?: string;
   priority?: boolean;
 }
 
 export function BrandLogo({
   href = "/",
+  label = "YSim",
   className,
   priority = false,
 }: BrandLogoProps) {
   return (
     <Link
       href={href}
-      aria-label="YSim — Trang chủ"
+      aria-label={label}
       className={cn(
-        "inline-flex shrink-0 items-center rounded-[var(--ysim-radius-sm)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--ysim-color-focus)_25%,transparent)]",
+        "inline-flex shrink-0 items-center rounded-[var(--ysim-radius-sm)] focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--ysim-color-focus)_25%,transparent)] focus-visible:outline-none",
         className,
       )}
     >
