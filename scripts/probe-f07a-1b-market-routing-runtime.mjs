@@ -45,9 +45,19 @@ function request(url, { headers = {}, lookupAddress = null } = {}) {
         reject(new Error(`INVALID_LOOKUP_ADDRESS:${lookupAddress}`));
         return;
       }
-      options.lookup = (_hostname, _options, callback) => {
-        callback(null, lookupAddress, family);
-      };
+      options.lookup = (_hostname, lookupOptions, callback) => {
+		  const resolvedAddress = {
+			address: lookupAddress,
+			family,
+		  };
+
+		  if (lookupOptions?.all === true) {
+			callback(null, [resolvedAddress]);
+			return;
+		  }
+
+		  callback(null, lookupAddress, family);
+		};
     }
 
     const req = client.request(options, (res) => {
