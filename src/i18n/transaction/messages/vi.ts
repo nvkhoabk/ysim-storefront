@@ -1,0 +1,102 @@
+// F07A-2D-1_LOCALIZED_TRANSACTION_CANDIDATE_R1
+
+import type { TransactionMessages } from "../transaction.types";
+
+export const transactionMessagesVi: TransactionMessages = {
+  "preview.title": "Luồng giao dịch đã bản địa hóa",
+  "preview.description":
+    "Candidate giao diện cho Giỏ hàng, Thanh toán, Trạng thái thanh toán và Kết quả đơn hàng.",
+  "preview.candidate":
+    "Chỉ hoạt động trong UI preview; các route giao dịch production chưa thay đổi.",
+  "preview.sourceMoney":
+    "Giá và tổng tiền bên dưới là dữ liệu nguồn VND, không được quy đổi sang {currency}.",
+  "preview.noMutation":
+    "Candidate không gửi biểu mẫu, không gọi cổng thanh toán và không thay đổi giỏ hàng, đơn hàng hoặc fulfillment.",
+  "tabs.cart": "Giỏ hàng",
+  "tabs.checkout": "Thông tin thanh toán",
+  "tabs.payment": "Thanh toán",
+  "tabs.orderResult": "Kết quả đơn hàng",
+  "common.sourceNotice":
+    "Dữ liệu sản phẩm và số tiền nguồn được giữ nguyên để chờ chính sách bản địa hóa catalog và tiền tệ.",
+  "common.previewOnly": "Chỉ là dữ liệu minh họa; không có giao dịch thật.",
+  "common.quantity": "Số lượng",
+  "common.unitPrice": "Đơn giá nguồn",
+  "common.lineTotal": "Thành tiền nguồn",
+  "common.subtotal": "Tạm tính nguồn",
+  "common.total": "Tổng cộng nguồn",
+  "common.currency": "Tiền tệ nguồn",
+  "common.continue": "Tiếp tục",
+  "common.back": "Quay lại",
+  "common.status": "Trạng thái",
+  "common.reference": "Mã tham chiếu",
+  "common.provider": "Nhà cung cấp",
+  "common.notAvailable": "Chưa áp dụng",
+  "common.loading": "Đang tải trạng thái…",
+  "common.error": "Không thể tải trạng thái.",
+  "common.retry": "Thử lại",
+  "cart.eyebrow": "Giỏ hàng YSim",
+  "cart.title": "Kiểm tra gói trước khi thanh toán",
+  "cart.description":
+    "Xác nhận sản phẩm, số lượng và tổng tiền nguồn trước khi chuyển sang bước nhập thông tin.",
+  "cart.emptyTitle": "Giỏ hàng chưa có sản phẩm",
+  "cart.emptyDescription": "Hãy chọn một gói eSIM từ catalog để tiếp tục.",
+  "cart.sourceTitle": "Tên nguồn: {title}",
+  "cart.checkoutAction": "Đi tới thông tin thanh toán",
+  "cart.removeDisabled": "Xóa sản phẩm đang bị vô hiệu hóa trong candidate.",
+  "checkout.eyebrow": "Thông tin khách hàng",
+  "checkout.title": "Nhập thông tin nhận eSIM",
+  "checkout.description":
+    "Các trường bên dưới được vô hiệu hóa để đảm bảo preview không gửi dữ liệu.",
+  "checkout.contactTitle": "Thông tin liên hệ",
+  "checkout.emailLabel": "Email nhận eSIM",
+  "checkout.emailPlaceholder": "customer@example.com",
+  "checkout.phoneLabel": "Số điện thoại",
+  "checkout.phonePlaceholder": "+84 9xx xxx xxx",
+  "checkout.recipientTitle": "Người nhận eSIM",
+  "checkout.fullNameLabel": "Họ và tên",
+  "checkout.fullNamePlaceholder": "Nguyễn Văn A",
+  "checkout.noteLabel": "Ghi chú đơn hàng",
+  "checkout.notePlaceholder": "Yêu cầu hỗ trợ nếu có",
+  "checkout.summaryTitle": "Tóm tắt đơn hàng",
+  "checkout.paymentAction": "Tiếp tục tới thanh toán",
+  "checkout.disabledNotice":
+    "Gửi checkout đang bị vô hiệu hóa trong candidate.",
+  "payment.eyebrow": "Phương thức thanh toán",
+  "payment.title": "Chọn phương thức thanh toán",
+  "payment.description":
+    "Các phương thức được hiển thị để kiểm tra bản dịch; không khởi tạo giao dịch.",
+  "payment.gpayTitle": "GPay QR",
+  "payment.gpayDescription": "Thanh toán bằng mã QR ngân hàng qua GPay.",
+  "payment.onepayTitle": "OnePay",
+  "payment.onepayDescription": "Thanh toán thẻ quốc tế qua OnePay.",
+  "payment.manualTitle": "Chuyển khoản thủ công",
+  "payment.manualDescription":
+    "Nhân viên xác nhận giao dịch theo quy trình vận hành.",
+  "payment.pendingTitle": "Trạng thái minh họa",
+  "payment.pendingStatus": "Đang chờ thanh toán",
+  "payment.createAction": "Tạo yêu cầu thanh toán",
+  "payment.disabledNotice":
+    "Khởi tạo payment đang bị vô hiệu hóa trong candidate.",
+  "order.eyebrow": "Kết quả đơn hàng",
+  "order.title": "Đơn hàng đã được ghi nhận",
+  "order.description":
+    "Trang kết quả minh họa các trạng thái thanh toán, fulfillment và gửi eSIM.",
+  "order.codeLabel": "Mã đơn hàng",
+  "order.paymentTitle": "Thanh toán",
+  "order.paymentStatus": "Đã xác nhận trong fixture",
+  "order.fulfillmentTitle": "Fulfillment",
+  "order.fulfillmentStatus": "Đang chuẩn bị eSIM trong fixture",
+  "order.deliveryTitle": "Gửi eSIM",
+  "order.deliveryStatus": "Chờ gửi qua {channel}",
+  "order.securityNotice":
+    "QR eSIM và thông tin kích hoạt thật không được đưa vào candidate.",
+  "order.startAgain": "Quay lại giỏ hàng",
+  "labels.preview": "Candidate giao dịch đã bản địa hóa",
+  "labels.tabs": "Chọn bước giao dịch",
+  "labels.cartItems": "Danh sách sản phẩm trong giỏ hàng",
+  "labels.orderSummary": "Tóm tắt số tiền nguồn",
+  "labels.checkoutFields": "Các trường checkout minh họa",
+  "labels.paymentMethods": "Các phương thức thanh toán minh họa",
+  "labels.orderTimeline": "Trạng thái đơn hàng minh họa",
+  "labels.localeNavigation": "Chọn ngôn ngữ preview",
+};
