@@ -1,0 +1,98 @@
+// F07A-2C-1_LOCALIZED_HOME_CANDIDATE_R1
+
+import type { HomeMessages } from "../home.types";
+
+export const homeMessagesLo = {
+  "preview.title": "ໜ້າຫຼັກຫຼາຍພາສາສຳລັບການທົດລອງ",
+  "preview.description":
+    "ໜ້າທົດລອງນີ້ລວມ shell ທີ່ແປແລ້ວກັບເນື້ອຫາຄົງທີ່ຂອງໜ້າຫຼັກໃນພາສາຫວຽດນາມ ອັງກິດ ແລະ ລາວ.",
+  "preview.candidate":
+    "ນີ້ແມ່ນ UI-preview candidate. ໜ້າຫຼັກ production ແລະ public market routing ຍັງບໍ່ໄດ້ເປີດໃຊ້.",
+  "preview.dynamicContent":
+    "ຊື່ສິນຄ້າແບບ dynamic ຂ້າງລຸ່ມຍັງຄົງຕາມ catalog source ເພື່ອຫຼີກລ້ຽງການແປທີ່ບໍ່ມີແຫຼ່ງອ້າງອີງ.",
+  "preview.currencyPending":
+    "ການແປງສະກຸນເງິນຍັງບໍ່ໄດ້ພັດທະນາ. Preview ບໍ່ສະແດງລາຄາ USD ຫຼື LAK ທີ່ຈຳລອງ.",
+  "hero.eyebrow": "eSIM ສຳລັບການເດີນທາງທົ່ວໂລກ",
+  "hero.title": "ເຊື່ອມຕໍ່ໄດ້ທັນທີເມື່ອຮອດປາຍທາງ",
+  "hero.description":
+    "ເລືອກແພັກເກດ eSIM ທີ່ເໝາະສົມ ຮັບ QR code ທາງອີເມວ ແລະ ເລີ່ມເດີນທາງໂດຍບໍ່ຕ້ອງປ່ຽນ SIM.",
+  "hero.primary": "ເບິ່ງແພັກເກດ eSIM",
+  "hero.secondary": "ຊອກຫາແພັກເກດທີ່ເໝາະສົມ",
+  "destinations.eyebrow": "ຈຸດໝາຍປາຍທາງຍອດນິຍົມ",
+  "destinations.title": "ກຽມພ້ອມສຳລັບການເດີນທາງຄັ້ງຕໍ່ໄປ",
+  "destinations.description": "ສຳຫຼວດຈຸດໝາຍທີ່ລູກຄ້າ YSim ເລືອກໃຊ້ເລື້ອຍ.",
+  "destinations.viewAll": "ເບິ່ງຈຸດໝາຍທັງໝົດ",
+  "destinations.japan": "ຍີ່ປຸ່ນ",
+  "destinations.korea": "ເກົາຫຼີໃຕ້",
+  "destinations.thailand": "ໄທ",
+  "destinations.singapore": "ສິງກະໂປ",
+  "destinations.cardAction": "ເບິ່ງແພັກເກດ",
+  "products.eyebrow": "ແພັກເກດແນະນຳ",
+  "products.title": "ຕົວເລືອກໃນ catalog ທີ່ນິຍົມ",
+  "products.description": "ຂໍ້ມູນສິນຄ້າຈິງຈະຍັງມາຈາກ WooCommerce.",
+  "products.sourceLabel": "ຊື່ຈາກ catalog source: {title}",
+  "products.sourcePending":
+    "ການແປເນື້ອຫາ dynamic ແລະ ການສະແດງລາຄາຕາມຕະຫຼາດຈະດຳເນີນໃນຂັ້ນຕອນຕໍ່ໄປ.",
+  "products.viewAll": "ເບິ່ງແພັກເກດ eSIM ທັງໝົດ",
+  "assistant.eyebrow": "ຍັງບໍ່ແນ່ໃຈວ່າຈະເລືອກແພັກເກດໃດ?",
+  "assistant.title": "ໃຫ້ YSim ຊ່ວຍແນະນຳຢ່າງວ່ອງໄວ",
+  "assistant.description":
+    "ຕອບຄຳຖາມສັ້ນໆກ່ຽວກັບຈຸດໝາຍ ໄລຍະເວລາ ແລະ ຄວາມຕ້ອງການ data ເພື່ອຮັບຄຳແນະນຳ.",
+  "assistant.action": "ເລີ່ມຊອກຫາແພັກເກດ",
+  "why.eyebrow": "ເປັນຫຍັງຈຶ່ງເລືອກ YSim",
+  "why.title": "ເຊື່ອມຕໍ່ງ່າຍ ແລະ ອຸ່ນໃຈຕະຫຼອດການເດີນທາງ",
+  "why.description":
+    "ປະສົບການຊື້ ແລະ ໃຊ້ eSIM ທີ່ຊັດເຈນ ວ່ອງໄວ ແລະ ຮັບການຊ່ວຍເຫຼືອໄດ້.",
+  "why.instantTitle": "ຮັບ eSIM ຢ່າງວ່ອງໄວ",
+  "why.instantDescription": "QR code ຖືກສົ່ງຫຼັງຈາກຄຳສັ່ງຊື້ສຳເລັດ.",
+  "why.coverageTitle": "ຄຸ້ມຄອງຫຼາຍປະເທດ",
+  "why.coverageDescription":
+    "ຕົວເລືອກຍືດຫຍຸ່ນສຳລັບການເດີນທາງໃນພາກພື້ນ ແລະ ທົ່ວໂລກ.",
+  "why.supportTitle": "ຊ່ວຍເຫຼືອເມື່ອຕ້ອງການ",
+  "why.supportDescription": "ຄູ່ມືຕິດຕັ້ງ ແລະ ແກ້ໄຂບັນຫາຕະຫຼອດການເດີນທາງ.",
+  "steps.eyebrow": "ວິທີໃຊ້ YSim",
+  "steps.title": "ສາມຂັ້ນຕອນເພື່ອເລີ່ມເຊື່ອມຕໍ່",
+  "steps.description":
+    "ຂັ້ນຕອນສັ້ນໆຈາກການເລືອກແພັກເກດຈົນເຖິງໂທລະສັບເຊື່ອມຕໍ່ເຄືອຂ່າຍ.",
+  "steps.chooseTitle": "ເລືອກແພັກເກດ",
+  "steps.chooseDescription": "ເລືອກຈຸດໝາຍ ປະລິມານ data ແລະ ຈຳນວນມື້.",
+  "steps.scanTitle": "ສະແກນ QR code",
+  "steps.scanDescription": "ເປີດອີເມວຢືນຢັນ ແລະ ເພີ່ມ eSIM ເຂົ້າອຸປະກອນ.",
+  "steps.connectTitle": "ເຊື່ອມຕໍ່ທີ່ປາຍທາງ",
+  "steps.connectDescription": "ເປີດ eSIM ແລະ data roaming ຕາມຄູ່ມື.",
+  "device.eyebrow": "ກວດສອບອຸປະກອນ",
+  "device.title": "ໂທລະສັບຂອງທ່ານຮອງຮັບ eSIM ຫຼືບໍ່?",
+  "device.description": "ກວດຄວາມເຂົ້າກັນໄດ້ກ່ອນຊື້ເພື່ອຫຼີກລ້ຽງການຂັດຂ້ອງ.",
+  "device.action": "ກວດສອບດຽວນີ້",
+  "reviews.eyebrow": "ລູກຄ້າເວົ້າເຖິງ YSim",
+  "reviews.title": "ປະສົບການເຊື່ອມຕໍ່ໃນການເດີນທາງ",
+  "reviews.description":
+    "ເນື້ອຫາ review ໃນ preview ເປັນຂໍ້ມູນຕົວຢ່າງ ແລະ ບໍ່ແທນທີ່ຂໍ້ມູນ review ຈິງ.",
+  "reviews.quote":
+    "ຂ້ອຍຕິດຕັ້ງ eSIM ກ່ອນເດີນທາງ ແລະ ມີອິນເຕີເນັດທັນທີເມື່ອລົງຈາກເຮືອບິນ.",
+  "reviews.author": "{name} · ນັກເດີນທາງທີ່ຢືນຢັນແລ້ວ",
+  "guides.eyebrow": "ຄູ່ມືການເດີນທາງ",
+  "guides.title": "ກຽມຕົວໃຫ້ດີກ່ອນອອກເດີນທາງ",
+  "guides.description":
+    "ຄູ່ມືສັ້ນໆຊ່ວຍໃຫ້ທ່ານເຂົ້າໃຈ ຕິດຕັ້ງ ແລະ ໃຊ້ eSIM ໄດ້ງ່າຍ.",
+  "guides.installTitle": "ຄວນຕິດຕັ້ງ eSIM ກ່ອນ ຫຼື ຫຼັງຈາກຮອດປາຍທາງ?",
+  "guides.installDescription": "ເລືອກເວລາຕິດຕັ້ງ ແລະ ເປີດໃຊ້ທີ່ເໝາະສົມ.",
+  "guides.roamingTitle": "eSIM ແຕກຕ່າງຈາກ international roaming ແນວໃດ?",
+  "guides.roamingDescription":
+    "ປຽບທຽບການໃຊ້ງານ ຄ່າໃຊ້ຈ່າຍ ແລະ ຄວາມຄວບຄຸມໃນຕ່າງປະເທດ.",
+  "guides.deviceTitle": "ວິທີກວດວ່າໂທລະສັບຮອງຮັບ eSIM",
+  "guides.deviceDescription": "ຂັ້ນຕອນກວດສອບສັ້ນໆສຳລັບ iPhone ແລະ Android.",
+  "guides.read": "ອ່ານຄູ່ມື",
+  "cta.eyebrow": "ພ້ອມເຊື່ອມຕໍ່ແລ້ວບໍ?",
+  "cta.title": "ເລືອກ eSIM ສຳລັບການເດີນທາງຄັ້ງຕໍ່ໄປ",
+  "cta.description": "ເລີ່ມຈາກຈຸດໝາຍ ແລະ ຄວາມຕ້ອງການ data ຂອງທ່ານ.",
+  "cta.primary": "ເບິ່ງແພັກເກດ eSIM",
+  "cta.secondary": "ຕິດຕໍ່ຝ່າຍຊ່ວຍເຫຼືອ",
+  "labels.localeNavigation": "ເລືອກພາສາສຳລັບ home preview",
+  "labels.homePreview": "ເນື້ອຫາ home preview ທີ່ແປແລ້ວ",
+  "labels.destinationGrid": "ລາຍການຈຸດໝາຍຍອດນິຍົມ",
+  "labels.productGrid": "ລາຍການສິນຄ້າຈາກ catalog source",
+  "labels.whyGrid": "ປະໂຫຍດຂອງການໃຊ້ YSim",
+  "labels.stepsList": "ຂັ້ນຕອນການໃຊ້ YSim",
+  "labels.guideGrid": "ລາຍການຄູ່ມືການເດີນທາງ",
+} as const satisfies HomeMessages;
