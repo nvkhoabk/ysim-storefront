@@ -1,4 +1,4 @@
-// F07A-1B_MARKET_ROUTING_R3
+// F07A-1B_MARKET_ROUTING_R4
 
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -9,6 +9,7 @@ import {
   MARKET_INTERNAL_REWRITE_HEADER,
   readCountryCodeFromHeaders,
 } from "@/lib/market/market.request";
+import { buildInternalMarketRewriteUrl } from "@/lib/market/market.rewrite";
 import { decideMarketRouting } from "@/lib/market/market.routing";
 
 const MARKET_REQUEST_HEADERS = {
@@ -69,7 +70,10 @@ export default function proxy(request: NextRequest) {
     );
   }
 
-  const destination = new URL(decision.destination, request.url);
+  const destination = buildInternalMarketRewriteUrl(
+    request.url,
+    decision.destination,
+  );
   const response = NextResponse.rewrite(destination, {
     request: {
       headers: addMarketRequestHeaders(

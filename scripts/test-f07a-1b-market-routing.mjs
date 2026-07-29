@@ -1,4 +1,4 @@
-// F07A-1B_MARKET_ROUTING_R3
+// F07A-1B_MARKET_ROUTING_R4
 
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
@@ -18,7 +18,7 @@ const packageMarkerSource = readFileSync(
   fileURLToPath(import.meta.url),
   "utf8",
 );
-assert.match(packageMarkerSource, /F07A-1B_MARKET_ROUTING_R3/);
+assert.match(packageMarkerSource, /F07A-1B_MARKET_ROUTING_R4/);
 
 const repoRoot = path.resolve(path.dirname(scriptPath), "..");
 
@@ -54,7 +54,7 @@ function resolveTypeScript() {
 
 const ts = resolveTypeScript();
 const tempRoot = mkdtempSync(
-  path.join(tmpdir(), "ysim f07a 1b r2 routing test "),
+  path.join(tmpdir(), "ysim f07a 1b r4 routing test "),
 );
 
 function compile(relativePath) {
@@ -96,6 +96,7 @@ const sourceFiles = [
   "src/lib/market/market.resolve.ts",
   "src/lib/market/market.cookie.ts",
   "src/lib/market/market.request.ts",
+  "src/lib/market/market.rewrite.ts",
   "src/lib/market/market.routing.ts",
 ];
 
@@ -104,6 +105,7 @@ try {
   writeFileSync(path.join(tempRoot, "package.json"), '{"type":"commonjs"}\n');
   const requireFromTemp = createRequire(path.join(tempRoot, "package.json"));
   const requestModule = requireFromTemp("./src/lib/market/market.request.js");
+  const rewriteModule = requireFromTemp("./src/lib/market/market.rewrite.js");
   const routingModule = requireFromTemp("./src/lib/market/market.routing.js");
 
   const headers = (values = {}) => new Headers(values);
@@ -158,6 +160,48 @@ try {
   assert.equal(localizedDecision.market.id, "en-global");
   console.log(
     "PASS URL locale wins and rewrites to the existing production route",
+  );
+
+  const buildRewriteUrl = rewriteModule.buildInternalMarketRewriteUrl;
+  assert.equal(
+    buildRewriteUrl("https://localhost:3001/en/esim", "/esim").href,
+    "http://localhost:3001/esim",
+  );
+  assert.equal(
+    buildRewriteUrl("https://127.0.0.1:3001/en/esim", "/esim").href,
+    "http://127.0.0.1:3001/esim",
+  );
+  assert.equal(
+    buildRewriteUrl("https://[::1]:3001/en/esim", "/esim").href,
+    "http://[::1]:3001/esim",
+  );
+  assert.equal(
+    buildRewriteUrl("http://localhost:3001/en/esim", "/esim").href,
+    "http://localhost:3001/esim",
+  );
+  assert.equal(
+    buildRewriteUrl("https://localhost:3001/en/esim?days=7", "/esim?days=7")
+      .href,
+    "http://localhost:3001/esim?days=7",
+  );
+  assert.equal(
+    buildRewriteUrl("https://example.test/en/esim", "/esim").href,
+    "https://example.test/esim",
+  );
+  for (const unsafeDestination of [
+    "https://evil.example/esim",
+    "//evil.example/esim",
+    "/\\evil.example/esim",
+    "javascript:alert(1)",
+  ]) {
+    assert.throws(
+      () =>
+        buildRewriteUrl("https://localhost:3001/en/esim", unsafeDestination),
+      /MARKET_REWRITE_DESTINATION/,
+    );
+  }
+  console.log(
+    "PASS loopback internal rewrite normalizes forwarded HTTPS to the HTTP listener",
   );
 
   assert.equal(
@@ -253,6 +297,11 @@ try {
   assert.match(proxySource, /isMarketRoutingEnabled/);
   assert.match(proxySource, /isInternalMarketRewrite/);
   assert.match(proxySource, /MARKET_INTERNAL_REWRITE_HEADER/);
+  assert.match(proxySource, /buildInternalMarketRewriteUrl/);
+  assert.doesNotMatch(
+    proxySource,
+    /new URL\(decision\.destination, request\.url\)/,
+  );
   assert.match(
     proxySource,
     /headers\.delete\(MARKET_INTERNAL_REWRITE_HEADER\)/,
@@ -292,7 +341,7 @@ try {
     `PASS cross-platform Node execution contract: platform=${process.platform}`,
   );
   console.log(
-    "PASS: F07A-1B R3 localized rewrite recursion and market routing contract.",
+    "PASS: F07A-1B R4 loopback transport normalization and market routing contract.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
