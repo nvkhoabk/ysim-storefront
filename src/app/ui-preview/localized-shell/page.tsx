@@ -1,4 +1,4 @@
-// F07A-2B_GLOBAL_SHELL_LOCALIZATION_R2
+// F07A-2B_R2_FUNCTIONAL_SHELL_LOCALIZATION_R3
 
 import Link from "next/link";
 
@@ -16,10 +16,21 @@ export default async function LocalizedShellPreviewPage({
   const { locale } = await searchParams;
   const shell = createLocalizedShellBundle(locale);
   const t = createShellTranslator(shell.locale);
+  const previewHref = `/ui-preview/localized-shell?locale=${shell.locale}`;
 
   return (
     <div lang={shell.htmlLang} dir={shell.direction}>
-      <PageShell headerConfig={shell.navigation} footerConfig={shell.footer}>
+      <PageShell
+        headerConfig={shell.navigation}
+        footerConfig={shell.footer}
+        shellLabels={shell.labels}
+        locale={shell.locale}
+        languageSwitch={{
+          mode: "preview",
+          previewPath: "/ui-preview/localized-shell",
+        }}
+        homeHref={previewHref}
+      >
         <section className="bg-[var(--ysim-color-surface-subtle)] py-10 sm:py-14">
           <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
             <div className="rounded-[var(--ysim-radius-xl)] border border-[var(--ysim-color-border)] bg-white p-6 shadow-[var(--ysim-shadow-sm)] sm:p-8">
@@ -43,6 +54,9 @@ export default async function LocalizedShellPreviewPage({
                   <Link
                     key={candidate}
                     href={`/ui-preview/localized-shell?locale=${candidate}`}
+                    aria-current={
+                      candidate === shell.locale ? "page" : undefined
+                    }
                     className="rounded-[var(--ysim-radius-pill)] border border-[var(--ysim-color-border)] px-4 py-2 text-sm font-bold hover:bg-[var(--ysim-color-brand-50)]"
                   >
                     {candidate.toUpperCase()}

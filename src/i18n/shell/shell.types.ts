@@ -1,4 +1,4 @@
-// F07A-2B_GLOBAL_SHELL_LOCALIZATION_R2
+// F07A-2B_R2_FUNCTIONAL_SHELL_LOCALIZATION_R3
 
 import type { StorefrontFooterConfig } from "../../config/storefront-footer";
 import type { StorefrontNavigationConfig } from "../../config/storefront-navigation";
@@ -42,6 +42,13 @@ export interface LocalizedShellLabels {
   readonly mobileNavigation: string;
   readonly announcementClose: string;
   readonly brandHome: string;
+}
+
+export type ShellLanguageSwitchMode = "display" | "preview" | "market";
+
+export interface ShellLanguageSwitchConfig {
+  readonly mode: ShellLanguageSwitchMode;
+  readonly previewPath?: string;
 }
 
 export interface LocalizedShellBundle {

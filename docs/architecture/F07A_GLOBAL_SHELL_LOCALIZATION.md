@@ -1,8 +1,8 @@
-# F07A-2B R2 — Global Shell Localization Candidate
+# F07A-2B R2 — Functional Shared-Shell Localization
 
 ## Purpose
 
-This package creates localized Vietnamese, English, and Lao header/navigation/footer configuration and a full-shell preview without activating production routing or replacing the production shell.
+This revision activates the previously accepted Vietnamese, English, and Lao shell label bundle inside the shared header, navigation, footer, mobile menu, cart, and accessibility components. It also makes the language selector controlled by the active locale.
 
 ## Market pairing
 
@@ -12,25 +12,34 @@ This package creates localized Vietnamese, English, and Lao header/navigation/fo
 | `en`   | `en-global` | `USD`    |
 | `lo`   | `lo-la`     | `LAK`    |
 
-## Runtime scope
+## Runtime behavior
 
-- Independent shell-message catalog with key, placeholder, empty-value, and unsafe-HTML validation.
-- Locale-aware navigation and footer configuration.
-- Locale-prefixed internal links preserving query strings and fragments.
-- Language options derived from the canonical market registry: `vi`, `en`, and `lo` only.
-- Preview route: `/ui-preview/localized-shell?locale=vi|en|lo`.
-- Accessibility-label bundle prepared for shared-component activation in F07A-2B R2.
+- `PageShell` accepts `shellLabels`, `locale`, and a serializable language-switch configuration.
+- Shared components no longer own Vietnamese shell literals.
+- The preview selector is controlled by the current `locale` and navigates by updating the preview query parameter.
+- A dormant `market` switch mode is prepared to call `POST /api/preferences/market`; it is not enabled by the production shell in this revision.
+- Existing production routes continue to use Vietnamese defaults from the canonical Vietnamese shell catalog.
+- Brand names, application-store names, payment method names, and technical identifiers remain unchanged.
+
+## Preview route
+
+`/ui-preview/localized-shell?locale=vi|en|lo`
+
+The preview passes the selected shell bundle into `PageShell`, including all visible and accessibility labels. Switching the header selector updates the preview locale and visible currency pairing.
 
 ## Safety boundary
 
-R1 does not modify `src/app/layout.tsx`, `src/app/page.tsx`, production navigation components, market proxy behavior, payment APIs, WooCommerce, GPay, or Gigago. `YSIM_MARKET_ROUTING_ENABLED` must remain `false`.
+This revision does not modify `src/app/layout.tsx`, `src/app/page.tsx`, `src/proxy.ts`, payment APIs, checkout, cart behavior, WooCommerce, GPay, Gigago, Nginx, or PM2. Public market routing remains disabled with `YSIM_MARKET_ROUTING_ENABLED=false`.
 
-## Next activation step
+## Acceptance
 
-F07A-2B R2 will inject the localized labels into shared shell components, add an explicit market selector, set the production document language, make internal links locale-aware at runtime, and complete visual/accessibility regression before public routing is enabled.
+- No known Vietnamese shell literals remain in shared shell components.
+- Header, mobile navigation, cart, quick access, announcement, footer, trust features, and accessibility labels use the active bundle.
+- The language selector uses `value={currentLocale}` rather than `defaultValue`.
+- Preview switching works for `vi`, `en`, and `lo`.
+- The market preference API integration path exists but remains inactive unless an explicit `market` switch mode is supplied.
+- TypeScript, ESLint, production build, Windows contract, Linux contract, and sandbox visual regression must pass before acceptance.
 
-## R2 package lifecycle hardening
+## R2 installer correction
 
-- Strict TypeScript fixture validation runs during package self-test.
-- Automatic rollback is allowed while package files are dirty after formatting or failed validation.
-- A guarded recovery step removes only known untracked R1 residue at the accepted baseline.
+Announcement dismissal state uses `useSyncExternalStore` rather than synchronous state updates inside an effect. The package runs the repository ESLint configuration against the payload before applying source files.

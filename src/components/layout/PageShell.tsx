@@ -1,29 +1,25 @@
-import {
-  type ReactNode,
-} from "react";
+// F07A-2B_R2_FUNCTIONAL_SHELL_LOCALIZATION_R3
 
+import type { ReactNode } from "react";
+
+import { Footer, Header } from "@/components/navigation";
 import {
   storefrontFooter,
   type StorefrontFooterConfig,
 } from "@/config/storefront-footer";
-
 import {
   storefrontNavigation,
   type StorefrontNavigationConfig,
 } from "@/config/storefront-navigation";
+import { DEFAULT_LOCALIZED_SHELL_LABELS } from "@/i18n/shell/shell.defaults";
+import type {
+  LocalizedShellLabels,
+  ShellLanguageSwitchConfig,
+  ShellLocale,
+} from "@/i18n/shell/shell.types";
+import { cn } from "@/lib/ui/cn";
 
-import {
-  cn,
-} from "@/lib/ui/cn";
-
-import {
-  Footer,
-  Header,
-} from "@/components/navigation";
-
-import {
-  Container,
-} from "./Container";
+import { Container } from "./Container";
 
 export interface PageShellProps {
   children: ReactNode;
@@ -31,7 +27,12 @@ export interface PageShellProps {
   aside?: ReactNode;
   headerConfig?: StorefrontNavigationConfig;
   footerConfig?: StorefrontFooterConfig;
+  shellLabels?: LocalizedShellLabels;
+  locale?: ShellLocale;
+  languageSwitch?: ShellLanguageSwitchConfig;
   cartCount?: number;
+  cartHref?: string;
+  homeHref?: string;
   showHeader?: boolean;
   showFooter?: boolean;
   mainClassName?: string;
@@ -46,7 +47,12 @@ export function PageShell({
   aside,
   headerConfig = storefrontNavigation,
   footerConfig = storefrontFooter,
+  shellLabels = DEFAULT_LOCALIZED_SHELL_LABELS,
+  locale = "vi",
+  languageSwitch = { mode: "display" },
   cartCount = 0,
+  cartHref = "/cart",
+  homeHref = "/",
   showHeader = true,
   showFooter = true,
   mainClassName,
@@ -54,9 +60,7 @@ export function PageShell({
   sidebarClassName,
   asideClassName,
 }: PageShellProps) {
-  const hasAuxiliaryColumns =
-    Boolean(sidebar || aside);
-
+  const hasAuxiliaryColumns = Boolean(sidebar || aside);
   const gridClassName =
     sidebar && aside
       ? "xl:grid-cols-[16rem_minmax(0,1fr)_18rem]"
@@ -70,25 +74,25 @@ export function PageShell({
     <>
       <a
         href="#main-content"
-        className="fixed left-4 top-4 z-[var(--ysim-z-toast)] -translate-y-24 rounded-[var(--ysim-radius-md)] bg-[var(--ysim-color-brand-900)] px-4 py-2 text-sm font-bold text-white shadow-[var(--ysim-shadow-md)] transition-transform focus:translate-y-0"
+        className="fixed top-4 left-4 z-[var(--ysim-z-toast)] -translate-y-24 rounded-[var(--ysim-radius-md)] bg-[var(--ysim-color-brand-900)] px-4 py-2 text-sm font-bold text-white shadow-[var(--ysim-shadow-md)] transition-transform focus:translate-y-0"
       >
-        Bỏ qua điều hướng
+        {shellLabels.skipNavigation}
       </a>
-
       {showHeader ? (
         <Header
           config={headerConfig}
+          labels={shellLabels}
+          locale={locale}
+          languageSwitch={languageSwitch}
           cartCount={cartCount}
+          cartHref={cartHref}
+          homeHref={homeHref}
         />
       ) : null}
-
       <main
         id="main-content"
         tabIndex={-1}
-        className={cn(
-          "min-h-[55vh]",
-          mainClassName,
-        )}
+        className={cn("min-h-[55vh]", mainClassName)}
       >
         {hasAuxiliaryColumns ? (
           <Container
@@ -101,27 +105,17 @@ export function PageShell({
           >
             {sidebar ? (
               <aside
-                aria-label="Điều hướng phụ"
-                className={cn(
-                  "min-w-0",
-                  sidebarClassName,
-                )}
+                aria-label={shellLabels.secondaryNavigation}
+                className={cn("min-w-0", sidebarClassName)}
               >
                 {sidebar}
               </aside>
             ) : null}
-
-            <div className="min-w-0">
-              {children}
-            </div>
-
+            <div className="min-w-0">{children}</div>
             {aside ? (
               <aside
-                aria-label="Thông tin bổ sung"
-                className={cn(
-                  "min-w-0",
-                  asideClassName,
-                )}
+                aria-label={shellLabels.supplementaryInformation}
+                className={cn("min-w-0", asideClassName)}
               >
                 {aside}
               </aside>
@@ -131,10 +125,11 @@ export function PageShell({
           children
         )}
       </main>
-
       {showFooter ? (
         <Footer
           config={footerConfig}
+          labels={shellLabels}
+          homeHref={homeHref}
         />
       ) : null}
     </>

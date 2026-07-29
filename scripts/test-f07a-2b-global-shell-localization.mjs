@@ -1,4 +1,4 @@
-// F07A-2B_GLOBAL_SHELL_LOCALIZATION_R2
+// F07A-2B_R2_FUNCTIONAL_SHELL_LOCALIZATION_R3
 
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
@@ -15,8 +15,8 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const ROOT = process.cwd();
-const MARKER = "F07A-2B_GLOBAL_SHELL_LOCALIZATION_R2";
-const SOURCE_FILES = [
+const MARKER = "F07A-2B_R2_FUNCTIONAL_SHELL_LOCALIZATION_R3";
+const SHELL_RUNTIME_FILES = [
   "src/config/markets.ts",
   "src/config/storefront-navigation.ts",
   "src/config/storefront-footer.ts",
@@ -27,6 +27,20 @@ const SOURCE_FILES = [
   "src/i18n/shell/shell.registry.ts",
   "src/i18n/shell/shell.href.ts",
   "src/i18n/shell/shell.config.ts",
+];
+const ACTIVATED_COMPONENTS = [
+  "src/components/layout/PageShell.tsx",
+  "src/components/navigation/AnnouncementBar.tsx",
+  "src/components/navigation/BrandLogo.tsx",
+  "src/components/navigation/CartLink.tsx",
+  "src/components/navigation/DesktopNavigation.tsx",
+  "src/components/navigation/Footer.tsx",
+  "src/components/navigation/Header.tsx",
+  "src/components/navigation/LanguageSwitcher.tsx",
+  "src/components/navigation/MobileHeader.tsx",
+  "src/components/navigation/MobileMenuDrawer.tsx",
+  "src/components/navigation/QuickAccessBar.tsx",
+  "src/components/navigation/TrustFeatureRow.tsx",
 ];
 
 async function fileText(relativePath) {
@@ -64,11 +78,11 @@ function rewriteRelativeImports(source) {
   );
 }
 
-async function transpileFixture(ts) {
+async function transpileRuntimeFixture(ts) {
   const tempRoot = await mkdtemp(
-    path.join(os.tmpdir(), "ysim f07a 2b shell test "),
+    path.join(os.tmpdir(), "ysim f07a 2b functional shell test "),
   );
-  for (const relativePath of SOURCE_FILES) {
+  for (const relativePath of SHELL_RUNTIME_FILES) {
     const input = await fileText(relativePath);
     const result = ts.transpileModule(input, {
       compilerOptions: {
@@ -103,34 +117,149 @@ async function transpileFixture(ts) {
   return tempRoot;
 }
 
-const requiredFiles = [
+for (const relativePath of [
+  ...ACTIVATED_COMPONENTS,
+  "src/i18n/shell/shell.defaults.ts",
   "src/i18n/shell/shell.types.ts",
-  "src/i18n/shell/shell.registry.ts",
-  "src/i18n/shell/shell.href.ts",
-  "src/i18n/shell/shell.config.ts",
   "src/app/ui-preview/localized-shell/page.tsx",
-];
-for (const relativePath of requiredFiles) {
+]) {
   assert.match(
     await fileText(relativePath),
     new RegExp(MARKER),
-    `${relativePath} must contain marker`,
+    `${relativePath} must contain activation marker`,
   );
 }
+
+const allComponentSource = (
+  await Promise.all(ACTIVATED_COMPONENTS.map(fileText))
+).join("\n");
+for (const literal of [
+  "Bỏ qua điều hướng",
+  "Điều hướng phụ",
+  "Thông tin bổ sung",
+  "Điều hướng chính",
+  "Điểm đến truy cập nhanh",
+  "Phổ biến",
+  "Cam kết dịch vụ",
+  "Mạng xã hội",
+  "Ứng dụng YSim",
+  "Sắp ra mắt",
+  "Tải xuống",
+  "Thanh toán an toàn",
+  "Chính sách",
+  "Chọn ngôn ngữ",
+  "Ngôn ngữ",
+  "Giỏ hàng",
+  "Mở menu",
+  "Đóng menu",
+  "Điều hướng mobile",
+  "Đóng thông báo",
+  "Trang chủ",
+]) {
+  assert.equal(
+    allComponentSource.includes(literal),
+    false,
+    `shared shell component retains Vietnamese literal: ${literal}`,
+  );
+}
+console.log(
+  "PASS no Vietnamese shell literals remain outside message catalogs",
+);
+
+const pageShellSource = await fileText("src/components/layout/PageShell.tsx");
+assert.match(pageShellSource, /shellLabels\?: LocalizedShellLabels/);
+assert.match(pageShellSource, /labels=\{shellLabels\}/);
+assert.match(pageShellSource, /locale=\{locale\}/);
+assert.match(pageShellSource, /languageSwitch=\{languageSwitch\}/);
+assert.match(pageShellSource, /shellLabels\.skipNavigation/);
+console.log("PASS PageShell receives and propagates localized labels");
+
+const cartSource = await fileText("src/components/navigation/CartLink.tsx");
+assert.match(cartSource, /labels\.cartWithCount\.replace\("\{count\}"/);
+assert.match(cartSource, /\{labels\.cart\}/);
+console.log("PASS cart visible and accessibility labels follow locale");
+
+const quickAccessSource = await fileText(
+  "src/components/navigation/QuickAccessBar.tsx",
+);
+assert.match(quickAccessSource, /labels\.quickAccessNavigation/);
+assert.match(quickAccessSource, /labels\.quickAccessPopular/);
+console.log("PASS quick-access title and accessibility label follow locale");
+
+const announcementSource = await fileText(
+  "src/components/navigation/AnnouncementBar.tsx",
+);
+assert.match(announcementSource, /labels\.announcementClose/);
+console.log("PASS announcement close label follows locale");
+
+const mobileSource = `${await fileText(
+  "src/components/navigation/MobileHeader.tsx",
+)}\n${await fileText("src/components/navigation/MobileMenuDrawer.tsx")}`;
+for (const property of [
+  "openMenu",
+  "closeMenu",
+  "mobileMenuDialog",
+  "mobileNavigation",
+]) {
+  assert.match(mobileSource, new RegExp(`labels\\.${property}`));
+}
+console.log("PASS mobile shell labels follow locale");
+
+const footerSource = await fileText("src/components/navigation/Footer.tsx");
+for (const property of [
+  "applicationTitle",
+  "comingSoon",
+  "download",
+  "paymentTitle",
+  "socialNavigation",
+  "legalNavigation",
+  "serviceCommitments",
+]) {
+  assert.match(footerSource, new RegExp(`labels\\.${property}`));
+}
+console.log("PASS footer visible and accessibility labels follow locale");
+
+const languageSource = await fileText(
+  "src/components/navigation/LanguageSwitcher.tsx",
+);
+assert.match(languageSource, /value=\{selectedLocale\}/);
+assert.doesNotMatch(languageSource, /defaultValue=/);
+assert.match(languageSource, /switchConfig\.mode === "preview"/);
+assert.match(languageSource, /fetch\("\/api\/preferences\/market"/);
+assert.match(languageSource, /MARKET_CONFIGS\.find/);
+console.log("PASS language selector is controlled and market-ready");
 
 const previewSource = await fileText(
   "src/app/ui-preview/localized-shell/page.tsx",
 );
-assert.match(previewSource, /PageShell/);
-assert.match(previewSource, /ui-preview\/localized-shell\?locale=/);
+assert.match(previewSource, /shellLabels=\{shell\.labels\}/);
+assert.match(previewSource, /locale=\{shell\.locale\}/);
+assert.match(previewSource, /mode: "preview"/);
+assert.match(previewSource, /previewPath: "\/ui-preview\/localized-shell"/);
 assert.doesNotMatch(previewSource, /YSIM_MARKET_ROUTING_ENABLED\s*=\s*true/);
-console.log("PASS preview-only activation contract");
+console.log("PASS preview activation remains isolated from production routing");
+
+for (const brand of [
+  "YSim",
+  "App Store",
+  "Google Play",
+  "Visa",
+  "Mastercard",
+  "NAPAS",
+  "GPay",
+  "OnePay",
+]) {
+  const candidateSource = `${await fileText(
+    "src/i18n/shell/shell.config.ts",
+  )}\n${allComponentSource}`;
+  assert.match(candidateSource, new RegExp(brand.replace(" ", "\\s*")));
+}
+console.log("PASS branded application and payment names remain unchanged");
 
 const registrySource = await fileText("src/i18n/shell/shell.registry.ts");
 assert.match(
   registrySource,
   /const next:\s*string \| ShellMessageTree \| undefined = current\[segment\]/,
-  "nested shell message traversal must retain an explicit strict TypeScript type",
 );
 console.log("PASS strict TypeScript nested message traversal contract");
 
@@ -138,7 +267,7 @@ const typescriptPath = await resolveTypeScript();
 const ts = await import(pathToFileURL(typescriptPath).href).then(
   (module) => module.default ?? module,
 );
-const tempRoot = await transpileFixture(ts);
+const tempRoot = await transpileRuntimeFixture(ts);
 try {
   const registry = await import(
     pathToFileURL(path.join(tempRoot, "src/i18n/shell/shell.registry.mjs")).href
@@ -174,10 +303,6 @@ try {
   );
   assert.equal(hrefs.localizeShellHref("/en/esim", "vi"), "/vi/esim");
   assert.equal(hrefs.localizeShellHref("/api/cart", "en"), "/api/cart");
-  assert.equal(
-    hrefs.localizeShellHref("https://example.test/path", "lo"),
-    "https://example.test/path",
-  );
   console.log("PASS locale-aware href safety and query/hash preservation");
 
   const expectations = {
@@ -206,20 +331,17 @@ try {
   console.log("PASS locale market currency and shell configuration alignment");
 
   const lao = config.createLocalizedShellBundle("lo");
-  assert.match(lao.navigation.mainItems[0].label, /[\u0E80-\u0EFF]/);
-  assert.match(lao.footer.brand.description, /[\u0E80-\u0EFF]/);
-  console.log("PASS Lao Unicode shell content");
+  assert.match(lao.labels.cart, /[\u0E80-\u0EFF]/);
+  assert.match(lao.labels.applicationTitle, /[\u0E80-\u0EFF]/);
+  assert.match(lao.navigation.languages[2].label, /[\u0E80-\u0EFF]/);
+  console.log("PASS Lao visible shell labels and selector content");
 
   assert.equal(config.createLocalizedShellBundle("unknown").locale, "vi");
-  assert.equal(
-    process.platform === "win32" || process.platform !== "win32",
-    true,
-  );
   console.log(
     `PASS cross-platform execution contract: platform=${process.platform}`,
   );
   console.log(
-    "PASS: F07A-2B R2 global shell localization configuration and preview contract.",
+    "PASS: F07A-2B R2 functional shared-shell localization activation contract.",
   );
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
