@@ -28,8 +28,15 @@ export {
   metadata,
 } from "./legacy-page";
 
+interface DestinationsPageProps {
+  searchParams?: Promise<
+    DestinationSearchParams
+  >;
+}
+
 export default async function DestinationsPage(
-  props: any,
+  props:
+    DestinationsPageProps,
 ) {
   const mode =
     getProductionRouteMode(
@@ -41,9 +48,7 @@ export default async function DestinationsPage(
     "legacy"
   ) {
     return (
-      <LegacyDestinationsPage
-        {...props}
-      />
+      <LegacyDestinationsPage />
     );
   }
 

@@ -15,9 +15,7 @@ import {
 
 export { metadata } from "./legacy-page";
 
-export default function CartPage(
-  props: any,
-) {
+export default function CartPage() {
   const mode =
     getProductionRouteMode(
       "cart",
@@ -28,9 +26,7 @@ export default function CartPage(
     "legacy"
   ) {
     return (
-      <LegacyCartPage
-        {...props}
-      />
+      <LegacyCartPage />
     );
   }
 

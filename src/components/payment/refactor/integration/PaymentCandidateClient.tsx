@@ -184,25 +184,37 @@ export function PaymentCandidateClient({
 
   useEffect(
     () => {
-      setHandoff(
-        parseHandoff(
-          window.sessionStorage.getItem(
-            handoffStorageKey,
-          ),
-        ),
-      );
+      const timeoutId =
+        window.setTimeout(
+          () => {
+            setHandoff(
+              parseHandoff(
+                window.sessionStorage.getItem(
+                  handoffStorageKey,
+                ),
+              ),
+            );
 
-      setStored(
-        parseStoredSession(
-          window.sessionStorage.getItem(
-            sessionStorageKey,
-          ),
-        ),
-      );
+            setStored(
+              parseStoredSession(
+                window.sessionStorage.getItem(
+                  sessionStorageKey,
+                ),
+              ),
+            );
 
-      setLoading(
-        false,
-      );
+            setLoading(
+              false,
+            );
+          },
+          0,
+        );
+
+      return () => {
+        window.clearTimeout(
+          timeoutId,
+        );
+      };
     },
     [],
   );

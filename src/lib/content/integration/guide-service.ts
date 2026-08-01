@@ -86,7 +86,6 @@ function toPreviewCard(
 function previewCategories(
   locale:
     ContentLocale,
-  activeCategory?: string,
 ): readonly ContentCategoryViewModel[] {
   return guideCategories.map(
     (category) => {
@@ -291,7 +290,6 @@ export async function loadGuideLanding({
       categories:
         previewCategories(
           locale,
-          category,
         ),
 
       activeCategoryId:

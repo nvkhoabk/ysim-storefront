@@ -135,11 +135,23 @@ export function useWooCommerceCart({
 
   useEffect(
     () => {
-      if (
-        autoLoad
-      ) {
-        void reload();
+      if (!autoLoad) {
+        return;
       }
+
+      const timeoutId =
+        window.setTimeout(
+          () => {
+            void reload();
+          },
+          0,
+        );
+
+      return () => {
+        window.clearTimeout(
+          timeoutId,
+        );
+      };
     },
     [
       autoLoad,

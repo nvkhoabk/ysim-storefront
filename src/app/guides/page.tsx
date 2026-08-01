@@ -23,8 +23,16 @@ import {
 
 export { metadata } from "./legacy-page";
 
+interface GuidesPageProps {
+  searchParams?: Promise<{
+    locale?: string;
+    category?: string;
+  }>;
+}
+
 export default async function GuidesPage(
-  props: any,
+  props:
+    GuidesPageProps,
 ) {
   const mode =
     getProductionRouteMode(
@@ -36,17 +44,14 @@ export default async function GuidesPage(
     "legacy"
   ) {
     return (
-      <LegacyGuidesPage
-        {...props}
-      />
+      <LegacyGuidesPage />
     );
   }
 
   const query =
-    await (
-      props.searchParams ||
-      Promise.resolve({})
-    );
+    props.searchParams
+      ? await props.searchParams
+      : {};
 
   const locale =
     parseContentLocale(

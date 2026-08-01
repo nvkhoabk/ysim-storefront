@@ -5,19 +5,17 @@ import {
 } from "@/lib/storefront/integration/route-flags";
 
 import type {
-  ProductionRouteId,
   ProductionRoutePlanItemViewModel,
   ProductionRoutePlanViewModel,
-  ProductionRouteReadiness,
 } from "@/types/view-models/production-route-plan";
 
-interface RouteDefinition
-  extends Omit<
+type RouteDefinition =
+  Omit<
     ProductionRoutePlanItemViewModel,
     | "mode"
     | "modeLabel"
     | "environmentFlag"
-  > {}
+  >;
 
 const routeDefinitions:
   readonly RouteDefinition[] = [

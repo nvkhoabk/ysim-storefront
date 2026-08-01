@@ -4,6 +4,8 @@ import {
   useEffect,
 } from "react";
 
+import Link from "next/link";
+
 export function GlobalErrorDocument({
   error,
   reset,
@@ -216,7 +218,7 @@ export function GlobalErrorDocument({
                 Thử lại
               </button>
 
-              <a
+              <Link
                 href="/"
                 style={{
                   minHeight:
@@ -242,7 +244,7 @@ export function GlobalErrorDocument({
                 }}
               >
                 Về trang chủ
-              </a>
+              </Link>
             </div>
           </section>
         </main>

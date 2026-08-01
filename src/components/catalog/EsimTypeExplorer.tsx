@@ -4,6 +4,7 @@ import {
   useState,
 } from "react";
 
+import Image from "next/image";
 import Link from "next/link";
 
 import {
@@ -107,15 +108,16 @@ function ContinentGroup({
                                 }
                               </span>
 
-                              <img
+                              <Image
                                 src={
                                   countryFlagSource(
                                     destination.countryCode,
                                   )
                                 }
                                 alt=""
-                                width="28"
-                                height="21"
+                                width={28}
+                                height={21}
+                                unoptimized
                                 loading="lazy"
                                 decoding="async"
                                 referrerPolicy="no-referrer"

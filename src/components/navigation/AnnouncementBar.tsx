@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  useEffect,
-  useState,
+  useCallback,
+  useSyncExternalStore,
 } from "react";
 
 import Link from "next/link";
@@ -29,37 +29,60 @@ export interface AnnouncementBarProps {
   config: AnnouncementConfig;
 }
 
+const announcementDismissEvent =
+  "ysim:announcement-dismissed";
+
+function subscribeToAnnouncementDismissal(
+  onStoreChange:
+    () => void,
+) {
+  window.addEventListener(
+    "storage",
+    onStoreChange,
+  );
+  window.addEventListener(
+    announcementDismissEvent,
+    onStoreChange,
+  );
+
+  return () => {
+    window.removeEventListener(
+      "storage",
+      onStoreChange,
+    );
+    window.removeEventListener(
+      announcementDismissEvent,
+      onStoreChange,
+    );
+  };
+}
+
+function getServerDismissedSnapshot() {
+  return false;
+}
+
 export function AnnouncementBar({
   config,
 }: AnnouncementBarProps) {
-  const [
-    visible,
-    setVisible,
-  ] =
-    useState(
-      config.enabled,
-    );
-
-  useEffect(() => {
-    if (
-      !config.enabled
-    ) {
-      setVisible(false);
-      return;
-    }
-
-    const dismissed =
-      window.sessionStorage.getItem(
+  const getDismissedSnapshot =
+    useCallback(
+      () =>
+        config.enabled &&
+        window.sessionStorage.getItem(
+          config.storageKey,
+        ) === "dismissed",
+      [
+        config.enabled,
         config.storageKey,
-      );
-
-    setVisible(
-      dismissed !== "dismissed",
+      ],
     );
-  }, [
-    config.enabled,
-    config.storageKey,
-  ]);
+
+  const dismissed =
+    useSyncExternalStore(
+      subscribeToAnnouncementDismissal,
+      getDismissedSnapshot,
+      getServerDismissedSnapshot,
+    );
 
   function dismiss() {
     window.sessionStorage.setItem(
@@ -67,12 +90,16 @@ export function AnnouncementBar({
       "dismissed",
     );
 
-    setVisible(false);
+    window.dispatchEvent(
+      new Event(
+        announcementDismissEvent,
+      ),
+    );
   }
 
   if (
     !config.enabled ||
-    !visible
+    dismissed
   ) {
     return null;
   }

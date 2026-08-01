@@ -91,27 +91,6 @@ function createAccessToken(
   };
 }
 
-async function parseJsonSafely(
-  response: Response,
-): Promise<unknown> {
-  const rawText = await response.text();
-
-  if (!rawText) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(rawText) as unknown;
-  } catch {
-    return {
-      unparsedResponse: rawText.slice(
-        0,
-        1_000,
-      ),
-    };
-  }
-}
-
 export async function requestNewGPayAccessToken():
 Promise<GPayAccessToken> {
   const config = getGPayConfig();

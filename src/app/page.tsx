@@ -20,9 +20,7 @@ import {
 
 
 
-export default async function HomePage(
-  props: any,
-) {
+export default async function HomePage() {
   const mode =
     getProductionRouteMode(
       "home",
@@ -33,9 +31,7 @@ export default async function HomePage(
     "legacy"
   ) {
     return (
-      <LegacyHomePage
-        {...props}
-      />
+      <LegacyHomePage />
     );
   }
 

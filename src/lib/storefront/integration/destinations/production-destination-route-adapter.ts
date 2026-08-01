@@ -1,5 +1,4 @@
 import {
-  destinationPresentation,
   popularDestinationSlugs,
 } from "@/config/storefront-destinations";
 

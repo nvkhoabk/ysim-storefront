@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-import { readFile } from "node:fs/promises";
-
 function argumentValue(name, fallback = null) {
   const equalsPrefix = `${name}=`;
   const equalsArgument = process.argv.find((argument) =>

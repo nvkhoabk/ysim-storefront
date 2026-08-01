@@ -1,9 +1,10 @@
 "use client";
 
 import {
-  useEffect,
   useState,
 } from "react";
+
+import Image from "next/image";
 
 import {
   ArrowRight,
@@ -173,15 +174,16 @@ function ContinentGroup({
                                   }
                                 </span>
 
-                                <img
+                      <Image
                                   src={
                                     countryFlagSource(
                                       destination.countryCode,
                                     )
                                   }
                                   alt=""
-                                  width="28"
-                                  height="21"
+                        width={28}
+                        height={21}
+                        unoptimized
                                   loading="lazy"
                                   decoding="async"
                                   referrerPolicy="no-referrer"
@@ -598,18 +600,35 @@ export function EsimInlineTypeExplorer({
       ),
     );
 
-  useEffect(
-    () => {
-      setActiveType(
-        typeFromSelection(
-          selection,
-        ),
-      );
-    },
-    [
+  const selectionType =
+    typeFromSelection(
       selection,
-    ],
-  );
+    );
+
+  const [
+    previousSelectionType,
+    setPreviousSelectionType,
+  ] =
+    useState(
+      selectionType,
+    );
+
+  if (
+    previousSelectionType !==
+    selectionType
+  ) {
+    setPreviousSelectionType(
+      selectionType,
+    );
+    if (
+      activeType !==
+      selectionType
+    ) {
+      setActiveType(
+        selectionType,
+      );
+    }
+  }
 
   return (
     <section

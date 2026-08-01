@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import process from "node:process";
 
 function readOption(name, fallback = null) {

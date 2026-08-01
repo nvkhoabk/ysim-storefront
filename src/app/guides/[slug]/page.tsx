@@ -25,10 +25,19 @@ import {
   getProductionRouteMode,
 } from "@/lib/storefront/integration/route-flags";
 
+interface GuideDetailPageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+  searchParams?: Promise<{
+    locale?: string;
+  }>;
+}
 
 
 export default async function GuideDetailPage(
-  props: any,
+  props:
+    GuideDetailPageProps,
 ) {
   const mode =
     getProductionRouteMode(
@@ -50,10 +59,9 @@ export default async function GuideDetailPage(
     await props.params;
 
   const query =
-    await (
-      props.searchParams ||
-      Promise.resolve({})
-    );
+    props.searchParams
+      ? await props.searchParams
+      : {};
 
   const locale =
     parseContentLocale(

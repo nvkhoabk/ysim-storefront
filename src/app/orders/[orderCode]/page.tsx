@@ -18,6 +18,12 @@ import {
 export const dynamic =
   "force-dynamic";
 
+interface OrderResultPageProps {
+  params: Promise<{
+    orderCode: string;
+  }>;
+}
+
 function textValue(
   value: unknown,
 ): string | undefined {
@@ -42,7 +48,8 @@ function textValue(
 }
 
 export default async function OrderResultPage(
-  props: any,
+  props:
+    OrderResultPageProps,
 ) {
   const mode =
     getProductionRouteMode(

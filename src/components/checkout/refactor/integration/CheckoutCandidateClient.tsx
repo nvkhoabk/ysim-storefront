@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -232,7 +233,9 @@ export function CheckoutCandidateClient({
         false,
     });
 
-  async function load() {
+  const load =
+    useCallback(
+      async () => {
     setLoading(
       true,
     );
@@ -248,24 +251,26 @@ export function CheckoutCandidateClient({
         nextData,
       );
 
-      const preferred =
-        paymentMethodExists(
-          nextData.paymentMethods,
-          form.paymentMethod,
-        )
-          ? form.paymentMethod
-          : nextData.paymentMethods[0]
-              ?.id;
+      setForm(
+        (current) => {
+          const preferred =
+            paymentMethodExists(
+              nextData.paymentMethods,
+              current.paymentMethod,
+            )
+              ? current.paymentMethod
+              : nextData.paymentMethods[0]
+                  ?.id;
 
-      if (preferred) {
-        setForm(
-          (current) => ({
-            ...current,
-            paymentMethod:
-              preferred,
-          }),
-        );
-      }
+          return preferred
+            ? {
+                ...current,
+                paymentMethod:
+                  preferred,
+              }
+            : current;
+        },
+      );
     } catch (
       caught
     ) {
@@ -280,13 +285,29 @@ export function CheckoutCandidateClient({
         false,
       );
     }
-  }
+      },
+      [],
+    );
 
   useEffect(
     () => {
-      void load();
+      const timeoutId =
+        window.setTimeout(
+          () => {
+            void load();
+          },
+          0,
+        );
+
+      return () => {
+        window.clearTimeout(
+          timeoutId,
+        );
+      };
     },
-    [],
+    [
+      load,
+    ],
   );
 
   const recipientEmail =

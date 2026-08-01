@@ -20,9 +20,7 @@ import {
 
 export { metadata } from "./legacy-page";
 
-export default async function SupportPage(
-  props: any,
-) {
+export default async function SupportPage() {
   const mode =
     getProductionRouteMode(
       "support",
@@ -33,9 +31,7 @@ export default async function SupportPage(
     "legacy"
   ) {
     return (
-      <LegacySupportPage
-        {...props}
-      />
+      <LegacySupportPage />
     );
   }
 

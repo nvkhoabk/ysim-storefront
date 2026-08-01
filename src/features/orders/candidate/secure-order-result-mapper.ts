@@ -27,7 +27,6 @@ import type {
 } from "@/types/view-models/cart-refactor";
 
 import type {
-  OrderResultPageViewModel,
   PaymentResultStatus,
   PaymentTimelineItemViewModel,
 } from "@/types/view-models/payment-result";

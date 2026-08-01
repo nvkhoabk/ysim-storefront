@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -114,10 +115,12 @@ export function OrderCandidateClient({
       string | null
     >(null);
 
-  async function load(
-    proof:
-      CheckoutOrderHandoff,
-  ) {
+  const load =
+    useCallback(
+      async (
+        proof:
+          CheckoutOrderHandoff,
+      ) => {
     setLoading(
       true,
     );
@@ -165,34 +168,50 @@ export function OrderCandidateClient({
         false,
       );
     }
-  }
+      },
+      [
+        orderCode,
+      ],
+    );
 
   useEffect(
     () => {
-      const proof =
-        parseHandoff(
-          window.sessionStorage.getItem(
-            handoffStorageKey,
-          ),
+      const timeoutId =
+        window.setTimeout(
+          () => {
+            const proof =
+              parseHandoff(
+                window.sessionStorage.getItem(
+                  handoffStorageKey,
+                ),
+              );
+
+            setHandoff(
+              proof,
+            );
+
+            if (!proof) {
+              setLoading(
+                false,
+              );
+              return;
+            }
+
+            void load(
+              proof,
+            );
+          },
+          0,
         );
 
-      setHandoff(
-        proof,
-      );
-
-      if (!proof) {
-        setLoading(
-          false,
+      return () => {
+        window.clearTimeout(
+          timeoutId,
         );
-        return;
-      }
-
-      void load(
-        proof,
-      );
+      };
     },
     [
-      orderCode,
+      load,
     ],
   );
 

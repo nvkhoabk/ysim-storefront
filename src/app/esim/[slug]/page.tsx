@@ -21,6 +21,20 @@ import {
 
 export { generateMetadata } from "./legacy-page";
 
+interface ProductDetailPageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+  searchParams?: Promise<
+    Record<
+      string,
+      | string
+      | string[]
+      | undefined
+    >
+  >;
+}
+
 function textValue(
   value: unknown,
 ): string | undefined {
@@ -45,7 +59,8 @@ function textValue(
 }
 
 export default async function ProductDetailPage(
-  props: any,
+  props:
+    ProductDetailPageProps,
 ) {
   const mode =
     getProductionRouteMode(
@@ -67,10 +82,9 @@ export default async function ProductDetailPage(
     await props.params;
 
   const query =
-    await (
-      props.searchParams ||
-      Promise.resolve({})
-    );
+    props.searchParams
+      ? await props.searchParams
+      : {};
 
   const slug =
     textValue(

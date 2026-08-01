@@ -19,7 +19,6 @@ import {
   Megaphone,
   Plane,
   ShieldCheck,
-  Smartphone,
   Tag,
   TrendingUp,
   Users,
