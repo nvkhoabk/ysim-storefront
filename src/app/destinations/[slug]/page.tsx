@@ -8,6 +8,10 @@ import {
 } from "@/lib/storefront/catalog/esim-quick-filter";
 import { loadCatalog } from "@/lib/storefront/integration/secondary-routes/service";
 import type { EsimQuickFilterSelection } from "@/types/view-models/esim-quick-filter";
+import {
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
 
 export const dynamic = "force-dynamic";
 
@@ -34,13 +38,16 @@ export async function generateMetadata({
   const selection = resolveDestinationSelection(slug);
   const title = destinationPageTitle(selection.label);
 
-  return {
-    title: `${title} | YSim`,
-    description: `Xem các gói eSIM phù hợp cho ${selection.label}, so sánh giá và lựa chọn cấu hình phù hợp với chuyến đi.`,
-    alternates: {
-      canonical: `/destinations/${selection.id}`,
+  return withLocalizedAlternates(
+    {
+      title: `${title} | YSim`,
+      description: `Xem các gói eSIM phù hợp cho ${selection.label}, so sánh giá và lựa chọn cấu hình phù hợp với chuyến đi.`,
+      alternates: {
+        canonical: `/destinations/${selection.id}`,
+      },
     },
-  };
+    await getStorefrontLocaleRequest(),
+  );
 }
 
 export default async function DestinationDetailPage({

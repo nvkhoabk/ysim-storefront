@@ -10,6 +10,10 @@ import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductSummary } from "@/components/product/ProductSummary";
 import { stripHtml } from "@/lib/html";
 import { getProductBySlug } from "@/lib/woocommerce/products";
+import {
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
 
 interface ProductPageProps {
   params: Promise<{
@@ -17,17 +21,15 @@ interface ProductPageProps {
   }>;
 }
 
-const DEFAULT_LOCALE = "vi";
-
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const [{ slug }, request] = await Promise.all([
+    params,
+    getStorefrontLocaleRequest(),
+  ]);
 
-  const product = await getProductBySlug(
-    slug,
-    DEFAULT_LOCALE,
-  );
+  const product = await getProductBySlug(slug, request.shell.locale);
 
   if (!product) {
     return {
@@ -40,50 +42,48 @@ export async function generateMetadata({
   }
 
   const description =
-    stripHtml(
-      product.short_description ||
-        product.description ||
-        "",
-    ).slice(0, 160) ||
-    `Thông tin và giá gói ${product.name} tại YSim.`;
+    stripHtml(product.short_description || product.description || "").slice(
+      0,
+      160,
+    ) || `Thông tin và giá gói ${product.name} tại YSim.`;
 
-  const primaryImage =
-    product.images?.[0]?.src;
+  const primaryImage = product.images?.[0]?.src;
 
-  return {
-    title: product.name,
-    description,
-
-    alternates: {
-      canonical: `/esim/${product.slug}`,
-    },
-
-    openGraph: {
+  return withLocalizedAlternates(
+    {
       title: product.name,
       description,
-      type: "website",
 
-      images: primaryImage
-        ? [
-            {
-              url: primaryImage,
-              alt: product.name,
-            },
-          ]
-        : [],
+      alternates: {
+        canonical: `/esim/${product.slug}`,
+      },
+
+      openGraph: {
+        title: product.name,
+        description,
+        type: "website",
+
+        images: primaryImage
+          ? [
+              {
+                url: primaryImage,
+                alt: product.name,
+              },
+            ]
+          : [],
+      },
     },
-  };
+    request,
+  );
 }
 
-export default async function ProductPage({
-  params,
-}: ProductPageProps) {
-  const { slug } = await params;
+export default async function ProductPage({ params }: ProductPageProps) {
+  const [{ slug }, request] = await Promise.all([
+    params,
+    getStorefrontLocaleRequest(),
+  ]);
 
-  const product = await getProductBySlug(
-    slug,
-    DEFAULT_LOCALE,
-  );
+  const product = await getProductBySlug(slug, request.shell.locale);
 
   if (!product) {
     notFound();
@@ -97,19 +97,13 @@ export default async function ProductPage({
       <main className="bg-white">
         <div className="border-b border-slate-200 bg-slate-50">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-6 py-4 text-sm text-slate-500 lg:px-8">
-            <Link
-              href="/"
-              className="transition hover:text-green-700"
-            >
+            <Link href="/" className="transition hover:text-green-700">
               Trang chủ
             </Link>
 
             <ChevronRight className="h-4 w-4" />
 
-            <Link
-              href="/esim"
-              className="transition hover:text-green-700"
-            >
+            <Link href="/esim" className="transition hover:text-green-700">
               eSIM
             </Link>
 
@@ -168,37 +162,29 @@ export default async function ProductPage({
                 </h2>
 
                 <div className="mt-6">
-                  <ProductAttributes
-                    attributes={
-                      product.attributes ?? []
-                    }
-                  />
+                  <ProductAttributes attributes={product.attributes ?? []} />
                 </div>
 
-                {product.categories &&
-                product.categories.length > 0 ? (
+                {product.categories && product.categories.length > 0 ? (
                   <div className="mt-7">
                     <p className="text-sm font-semibold text-slate-800">
                       Danh mục
                     </p>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {product.categories.map(
-                        (category) => (
-                          <span
-                            key={category.id}
-                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600"
-                          >
-                            {category.name}
-                          </span>
-                        ),
-                      )}
+                      {product.categories.map((category) => (
+                        <span
+                          key={category.id}
+                          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600"
+                        >
+                          {category.name}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 ) : null}
 
-                {product.tags &&
-                product.tags.length > 0 ? (
+                {product.tags && product.tags.length > 0 ? (
                   <div className="mt-6">
                     <p className="text-sm font-semibold text-slate-800">
                       Thẻ sản phẩm

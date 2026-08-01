@@ -10,6 +10,9 @@ import { CheckoutOrderSummary } from "./CheckoutOrderSummary";
 import type { WooCommerceCart } from "@/lib/woocommerce/cart-types";
 import type { WooCommerceCheckout } from "@/features/checkout/checkout.types";
 import type { PaymentMethodOption } from "@/features/payments/payment.types";
+import { useTransactionTranslations } from "@/i18n/transaction/useTransactionTranslations";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
 
 interface CheckoutApiResponse {
   cart: WooCommerceCart;
@@ -18,6 +21,8 @@ interface CheckoutApiResponse {
 }
 
 export function CheckoutContent() {
+  const t = useTransactionTranslations();
+  const { locale } = useStorefrontLocale();
   const [checkoutData, setCheckoutData] = useState<CheckoutApiResponse | null>(
     null,
   );
@@ -36,7 +41,7 @@ export function CheckoutContent() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Không thể tải trang thanh toán.");
+          throw new Error(data.message || t("common.error"));
         }
 
         if (!cancelled) {
@@ -45,9 +50,7 @@ export function CheckoutContent() {
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Không thể tải trang thanh toán.",
+            error instanceof Error ? error.message : t("common.error"),
           );
         }
       }
@@ -58,7 +61,7 @@ export function CheckoutContent() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   if (errorMessage) {
     return (
@@ -72,7 +75,7 @@ export function CheckoutContent() {
     return (
       <div className="flex items-center justify-center gap-3 py-20 text-slate-600">
         <LoaderCircle className="h-5 w-5 animate-spin" />
-        Đang chuẩn bị thanh toán...
+        {t("common.loading")}
       </div>
     );
   }
@@ -83,18 +86,16 @@ export function CheckoutContent() {
         <ShoppingBag className="mx-auto h-12 w-12 text-slate-400" />
 
         <h2 className="mt-4 text-xl font-semibold text-slate-950">
-          Giỏ hàng đang trống
+          {t("cart.emptyTitle")}
         </h2>
 
-        <p className="mt-2 text-slate-600">
-          Hãy chọn một gói eSIM trước khi thanh toán.
-        </p>
+        <p className="mt-2 text-slate-600">{t("cart.emptyDescription")}</p>
 
         <Link
-          href="/esim"
+          href={localizeShellHref("/esim", locale)}
           className="mt-6 inline-flex h-11 items-center rounded-xl bg-green-700 px-5 text-sm font-semibold text-white hover:bg-green-800"
         >
-          Chọn gói eSIM
+          {t("common.continue")}
         </Link>
       </div>
     );

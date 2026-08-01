@@ -1,7 +1,5 @@
 /* YSIM_PACKAGE_27_ACTIVATION:product-detail */
-import {
-  notFound,
-} from "next/navigation";
+import { notFound } from "next/navigation";
 
 import LegacyProductDetailPage from "./legacy-page";
 
@@ -15,143 +13,89 @@ import {
   loadProductDetailRouteCandidate,
 } from "@/lib/storefront/integration/product-detail";
 
+import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
 import {
-  getProductionRouteMode,
-} from "@/lib/storefront/integration/route-flags";
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+import { generateMetadata as generateLegacyMetadata } from "./legacy-page";
 
-export { generateMetadata } from "./legacy-page";
+export async function generateMetadata(props: ProductDetailPageProps) {
+  const [metadata, request] = await Promise.all([
+    generateLegacyMetadata(props),
+    getStorefrontLocaleRequest(),
+  ]);
+  return withLocalizedAlternates(metadata, request);
+}
 
 interface ProductDetailPageProps {
   params: Promise<{
     slug: string;
   }>;
-  searchParams?: Promise<
-    Record<
-      string,
-      | string
-      | string[]
-      | undefined
-    >
-  >;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-function textValue(
-  value: unknown,
-): string | undefined {
-  if (
-    typeof value ===
-    "string"
-  ) {
+function textValue(value: unknown): string | undefined {
+  if (typeof value === "string") {
     return value;
   }
 
-  if (
-    Array.isArray(
-      value,
-    ) &&
-    typeof value[0] ===
-      "string"
-  ) {
+  if (Array.isArray(value) && typeof value[0] === "string") {
     return value[0];
   }
 
   return undefined;
 }
 
-export default async function ProductDetailPage(
-  props:
-    ProductDetailPageProps,
-) {
-  const mode =
-    getProductionRouteMode(
-      "product-detail",
-    );
+export default async function ProductDetailPage(props: ProductDetailPageProps) {
+  const mode = getProductionRouteMode("product-detail");
 
-  if (
-    mode ===
-    "legacy"
-  ) {
-    return (
-      <LegacyProductDetailPage
-        {...props}
-      />
-    );
+  if (mode === "legacy") {
+    return <LegacyProductDetailPage {...props} />;
   }
 
-  const params =
-    await props.params;
+  const params = await props.params;
 
-  const query =
-    props.searchParams
-      ? await props.searchParams
-      : {};
+  const query = props.searchParams ? await props.searchParams : {};
 
-  const slug =
-    textValue(
-      params?.slug,
-    );
+  const slug = textValue(params?.slug);
 
   if (!slug) {
     notFound();
   }
 
+  const request = await getStorefrontLocaleRequest();
   const locale =
-    textValue(
-      query?.locale,
-    ) ||
-    process.env
-      .YSIM_PRODUCT_LOCALE
-      ?.trim() ||
+    (request.localized ? request.shell.locale : undefined) ||
+    textValue(query?.locale) ||
+    process.env.YSIM_PRODUCT_LOCALE?.trim() ||
     "vi";
 
-  const relatedLimit =
-    Math.max(
-      1,
-      Math.min(
-        12,
-        Number(
-          process.env
-            .YSIM_PRODUCT_DETAIL_RELATED_LIMIT ||
-          6,
-        ),
-      ),
-    );
+  const relatedLimit = Math.max(
+    1,
+    Math.min(12, Number(process.env.YSIM_PRODUCT_DETAIL_RELATED_LIMIT || 6)),
+  );
 
-  const candidate =
-    await loadProductDetailRouteCandidate({
-      slug,
-      locale,
-      productionGateway:
-        createLocalizedProductDetailGateway({
-          relatedLimit,
-        }),
-    });
+  const candidate = await loadProductDetailRouteCandidate({
+    slug,
+    locale,
+    productionGateway: createLocalizedProductDetailGateway({
+      relatedLimit,
+    }),
+  });
 
   if (!candidate) {
     notFound();
   }
 
-  if (
-    mode ===
-    "candidate"
-  ) {
-    return (
-      <ProductDetailRouteCandidatePage
-        candidate={
-          candidate
-        }
-      />
-    );
+  if (mode === "candidate") {
+    return <ProductDetailRouteCandidatePage candidate={candidate} />;
   }
 
   return (
     <ProductDetailCandidateClient
-      candidate={
-        candidate
-      }
-      showDiagnostics={
-        false
-      }
+      candidate={candidate}
+      showDiagnostics={false}
     />
   );
 }

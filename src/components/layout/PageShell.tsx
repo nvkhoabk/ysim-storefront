@@ -1,17 +1,14 @@
 // F07A-2B_R2_FUNCTIONAL_SHELL_LOCALIZATION_R3
 
+"use client";
+
 import type { ReactNode } from "react";
 
 import { Footer, Header } from "@/components/navigation";
-import {
-  storefrontFooter,
-  type StorefrontFooterConfig,
-} from "@/config/storefront-footer";
-import {
-  storefrontNavigation,
-  type StorefrontNavigationConfig,
-} from "@/config/storefront-navigation";
-import { DEFAULT_LOCALIZED_SHELL_LABELS } from "@/i18n/shell/shell.defaults";
+import type { StorefrontFooterConfig } from "@/config/storefront-footer";
+import { type StorefrontNavigationConfig } from "@/config/storefront-navigation";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
 import type {
   LocalizedShellLabels,
   ShellLanguageSwitchConfig,
@@ -45,14 +42,14 @@ export function PageShell({
   children,
   sidebar,
   aside,
-  headerConfig = storefrontNavigation,
-  footerConfig = storefrontFooter,
-  shellLabels = DEFAULT_LOCALIZED_SHELL_LABELS,
-  locale = "vi",
-  languageSwitch = { mode: "display" },
+  headerConfig,
+  footerConfig,
+  shellLabels: shellLabelsProp,
+  locale: localeProp,
+  languageSwitch: languageSwitchProp,
   cartCount = 0,
-  cartHref = "/cart",
-  homeHref = "/",
+  cartHref,
+  homeHref,
   showHeader = true,
   showFooter = true,
   mainClassName,
@@ -60,6 +57,14 @@ export function PageShell({
   sidebarClassName,
   asideClassName,
 }: PageShellProps) {
+  const runtimeShell = useStorefrontLocale();
+  const locale = localeProp ?? runtimeShell.locale;
+  const shellLabels = shellLabelsProp ?? runtimeShell.labels;
+  const effectiveHeaderConfig = headerConfig ?? runtimeShell.navigation;
+  const effectiveFooterConfig = footerConfig ?? runtimeShell.footer;
+  const languageSwitch = languageSwitchProp ?? { mode: "market" };
+  const effectiveCartHref = cartHref ?? localizeShellHref("/cart", locale);
+  const effectiveHomeHref = homeHref ?? localizeShellHref("/", locale);
   const hasAuxiliaryColumns = Boolean(sidebar || aside);
   const gridClassName =
     sidebar && aside
@@ -80,13 +85,13 @@ export function PageShell({
       </a>
       {showHeader ? (
         <Header
-          config={headerConfig}
+          config={effectiveHeaderConfig}
           labels={shellLabels}
           locale={locale}
           languageSwitch={languageSwitch}
           cartCount={cartCount}
-          cartHref={cartHref}
-          homeHref={homeHref}
+          cartHref={effectiveCartHref}
+          homeHref={effectiveHomeHref}
         />
       ) : null}
       <main
@@ -127,9 +132,9 @@ export function PageShell({
       </main>
       {showFooter ? (
         <Footer
-          config={footerConfig}
+          config={effectiveFooterConfig}
           labels={shellLabels}
-          homeHref={homeHref}
+          homeHref={effectiveHomeHref}
         />
       ) : null}
     </>

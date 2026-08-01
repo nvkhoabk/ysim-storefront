@@ -147,14 +147,19 @@ console.log(
 
 for (const productionPath of [
   "src/app/cart/page.tsx",
-  "src/app/checkout/page.tsx",
   "src/app/payment/return/page.tsx",
   "src/app/orders/[orderCode]/page.tsx",
 ]) {
   const source = read(productionPath);
   assert.doesNotMatch(source, /localized-transaction|i18n\/transaction/);
 }
-console.log("PASS production transaction routes remain unchanged");
+const checkoutSource = read("src/app/checkout/page.tsx");
+assert.match(checkoutSource, /i18n\/transaction\/transaction\.registry/);
+assert.doesNotMatch(checkoutSource, /ui-preview\/localized-transaction/);
+assert.doesNotMatch(checkoutSource, /payments\/create|fulfillment|webhook/);
+console.log(
+  "PASS checkout consumes translation catalog without preview or provider execution",
+);
 
 assert.match(registry, /TRANSACTION_MESSAGE_CATALOG/);
 assert.match(registry, /normalizeShellLocale/);

@@ -1,105 +1,94 @@
 "use client";
 
-import {
-  useEffect,
-} from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import Link from "next/link";
+import {
+  globalStateMessages,
+  useOptionalStorefrontLocale,
+} from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+import { normalizeShellLocale } from "@/i18n/shell/shell.registry";
+
+function subscribeToDocumentLocale() {
+  return () => undefined;
+}
+
+function browserLocale() {
+  return normalizeShellLocale(document.documentElement.lang);
+}
+
+function serverLocale() {
+  return "vi" as const;
+}
 
 export function GlobalErrorDocument({
   error,
   reset,
 }: {
-  error:
-    Error & {
-      digest?: string;
-    };
-  reset:
-    () => void;
+  error: Error & {
+    digest?: string;
+  };
+  reset: () => void;
 }) {
-  useEffect(
-    () => {
-      console.error(
-        "YSim global error boundary:",
-        error,
-      );
-    },
-    [
-      error,
-    ],
+  const runtimeShell = useOptionalStorefrontLocale();
+  const documentLocale = useSyncExternalStore(
+    subscribeToDocumentLocale,
+    browserLocale,
+    serverLocale,
   );
+  const locale = runtimeShell?.locale ?? documentLocale;
+  const copy = globalStateMessages(locale);
+
+  useEffect(() => {
+    console.error("YSim global error boundary:", error);
+  }, [error]);
 
   return (
-    <html lang="vi">
+    <html lang={locale}>
       <body
         style={{
-          margin:
-            0,
-          minHeight:
-            "100vh",
-          background:
-            "#f8fafc",
-          color:
-            "#17202a",
-          fontFamily:
-            "Arial, Helvetica, sans-serif",
+          margin: 0,
+          minHeight: "100vh",
+          background: "#f8fafc",
+          color: "#17202a",
+          fontFamily: "Arial, Helvetica, sans-serif",
         }}
       >
         <main
           style={{
-            minHeight:
-              "100vh",
-            display:
-              "grid",
-            placeItems:
-              "center",
-            padding:
-              "24px",
+            minHeight: "100vh",
+            display: "grid",
+            placeItems: "center",
+            padding: "24px",
           }}
         >
           <section
             role="alert"
             aria-live="assertive"
             style={{
-              width:
-                "min(100%, 680px)",
-              border:
-                "1px solid #fecaca",
-              borderRadius:
-                "24px",
-              background:
-                "#ffffff",
-              padding:
-                "40px 28px",
-              boxShadow:
-                "0 16px 40px rgba(15, 23, 42, 0.10)",
-              textAlign:
-                "center",
+              width: "min(100%, 680px)",
+              border: "1px solid #fecaca",
+              borderRadius: "24px",
+              background: "#ffffff",
+              padding: "40px 28px",
+              boxShadow: "0 16px 40px rgba(15, 23, 42, 0.10)",
+              textAlign: "center",
             }}
           >
             <div
               aria-hidden="true"
               style={{
-                width:
-                  "56px",
-                height:
-                  "56px",
-                margin:
-                  "0 auto",
-                display:
-                  "grid",
-                placeItems:
-                  "center",
-                borderRadius:
-                  "16px",
-                background:
-                  "#fef2f2",
-                color:
-                  "#b91c1c",
-                fontSize:
-                  "28px",
-                fontWeight:
-                  800,
+                width: "56px",
+                height: "56px",
+                margin: "0 auto",
+                display: "grid",
+                placeItems: "center",
+                borderRadius: "16px",
+                background: "#fef2f2",
+                color: "#b91c1c",
+                fontSize: "28px",
+                fontWeight: 800,
               }}
             >
               !
@@ -107,18 +96,12 @@ export function GlobalErrorDocument({
 
             <p
               style={{
-                margin:
-                  "20px 0 0",
-                color:
-                  "#b91c1c",
-                fontSize:
-                  "12px",
-                fontWeight:
-                  800,
-                letterSpacing:
-                  "0.12em",
-                textTransform:
-                  "uppercase",
+                margin: "20px 0 0",
+                color: "#b91c1c",
+                fontSize: "12px",
+                fontWeight: 800,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
               }}
             >
               YSim
@@ -126,124 +109,81 @@ export function GlobalErrorDocument({
 
             <h1
               style={{
-                margin:
-                  "8px 0 0",
-                fontSize:
-                  "clamp(28px, 6vw, 40px)",
-                lineHeight:
-                  1.2,
+                margin: "8px 0 0",
+                fontSize: "clamp(28px, 6vw, 40px)",
+                lineHeight: 1.2,
               }}
             >
-              Hệ thống đang gặp sự cố
+              {copy.systemErrorTitle}
             </h1>
 
             <p
               style={{
-                maxWidth:
-                  "540px",
-                margin:
-                  "16px auto 0",
-                color:
-                  "#64748b",
-                fontSize:
-                  "16px",
-                lineHeight:
-                  1.7,
+                maxWidth: "540px",
+                margin: "16px auto 0",
+                color: "#64748b",
+                fontSize: "16px",
+                lineHeight: 1.7,
               }}
             >
-              Vui lòng thử lại. Nếu bạn vừa thanh toán, không gửi lại giao dịch cho tới khi kiểm tra trạng thái đơn hàng.
+              {copy.systemErrorDescription}
             </p>
 
-            {
-              error.digest
-                ? (
-                    <p
-                      style={{
-                        margin:
-                          "14px 0 0",
-                        color:
-                          "#94a3b8",
-                        fontSize:
-                          "12px",
-                      }}
-                    >
-                      Mã tham chiếu: {
-                        error.digest
-                      }
-                    </p>
-                  )
-                : null
-            }
+            {error.digest ? (
+              <p
+                style={{
+                  margin: "14px 0 0",
+                  color: "#94a3b8",
+                  fontSize: "12px",
+                }}
+              >
+                {copy.reference}: {error.digest}
+              </p>
+            ) : null}
 
             <div
               style={{
-                marginTop:
-                  "28px",
-                display:
-                  "flex",
-                flexWrap:
-                  "wrap",
-                justifyContent:
-                  "center",
-                gap:
-                  "12px",
+                marginTop: "28px",
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: "12px",
               }}
             >
               <button
                 type="button"
-                onClick={
-                  reset
-                }
+                onClick={reset}
                 style={{
-                  minHeight:
-                    "44px",
-                  border:
-                    0,
-                  borderRadius:
-                    "12px",
-                  background:
-                    "#15803d",
-                  padding:
-                    "0 20px",
-                  color:
-                    "#ffffff",
-                  fontSize:
-                    "14px",
-                  fontWeight:
-                    800,
-                  cursor:
-                    "pointer",
+                  minHeight: "44px",
+                  border: 0,
+                  borderRadius: "12px",
+                  background: "#15803d",
+                  padding: "0 20px",
+                  color: "#ffffff",
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  cursor: "pointer",
                 }}
               >
-                Thử lại
+                {copy.retry}
               </button>
 
               <Link
-                href="/"
+                href={localizeShellHref("/", locale)}
                 style={{
-                  minHeight:
-                    "42px",
-                  display:
-                    "inline-flex",
-                  alignItems:
-                    "center",
-                  border:
-                    "1px solid #15803d",
-                  borderRadius:
-                    "12px",
-                  padding:
-                    "0 20px",
-                  color:
-                    "#15803d",
-                  fontSize:
-                    "14px",
-                  fontWeight:
-                    800,
-                  textDecoration:
-                    "none",
+                  minHeight: "42px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  border: "1px solid #15803d",
+                  borderRadius: "12px",
+                  padding: "0 20px",
+                  color: "#15803d",
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  textDecoration: "none",
                 }}
               >
-                Về trang chủ
+                {copy.home}
               </Link>
             </div>
           </section>

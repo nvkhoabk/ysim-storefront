@@ -1,48 +1,38 @@
-import {
-  MapPinOff,
-} from "lucide-react";
+"use client";
 
-import {
-  GlobalStateFrame,
-} from "./GlobalStateFrame";
+import { MapPinOff } from "lucide-react";
+
+import { globalStateMessages, useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+
+import { GlobalStateFrame } from "./GlobalStateFrame";
 
 export function GlobalNotFoundState({
-  title =
-    "Không tìm thấy trang",
-  description =
-    "Đường dẫn có thể đã thay đổi, nội dung chưa được xuất bản hoặc không còn tồn tại.",
+  title,
+  description,
 }: {
   title?: string;
   description?: string;
 }) {
+  const shell = useStorefrontLocale();
+  const copy = globalStateMessages(shell.locale);
+
   return (
     <GlobalStateFrame
       tone="warning"
-      icon={
-        <MapPinOff className="h-7 w-7" />
-      }
+      icon={<MapPinOff className="h-7 w-7" />}
       eyebrow="404"
-      title={
-        title
-      }
-      description={
-        description
-      }
+      title={title ?? copy.notFoundTitle}
+      description={description ?? copy.notFoundDescription}
       primaryAction={{
-        label:
-          "Về trang chủ",
-        href:
-          "/",
-        variant:
-          "primary",
+        label: copy.home,
+        href: localizeShellHref("/", shell.locale),
+        variant: "primary",
       }}
       secondaryAction={{
-        label:
-          "Xem điểm đến",
-        href:
-          "/destinations",
-        variant:
-          "outline",
+        label: copy.destinations,
+        href: localizeShellHref("/destinations", shell.locale),
+        variant: "outline",
       }}
     />
   );

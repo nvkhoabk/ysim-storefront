@@ -10,6 +10,8 @@ import {
   type StorefrontNavigationConfig,
 } from "@/config/storefront-navigation";
 import { DEFAULT_LOCALIZED_SHELL_LABELS } from "@/i18n/shell/shell.defaults";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
 import type {
   LocalizedShellLabels,
   ShellLanguageSwitchConfig,
@@ -36,61 +38,85 @@ export interface HeaderProps {
 }
 
 export function Header({
-  config = storefrontNavigation,
-  labels = DEFAULT_LOCALIZED_SHELL_LABELS,
-  locale = "vi",
-  languageSwitch = { mode: "display" },
+  config,
+  labels,
+  locale,
+  languageSwitch,
   cartCount = 0,
-  cartHref = "/cart",
-  homeHref = "/",
+  cartHref,
+  homeHref,
 }: HeaderProps) {
+  const runtimeShell = useStorefrontLocale();
+  const effectiveLocale = locale ?? runtimeShell.locale;
+  const effectiveConfig =
+    config ?? runtimeShell.navigation ?? storefrontNavigation;
+  const effectiveLabels =
+    labels ?? runtimeShell.labels ?? DEFAULT_LOCALIZED_SHELL_LABELS;
+  const effectiveSwitch = languageSwitch ?? { mode: "market" };
+  const effectiveCartHref =
+    cartHref ?? localizeShellHref("/cart", effectiveLocale);
+  const effectiveHomeHref = homeHref ?? localizeShellHref("/", effectiveLocale);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const openMobileMenu = useCallback(() => setMobileMenuOpen(true), []);
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
 
   return (
     <>
-      <AnnouncementBar config={config.announcement} labels={labels} />
+      <AnnouncementBar
+        config={effectiveConfig.announcement}
+        labels={effectiveLabels}
+      />
       <header className="sticky top-0 z-[var(--ysim-z-sticky)] border-b border-[var(--ysim-color-border)] bg-white/95 backdrop-blur">
         <Container>
           <div className="hidden min-h-[4.5rem] items-center justify-between gap-5 lg:flex">
-            <BrandLogo href={homeHref} label={labels.brandHome} priority />
+            <BrandLogo
+              href={effectiveHomeHref}
+              label={effectiveLabels.brandHome}
+              priority
+            />
             <DesktopNavigation
-              items={config.mainItems}
-              ariaLabel={labels.mainNavigation}
+              items={effectiveConfig.mainItems}
+              ariaLabel={effectiveLabels.mainNavigation}
             />
             <div className="flex shrink-0 items-center gap-1">
               <LanguageSwitcher
-                languages={config.languages}
-                currentLocale={locale}
-                labels={labels}
-                switchConfig={languageSwitch}
+                languages={effectiveConfig.languages}
+                currentLocale={effectiveLocale}
+                labels={effectiveLabels}
+                switchConfig={effectiveSwitch}
               />
-              <CartLink count={cartCount} href={cartHref} labels={labels} />
+              <CartLink
+                count={cartCount}
+                href={effectiveCartHref}
+                labels={effectiveLabels}
+              />
             </div>
           </div>
           <MobileHeader
-            languages={config.languages}
-            currentLocale={locale}
-            labels={labels}
-            switchConfig={languageSwitch}
+            languages={effectiveConfig.languages}
+            currentLocale={effectiveLocale}
+            labels={effectiveLabels}
+            switchConfig={effectiveSwitch}
             cartCount={cartCount}
-            cartHref={cartHref}
-            homeHref={homeHref}
+            cartHref={effectiveCartHref}
+            homeHref={effectiveHomeHref}
             onOpenMenu={openMobileMenu}
           />
         </Container>
-        <QuickAccessBar config={config.quickAccess} labels={labels} />
+        <QuickAccessBar
+          config={effectiveConfig.quickAccess}
+          labels={effectiveLabels}
+        />
       </header>
       <MobileMenuDrawer
         open={mobileMenuOpen}
         onClose={closeMobileMenu}
-        items={config.mainItems}
-        languages={config.languages}
-        currentLocale={locale}
-        labels={labels}
-        switchConfig={languageSwitch}
-        homeHref={homeHref}
+        items={effectiveConfig.mainItems}
+        languages={effectiveConfig.languages}
+        currentLocale={effectiveLocale}
+        labels={effectiveLabels}
+        switchConfig={effectiveSwitch}
+        homeHref={effectiveHomeHref}
       />
     </>
   );

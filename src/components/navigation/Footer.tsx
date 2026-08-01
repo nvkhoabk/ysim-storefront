@@ -1,5 +1,7 @@
 // F07A-2B_R2_FUNCTIONAL_SHELL_LOCALIZATION_R3
 
+"use client";
+
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -22,6 +24,8 @@ import {
   type StorefrontFooterConfig,
 } from "@/config/storefront-footer";
 import { DEFAULT_LOCALIZED_SHELL_LABELS } from "@/i18n/shell/shell.defaults";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
 import type { LocalizedShellLabels } from "@/i18n/shell/shell.types";
 
 import { BrandLogo } from "./BrandLogo";
@@ -81,15 +85,18 @@ export interface FooterProps {
   homeHref?: string;
 }
 
-export function Footer({
-  config = storefrontFooter,
-  labels = DEFAULT_LOCALIZED_SHELL_LABELS,
-  homeHref = "/",
-}: FooterProps) {
+export function Footer({ config, labels: labelsProp, homeHref }: FooterProps) {
+  const runtimeShell = useStorefrontLocale();
+  const effectiveConfig = config ?? runtimeShell.footer ?? storefrontFooter;
+  const labels =
+    labelsProp ?? runtimeShell.labels ?? DEFAULT_LOCALIZED_SHELL_LABELS;
+  const effectiveHomeHref =
+    homeHref ?? localizeShellHref("/", runtimeShell.locale);
+
   return (
     <footer>
       <TrustFeatureRow
-        items={config.trustFeatures}
+        items={effectiveConfig.trustFeatures}
         ariaLabel={labels.serviceCommitments}
       />
       <div className="bg-[var(--ysim-color-brand-950)] text-white">
@@ -97,29 +104,29 @@ export function Footer({
           <div className="grid gap-10 py-12 lg:grid-cols-[1.25fr_2fr] lg:gap-16 lg:py-16">
             <div>
               <div className="inline-flex rounded-[var(--ysim-radius-md)] bg-white px-3 py-2">
-                <BrandLogo href={homeHref} label={labels.brandHome} />
+                <BrandLogo href={effectiveHomeHref} label={labels.brandHome} />
               </div>
               <p className="mt-5 max-w-md text-sm leading-7 text-white/72">
-                {config.brand.description}
+                {effectiveConfig.brand.description}
               </p>
               <div className="mt-6 space-y-3 text-sm text-white/72">
                 <a
-                  href={`mailto:${config.brand.supportEmail}`}
+                  href={`mailto:${effectiveConfig.brand.supportEmail}`}
                   className="flex items-center gap-2 rounded-[var(--ysim-radius-sm)] transition-colors hover:text-white"
                 >
                   <Mail aria-hidden="true" className="h-4 w-4" />
-                  {config.brand.supportEmail}
+                  {effectiveConfig.brand.supportEmail}
                 </a>
                 <p className="flex items-center gap-2">
                   <MapPin aria-hidden="true" className="h-4 w-4" />
-                  {config.brand.location}
+                  {effectiveConfig.brand.location}
                 </p>
               </div>
               <nav
                 aria-label={labels.socialNavigation}
                 className="mt-7 flex flex-wrap gap-2"
               >
-                {config.socialLinks.map((social) => {
+                {effectiveConfig.socialLinks.map((social) => {
                   const Icon = socialIconMap[social.icon];
                   const external = /^https?:\/\//.test(social.href);
                   const classes =
@@ -150,7 +157,7 @@ export function Footer({
               </nav>
             </div>
             <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
-              {config.columns.map((column) => (
+              {effectiveConfig.columns.map((column) => (
                 <nav key={column.title} aria-label={column.title}>
                   <h2 className="text-sm font-bold text-white">
                     {column.title}
@@ -173,7 +180,7 @@ export function Footer({
                   {labels.applicationTitle}
                 </h2>
                 <div className="mt-4 space-y-3">
-                  {config.appLinks.map((app) => {
+                  {effectiveConfig.appLinks.map((app) => {
                     const Icon = app.platform === "iOS" ? Smartphone : Download;
                     return (
                       <a
@@ -210,7 +217,7 @@ export function Footer({
                   {labels.paymentTitle}
                 </h2>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {config.paymentMethods.map((method) => (
+                  {effectiveConfig.paymentMethods.map((method) => (
                     <span
                       key={method}
                       className="inline-flex min-h-8 items-center rounded-[var(--ysim-radius-sm)] bg-white px-3 text-xs font-bold text-[var(--ysim-color-brand-950)]"
@@ -224,7 +231,7 @@ export function Footer({
                 aria-label={labels.legalNavigation}
                 className="flex flex-wrap gap-x-5 gap-y-2"
               >
-                {config.legalLinks.map((link) => (
+                {effectiveConfig.legalLinks.map((link) => (
                   <FooterNavLink key={link.href} link={link} />
                 ))}
               </nav>
@@ -232,8 +239,10 @@ export function Footer({
           </div>
           <div className="border-t border-white/10 py-5 text-xs leading-relaxed text-white/55">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p>{config.copyright}</p>
-              <p className="max-w-2xl sm:text-right">{config.securityNote}</p>
+              <p>{effectiveConfig.copyright}</p>
+              <p className="max-w-2xl sm:text-right">
+                {effectiveConfig.securityNote}
+              </p>
             </div>
           </div>
         </Container>

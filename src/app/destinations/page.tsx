@@ -2,13 +2,9 @@
 
 import LegacyDestinationsPage from "./legacy-page";
 
-import {
-  DestinationPageComposition,
-} from "@/components/destination/refactor";
+import { DestinationPageComposition } from "@/components/destination/refactor";
 
-import {
-  DestinationRouteCandidatePage,
-} from "@/components/destination/refactor/integration";
+import { DestinationRouteCandidatePage } from "@/components/destination/refactor/integration";
 
 import {
   createProductionDestinationRouteAdapterFromEnvironment,
@@ -20,79 +16,49 @@ import {
   type DestinationSearchParams,
 } from "@/lib/storefront/navigation/destination-query";
 
-import {
-  getProductionRouteMode,
-} from "@/lib/storefront/integration/route-flags";
+import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
+import { localizeMetadata } from "@/i18n/runtime/runtime.server";
+import { metadata as legacyMetadata } from "./legacy-page";
 
-export {
-  metadata,
-} from "./legacy-page";
-
-interface DestinationsPageProps {
-  searchParams?: Promise<
-    DestinationSearchParams
-  >;
+export async function generateMetadata() {
+  return localizeMetadata(legacyMetadata);
 }
 
-export default async function DestinationsPage(
-  props:
-    DestinationsPageProps,
-) {
-  const mode =
-    getProductionRouteMode(
-      "destinations",
-    );
+interface DestinationsPageProps {
+  searchParams?: Promise<DestinationSearchParams>;
+}
 
-  if (
-    mode ===
-    "legacy"
-  ) {
-    return (
-      <LegacyDestinationsPage />
-    );
+export default async function DestinationsPage(props: DestinationsPageProps) {
+  const mode = getProductionRouteMode("destinations");
+
+  if (mode === "legacy") {
+    return <LegacyDestinationsPage />;
   }
 
-  const candidate =
-    await loadDestinationRouteCandidate({
-      productionAdapter:
-        createProductionDestinationRouteAdapterFromEnvironment(),
-    });
+  const candidate = await loadDestinationRouteCandidate({
+    productionAdapter: createProductionDestinationRouteAdapterFromEnvironment(),
+  });
 
-  const selection =
-    resolveDestinationRouteSelection(
-      await Promise.resolve(
-        (
-          props.searchParams ||
-          {}
-        ) as DestinationSearchParams,
-      ),
-    );
+  const selection = resolveDestinationRouteSelection(
+    await Promise.resolve(
+      (props.searchParams || {}) as DestinationSearchParams,
+    ),
+  );
 
-  if (
-    mode ===
-    "candidate"
-  ) {
+  if (mode === "candidate") {
     return (
       <DestinationRouteCandidatePage
-        candidate={
-          candidate
-        }
-        initialSelection={
-          selection
-        }
+        candidate={candidate}
+        initialSelection={selection}
       />
     );
   }
 
   return (
     <DestinationPageComposition
-      page={
-        candidate.page
-      }
+      page={candidate.page}
       cartCount={0}
-      initialSelection={
-        selection
-      }
+      initialSelection={selection}
     />
   );
 }

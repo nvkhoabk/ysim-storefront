@@ -11,13 +11,7 @@ import {
 } from "@/lib/market/market.request";
 import { buildInternalMarketRewriteUrl } from "@/lib/market/market.rewrite";
 import { decideMarketRouting } from "@/lib/market/market.routing";
-
-const MARKET_REQUEST_HEADERS = {
-  id: "x-ysim-market-id",
-  locale: "x-ysim-locale",
-  currency: "x-ysim-currency",
-  source: "x-ysim-market-source",
-} as const;
+import { MARKET_REQUEST_HEADERS } from "@/i18n/runtime/runtime.types";
 
 function addMarketRequestHeaders(
   request: NextRequest,
@@ -30,6 +24,7 @@ function addMarketRequestHeaders(
   headers.set(MARKET_REQUEST_HEADERS.locale, market.locale);
   headers.set(MARKET_REQUEST_HEADERS.currency, market.currency);
   headers.set(MARKET_REQUEST_HEADERS.source, source);
+  headers.set(MARKET_REQUEST_HEADERS.publicPathname, request.nextUrl.pathname);
   return headers;
 }
 
