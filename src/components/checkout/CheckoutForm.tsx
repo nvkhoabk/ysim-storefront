@@ -20,6 +20,10 @@ import type {
 } from "@/features/payments/payment.types";
 
 import { VirtualAccountPaymentPanel } from "./VirtualAccountPaymentPanel";
+import { useTransactionTranslations } from "@/i18n/transaction/useTransactionTranslations";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+import type { TransactionTranslator } from "@/i18n/transaction/transaction.types";
 
 interface CheckoutFormProps {
   paymentMethods: PaymentMethodOption[];
@@ -107,29 +111,32 @@ function getErrorMessage(payload: unknown, fallback: string): string {
  * currency_minor_unit = 2
  * amount = 12.99
  */
-function normalizeCartAmount(totals: CartTotalsResponse): CheckoutAmount {
+function normalizeCartAmount(
+  totals: CartTotalsResponse,
+  t: TransactionTranslator,
+): CheckoutAmount {
   const rawAmount = Number(totals.total_price);
 
   const minorUnit = Number(totals.currency_minor_unit);
 
   if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
-    throw new Error("Tổng tiền giỏ hàng không hợp lệ.");
+    throw new Error(t("common.error"));
   }
 
   if (!Number.isInteger(minorUnit) || minorUnit < 0) {
-    throw new Error("Đơn vị tiền tệ của giỏ hàng không hợp lệ.");
+    throw new Error(t("common.error"));
   }
 
   const amount = rawAmount / Math.pow(10, minorUnit);
 
   if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("Không thể xác định số tiền thanh toán.");
+    throw new Error(t("common.error"));
   }
 
   const currency = totals.currency_code?.trim();
 
   if (!currency) {
-    throw new Error("Không xác định được loại tiền của giỏ hàng.");
+    throw new Error(t("common.error"));
   }
 
   return {
@@ -146,7 +153,9 @@ function normalizeCartAmount(totals: CartTotalsResponse): CheckoutAmount {
  * WooCommerce Checkout API có thể trả trường đó
  * bằng null sau khi order đã được tạo.
  */
-async function getCurrentCartAmount(): Promise<CheckoutAmount> {
+async function getCurrentCartAmount(
+  t: TransactionTranslator,
+): Promise<CheckoutAmount> {
   const response = await fetch("/api/cart", {
     method: "GET",
 
@@ -160,9 +169,7 @@ async function getCurrentCartAmount(): Promise<CheckoutAmount> {
   const payload: unknown = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      getErrorMessage(payload, "Không thể đọc thông tin giỏ hàng."),
-    );
+    throw new Error(getErrorMessage(payload, t("common.error")));
   }
 
   const cartData = payload as CartApiResponse;
@@ -170,14 +177,16 @@ async function getCurrentCartAmount(): Promise<CheckoutAmount> {
   const totals = cartData.totals ?? cartData.cart?.totals;
 
   if (!totals) {
-    throw new Error("Cart API không trả về thông tin tổng tiền.");
+    throw new Error(t("common.error"));
   }
 
-  return normalizeCartAmount(totals);
+  return normalizeCartAmount(totals, t);
 }
 
 export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
   const router = useRouter();
+  const t = useTransactionTranslations();
+  const { locale } = useStorefrontLocale();
 
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -235,7 +244,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
        * vì sau khi WooCommerce tạo Order,
        * __experimentalCart có thể bằng null.
        */
-      const { amount, currency } = await getCurrentCartAmount();
+      const { amount, currency } = await getCurrentCartAmount(t);
 
       /*
        * Bước 2:
@@ -254,16 +263,14 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
       const checkoutData: unknown = await checkoutResponse.json();
 
       if (!checkoutResponse.ok) {
-        throw new Error(
-          getErrorMessage(checkoutData, "Không thể tạo đơn hàng."),
-        );
+        throw new Error(getErrorMessage(checkoutData, t("common.error")));
       }
 
       const { checkout, selectedPaymentProvider } =
         checkoutData as CheckoutApiResponse;
 
       if (!checkout.order_id || !checkout.order_key) {
-        throw new Error("WooCommerce không trả về đầy đủ thông tin đơn hàng.");
+        throw new Error(t("common.error"));
       }
 
       const orderNumber = checkout.order_number ?? String(checkout.order_id);
@@ -300,16 +307,14 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
           customerPhone: values.phone,
 
-          description: `Thanh toán đơn YSim #${orderNumber}`,
+          description: `YSim order #${orderNumber}`,
         }),
       });
 
       const paymentData: unknown = await paymentResponse.json();
 
       if (!paymentResponse.ok) {
-        throw new Error(
-          getErrorMessage(paymentData, "Không thể khởi tạo thanh toán."),
-        );
+        throw new Error(getErrorMessage(paymentData, t("common.error")));
       }
 
       const paymentSession = paymentData as PaymentSession;
@@ -341,7 +346,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
       if (paymentSession.redirectUrl) {
         if (paymentSession.provider.startsWith("gpay_gateway_")) {
           if (!paymentSession.providerBillId) {
-            throw new Error("GPay không trả về mã hóa đơn thanh toán.");
+            throw new Error(t("common.error"));
           }
 
           sessionStorage.setItem(
@@ -383,7 +388,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
        * vì điều đó sẽ che lỗi init-order.
        */
       if (selectedPaymentProvider.startsWith("gpay_gateway_")) {
-        throw new Error("GPay không trả về đường dẫn thanh toán.");
+        throw new Error(t("common.error"));
       }
 
       /*
@@ -402,15 +407,18 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
        * Provider không redirect sử dụng trang trạng thái chung.
        */
       router.push(
-        `/checkout/payment/${checkout.order_id}?key=${encodeURIComponent(
-          checkout.order_key,
-        )}`,
+        localizeShellHref(
+          `/checkout/payment/${checkout.order_id}?key=${encodeURIComponent(
+            checkout.order_key,
+          )}`,
+          locale,
+        ),
       );
     } catch (error) {
       console.error("Checkout submit failed:", error);
 
       setSubmitError(
-        error instanceof Error ? error.message : "Không thể tạo đơn hàng.",
+        error instanceof Error ? error.message : t("common.error"),
       );
     }
   }
@@ -441,11 +449,11 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
           <div>
             <p className="text-xs font-semibold tracking-wide text-green-700 uppercase">
-              Bước 1
+              {t("checkout.step1")}
             </p>
 
             <h2 className="text-xl font-semibold text-slate-950">
-              Thông tin người mua
+              {t("checkout.buyerTitle")}
             </h2>
           </div>
         </div>
@@ -453,7 +461,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <label className="sm:col-span-2">
             <span className="text-sm font-semibold text-slate-800">
-              Họ và tên *
+              {t("checkout.fullNameRequired")}
             </span>
 
             <input
@@ -468,7 +476,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
           <label>
             <span className="text-sm font-semibold text-slate-800">
-              Email nhận eSIM *
+              {t("checkout.emailRequired")}
             </span>
 
             <input
@@ -483,7 +491,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
           <label>
             <span className="text-sm font-semibold text-slate-800">
-              Số điện thoại *
+              {t("checkout.phoneRequired")}
             </span>
 
             <input
@@ -498,24 +506,24 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
           <label className="sm:col-span-2">
             <span className="text-sm font-semibold text-slate-800">
-              Quốc gia *
+              {t("checkout.countryRequired")}
             </span>
 
             <select
               {...register("country")}
               className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
             >
-              <option value="VN">Việt Nam</option>
+              <option value="VN">{t("checkout.country.VN")}</option>
 
-              <option value="PH">Philippines</option>
+              <option value="PH">{t("checkout.country.PH")}</option>
 
-              <option value="TH">Thái Lan</option>
+              <option value="TH">{t("checkout.country.TH")}</option>
 
-              <option value="SG">Singapore</option>
+              <option value="SG">{t("checkout.country.SG")}</option>
 
-              <option value="MY">Malaysia</option>
+              <option value="MY">{t("checkout.country.MY")}</option>
 
-              <option value="ID">Indonesia</option>
+              <option value="ID">{t("checkout.country.ID")}</option>
             </select>
 
             <FieldError message={errors.country?.message} />
@@ -531,11 +539,11 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
           <div>
             <p className="text-xs font-semibold tracking-wide text-green-700 uppercase">
-              Người sử dụng
+              {t("checkout.recipientEyebrow")}
             </p>
 
             <h2 className="text-xl font-semibold text-slate-950">
-              eSIM dành cho ai?
+              {t("checkout.recipientQuestion")}
             </h2>
           </div>
         </div>
@@ -554,11 +562,11 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
               <span>
                 <strong className="block text-sm text-slate-900">
-                  Mua cho chính tôi
+                  {t("checkout.selfTitle")}
                 </strong>
 
                 <span className="mt-1 block text-xs text-slate-500">
-                  QR gửi về email người mua
+                  {t("checkout.selfDescription")}
                 </span>
               </span>
             </span>
@@ -577,11 +585,11 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
               <span>
                 <strong className="block text-sm text-slate-900">
-                  Mua tặng người khác
+                  {t("checkout.giftTitle")}
                 </strong>
 
                 <span className="mt-1 block text-xs text-slate-500">
-                  Gửi QR đến người nhận
+                  {t("checkout.giftDescription")}
                 </span>
               </span>
             </span>
@@ -592,7 +600,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <label>
               <span className="text-sm font-semibold text-slate-800">
-                Tên người nhận *
+                {t("checkout.recipientNameRequired")}
               </span>
 
               <input
@@ -606,7 +614,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
             <label>
               <span className="text-sm font-semibold text-slate-800">
-                Email người nhận *
+                {t("checkout.recipientEmailRequired")}
               </span>
 
               <input
@@ -629,11 +637,11 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
           <div>
             <p className="text-xs font-semibold tracking-wide text-green-700 uppercase">
-              Bước 2
+              {t("checkout.step2")}
             </p>
 
             <h2 className="text-xl font-semibold text-slate-950">
-              Phương thức thanh toán
+              {t("payment.eyebrow")}
             </h2>
           </div>
         </div>
@@ -667,9 +675,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
         {paymentMethod === "gpay_virtual_account" ? (
           <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm leading-6 text-green-900">
-            Mã VietQR sẽ được tạo sau khi thông tin hợp lệ và bạn nhấn
-            <strong> Đặt hàng và thanh toán</strong>. YSim không tạo tài khoản
-            ảo khi bạn chỉ mở trang hoặc chưa xác nhận đơn hàng.
+            {t("checkout.virtualAccountNotice")}
           </div>
         ) : null}
 
@@ -677,7 +683,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
         <label className="mt-5 block">
           <span className="text-sm font-semibold text-slate-800">
-            Ghi chú đơn hàng
+            {t("checkout.noteLabel")}
           </span>
 
           <textarea
@@ -697,8 +703,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
           />
 
           <span className="text-sm leading-6 text-slate-600">
-            Tôi xác nhận thiết bị hỗ trợ eSIM và đồng ý với điều khoản sử dụng,
-            chính sách thanh toán và hoàn tiền của YSim.
+            {t("checkout.terms")}
           </span>
         </label>
 
@@ -718,10 +723,10 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
           {isSubmitting ? (
             <>
               <LoaderCircle className="h-5 w-5 animate-spin" />
-              Đang tạo đơn hàng...
+              {t("checkout.submitting")}
             </>
           ) : (
-            "Đặt hàng và thanh toán"
+            t("checkout.submit")
           )}
         </button>
       </section>

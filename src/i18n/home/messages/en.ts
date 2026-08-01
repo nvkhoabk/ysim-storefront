@@ -14,10 +14,15 @@ export const homeMessagesEn = {
     "Currency conversion is not implemented. The preview does not display simulated USD or LAK prices.",
   "hero.eyebrow": "Global travel eSIM",
   "hero.title": "Connect as soon as you arrive",
+  "hero.highlighted": "in just a few minutes.",
   "hero.description":
     "Choose the right eSIM plan, receive the QR code by email, and travel without swapping a physical SIM.",
   "hero.primary": "Explore eSIM plans",
   "hero.secondary": "Find the right plan",
+  "hero.benefitGlobal": "More than 200 countries",
+  "hero.benefitInstant": "Instant activation",
+  "hero.benefitSecure": "Secure connection",
+  "hero.benefitSupport": "24/7 support",
   "destinations.eyebrow": "Popular destinations",
   "destinations.title": "Get ready for your next journey",
   "destinations.description":
@@ -48,6 +53,8 @@ export const homeMessagesEn = {
   "why.instantTitle": "Fast eSIM delivery",
   "why.instantDescription":
     "The QR code is delivered after the order is completed.",
+  "why.transparentTitle": "Transparent pricing",
+  "why.transparentDescription": "No hidden fees or unexpected roaming charges.",
   "why.coverageTitle": "Coverage across many countries",
   "why.coverageDescription": "Flexible options for regional and global travel.",
   "why.supportTitle": "Help when you need it",
@@ -77,6 +84,10 @@ export const homeMessagesEn = {
   "reviews.quote":
     "I installed the eSIM before the trip and had data as soon as I landed.",
   "reviews.author": "{name} · verified traveler",
+  "partners.eyebrow": "Connectivity network",
+  "partners.title": "Powered by global telecom partners",
+  "partners.description":
+    "Partner names remain unchanged from their official brands.",
   "guides.eyebrow": "Travel guides",
   "guides.title": "Prepare better before departure",
   "guides.description":

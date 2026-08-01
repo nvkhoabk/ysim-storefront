@@ -7,11 +7,13 @@ import type { MarketResolution } from "./market.types";
 export const MARKET_COUNTRY_HEADER = "cf-ipcountry";
 export const MARKET_TEST_COUNTRY_HEADER = "x-ysim-test-country";
 export const MARKET_INTERNAL_REWRITE_HEADER = "x-ysim-market-internal-rewrite";
+export const MARKET_INTERNAL_TOKEN_HEADER = "x-ysim-market-internal-token";
 
 export interface MarketRuntimeEnvironment {
   readonly NODE_ENV?: string;
   readonly YSIM_MARKET_ROUTING_ENABLED?: string;
   readonly YSIM_MARKET_TEST_MODE?: string;
+  readonly YSIM_MARKET_INTERNAL_TOKEN?: string;
 }
 
 export interface MarketRequestInput {
@@ -41,8 +43,42 @@ export function isMarketCountryTestModeEnabled(
   );
 }
 
-export function isInternalMarketRewrite(headers: Headers): boolean {
-  return headers.get(MARKET_INTERNAL_REWRITE_HEADER)?.trim() === "1";
+export function marketInternalToken(
+  env: MarketRuntimeEnvironment = process.env,
+): string | null {
+  const token = env.YSIM_MARKET_INTERNAL_TOKEN?.trim();
+  return token && token.length >= 32 ? token : null;
+}
+
+export function hasTrustedMarketHeaders(
+  headers: Pick<Headers, "get">,
+  env: MarketRuntimeEnvironment = process.env,
+): boolean {
+  const expected = marketInternalToken(env);
+  const received = headers.get(MARKET_INTERNAL_TOKEN_HEADER)?.trim();
+  return expected !== null && received === expected;
+}
+
+export function isInternalMarketRewrite(
+  headers: Pick<Headers, "get">,
+  env: MarketRuntimeEnvironment = process.env,
+): boolean {
+  return (
+    headers.get(MARKET_INTERNAL_REWRITE_HEADER)?.trim() === "1" &&
+    hasTrustedMarketHeaders(headers, env)
+  );
+}
+
+export function stripUntrustedYsimHeaders(headers: Headers): Headers {
+  const sanitized = new Headers(headers);
+
+  for (const name of [...sanitized.keys()]) {
+    if (name.toLowerCase().startsWith("x-ysim-")) {
+      sanitized.delete(name);
+    }
+  }
+
+  return sanitized;
 }
 
 export function readCountryCodeFromHeaders(

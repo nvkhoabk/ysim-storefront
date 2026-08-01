@@ -20,10 +20,14 @@ origins are never downgraded.
 ## Feature flags
 
 - `YSIM_MARKET_ROUTING_ENABLED=true` activates redirects and locale rewrites.
+- `YSIM_MARKET_INTERNAL_TOKEN` authenticates Proxy-generated `x-ysim-*` request headers and must
+  contain at least 32 characters before routing can activate.
 - `YSIM_MARKET_TEST_MODE=true` enables `x-ysim-test-country` only when `NODE_ENV` is not
   `production`.
 
-The default is disabled, so deployment is a no-op until the feature flag is explicitly enabled.
+The default is disabled. Routing fails closed unless both the feature flag and the server-only
+internal token are configured. Incoming `x-ysim-*` headers are stripped before Proxy evaluates a
+request; only headers re-created by Proxy with the matching token are trusted by App Router.
 
 ## Resolution precedence
 
@@ -41,7 +45,8 @@ The proxy never writes the cookie. The cookie is written only by an explicit req
 - `/` redirects to `/vi`, `/lo`, or `/en` according to the resolver.
 - `/vi/...`, `/lo/...`, and `/en/...` are internally rewritten once to the existing unprefixed
   route.
-- The internal rewrite marker is removed before the route handler receives the request.
+- The internal rewrite marker and locale context are accepted only with the authenticated internal
+  token; forged client headers are ignored and removed.
 - Query parameters are preserved.
 - `/api`, `/_next`, `/ui-preview`, `/.well-known`, static assets, and public metadata files are
   bypassed.

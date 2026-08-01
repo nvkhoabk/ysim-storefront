@@ -78,6 +78,9 @@ const config = read("src/i18n/detail/detail.config.ts");
 const registry = read("src/i18n/detail/detail.registry.ts");
 const productProduction = read("src/app/esim/[slug]/page.tsx");
 const destinationProduction = read("src/app/destinations/[slug]/page.tsx");
+const productCandidate = read(
+  "src/components/product/refactor/integration/ProductDetailCandidateClient.tsx",
+);
 
 assert.match(preview, /previewPath:\s*"\/ui-preview\/localized-details"/);
 assert.match(preview, /view=\$\{view\}/);
@@ -169,12 +172,16 @@ console.log(
 );
 
 assert.match(productProduction, /YSIM_PACKAGE_27_ACTIVATION:product-detail/);
-assert.doesNotMatch(productProduction, /localized-details|i18n\/detail/);
+assert.match(productProduction, /ProductDetailCandidateClient/);
+assert.match(productProduction, /request\.localized/);
+assert.match(productCandidate, /createDetailTranslator/);
+assert.doesNotMatch(productProduction, /ui-preview\/localized-details/);
 assert.match(destinationProduction, /DestinationProductsFallbackPage/);
 assert.match(destinationProduction, /loadCatalog/);
-assert.doesNotMatch(destinationProduction, /localized-details|i18n\/detail/);
+assert.match(destinationProduction, /createListingTranslator/);
+assert.doesNotMatch(destinationProduction, /ui-preview\/localized-details/);
 console.log(
-  "PASS production product and destination detail routes remain unchanged",
+  "PASS ordinary detail routes consume catalogs without preview aliases",
 );
 
 assert.match(registry, /DETAIL_MESSAGE_CATALOG/);

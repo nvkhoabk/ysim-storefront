@@ -48,9 +48,10 @@ function textValue(value: unknown): string | undefined {
 }
 
 export default async function ProductDetailPage(props: ProductDetailPageProps) {
+  const request = await getStorefrontLocaleRequest();
   const mode = getProductionRouteMode("product-detail");
 
-  if (mode === "legacy") {
+  if (mode === "legacy" && !request.localized) {
     return <LegacyProductDetailPage {...props} />;
   }
 
@@ -64,7 +65,6 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
     notFound();
   }
 
-  const request = await getStorefrontLocaleRequest();
   const locale =
     (request.localized ? request.shell.locale : undefined) ||
     textValue(query?.locale) ||

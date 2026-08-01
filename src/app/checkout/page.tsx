@@ -6,7 +6,7 @@ import { PageShell } from "@/components/layout";
 import type { Metadata } from "next";
 import {
   getStorefrontLocaleRequest,
-  localizeMetadata,
+  withLocalizedAlternates,
 } from "@/i18n/runtime/runtime.server";
 import { createTransactionTranslator } from "@/i18n/transaction/transaction.registry";
 import { localizeShellHref } from "@/i18n/shell/shell.href";
@@ -23,7 +23,16 @@ const secureConnectionCopy = {
 } as const;
 
 export async function generateMetadata(): Promise<Metadata> {
-  return localizeMetadata(baseMetadata);
+  const request = await getStorefrontLocaleRequest();
+  const t = createTransactionTranslator(request.shell.locale);
+  return withLocalizedAlternates(
+    {
+      ...baseMetadata,
+      title: `${t("checkout.title")} | YSim`,
+      description: t("checkout.description"),
+    },
+    request,
+  );
 }
 
 export default async function CheckoutPage() {

@@ -1,152 +1,86 @@
 "use client";
 
-import {
-  useCallback,
-  useState,
-} from "react";
+import { useCallback, useState } from "react";
 
 import {
   createAllEsimQuickFilterSelection,
   createEsimQuickFilterUrl,
 } from "@/lib/storefront/catalog/esim-quick-filter";
 
-import type {
-  EsimQuickFilterSelection,
-} from "@/types/view-models/esim-quick-filter";
+import type { EsimQuickFilterSelection } from "@/types/view-models/esim-quick-filter";
 
-import type {
-  SecondaryProductViewModel,
-} from "@/types/view-models/secondary-routes";
+import type { SecondaryProductViewModel } from "@/types/view-models/secondary-routes";
 
-import {
-  EsimChoiceGuide,
-} from "./EsimChoiceGuide";
+import { EsimChoiceGuide } from "./EsimChoiceGuide";
 
-import {
-  EsimInlineTypeExplorer,
-} from "./EsimInlineTypeExplorer";
+import { EsimInlineTypeExplorer } from "./EsimInlineTypeExplorer";
 
-import {
-  EsimQuickProductCatalog,
-} from "./EsimQuickProductCatalog";
+import { EsimQuickProductCatalog } from "./EsimQuickProductCatalog";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
 
 function updateBrowserUrl(
-  selection:
-    EsimQuickFilterSelection,
+  selection: EsimQuickFilterSelection,
+  locale: "vi" | "en" | "lo",
 ): void {
-  if (
-    typeof window ===
-    "undefined"
-  ) {
+  if (typeof window === "undefined") {
     return;
   }
 
-  window.history
-    .replaceState(
-      window.history.state,
-      "",
-      createEsimQuickFilterUrl(
-        selection,
-      ),
-    );
+  window.history.replaceState(
+    window.history.state,
+    "",
+    localizeShellHref(createEsimQuickFilterUrl(selection), locale),
+  );
 }
 
-function scrollToCatalog():
-void {
-  if (
-    typeof document ===
-    "undefined"
-  ) {
+function scrollToCatalog(): void {
+  if (typeof document === "undefined") {
     return;
   }
 
-  window.requestAnimationFrame(
-    () => {
-      document
-        .getElementById(
-          "esim-quick-catalog",
-        )
-        ?.scrollIntoView({
-          behavior:
-            "smooth",
-          block:
-            "start",
-        });
-    },
-  );
+  window.requestAnimationFrame(() => {
+    document.getElementById("esim-quick-catalog")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
 }
 
 export function EsimInlineQuickCatalogExperience({
   products,
   initialSelection,
 }: {
-  products:
-    readonly SecondaryProductViewModel[];
-  initialSelection:
-    EsimQuickFilterSelection;
+  products: readonly SecondaryProductViewModel[];
+  initialSelection: EsimQuickFilterSelection;
 }) {
-  const [
-    selection,
-    setSelection,
-  ] =
-    useState<
-      EsimQuickFilterSelection
-    >(
-      initialSelection,
-    );
+  const { locale } = useStorefrontLocale();
+  const [selection, setSelection] =
+    useState<EsimQuickFilterSelection>(initialSelection);
 
-  const select =
-    useCallback(
-      (
-        next:
-          EsimQuickFilterSelection,
-      ) => {
-        setSelection(
-          next,
-        );
+  const select = useCallback(
+    (next: EsimQuickFilterSelection) => {
+      setSelection(next);
 
-        updateBrowserUrl(
-          next,
-        );
+      updateBrowserUrl(next, locale);
 
-        scrollToCatalog();
-      },
-      [],
-    );
+      scrollToCatalog();
+    },
+    [locale],
+  );
 
-  const clearSelection =
-    useCallback(
-      () => {
-        select(
-          createAllEsimQuickFilterSelection(),
-        );
-      },
-      [
-        select,
-      ],
-    );
+  const clearSelection = useCallback(() => {
+    select(createAllEsimQuickFilterSelection());
+  }, [select]);
 
   return (
     <>
-      <EsimInlineTypeExplorer
-        selection={
-          selection
-        }
-        onSelect={
-          select
-        }
-      />
+      <EsimInlineTypeExplorer selection={selection} onSelect={select} />
 
       <EsimQuickProductCatalog
-        products={
-          products
-        }
-        selection={
-          selection
-        }
-        onClearSelection={
-          clearSelection
-        }
+        products={products}
+        selection={selection}
+        onClearSelection={clearSelection}
       />
 
       <EsimChoiceGuide />

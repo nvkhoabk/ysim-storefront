@@ -204,19 +204,28 @@ try {
     "PASS loopback internal rewrite normalizes forwarded HTTPS to the HTTP listener",
   );
 
+  const trustedRewriteEnv = {
+    YSIM_MARKET_INTERNAL_TOKEN: "f07a-routing-test-token-not-a-secret-0001",
+  };
   assert.equal(
     requestModule.isInternalMarketRewrite(
-      headers({ [requestModule.MARKET_INTERNAL_REWRITE_HEADER]: "1" }),
+      headers({
+        [requestModule.MARKET_INTERNAL_REWRITE_HEADER]: "1",
+        [requestModule.MARKET_INTERNAL_TOKEN_HEADER]:
+          trustedRewriteEnv.YSIM_MARKET_INTERNAL_TOKEN,
+      }),
+      trustedRewriteEnv,
     ),
     true,
   );
   assert.equal(
     requestModule.isInternalMarketRewrite(
-      headers({ [requestModule.MARKET_INTERNAL_REWRITE_HEADER]: "0" }),
+      headers({ [requestModule.MARKET_INTERNAL_REWRITE_HEADER]: "1" }),
+      trustedRewriteEnv,
     ),
     false,
   );
-  console.log("PASS internal rewrite marker bypass contract");
+  console.log("PASS authenticated internal rewrite marker bypass contract");
 
   for (const pathname of [
     "/api/payments/gpay/webhook",

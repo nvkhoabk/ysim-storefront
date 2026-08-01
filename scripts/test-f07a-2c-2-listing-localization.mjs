@@ -126,14 +126,17 @@ console.log(
 );
 
 assert.match(esimProduction, /YSIM_PACKAGE_41_ROUTE:esim-inline-quick-filter/);
-assert.doesNotMatch(esimProduction, /localized-listings|i18n\/listing/);
+assert.match(esimProduction, /createListingTranslator/);
+assert.doesNotMatch(esimProduction, /ui-preview\/localized-listings/);
 assert.match(
   destinationsProduction,
   /YSIM_PACKAGE_38_V3_ROUTE:destinations-query-bridge/,
 );
-assert.doesNotMatch(destinationsProduction, /localized-listings|i18n\/listing/);
+assert.match(destinationsProduction, /createListingTranslator/);
+assert.match(destinationsProduction, /localizeDestinationPageViewModel/);
+assert.doesNotMatch(destinationsProduction, /ui-preview\/localized-listings/);
 console.log(
-  "PASS production eSIM and destination listing routes remain unchanged",
+  "PASS ordinary eSIM and destination routes consume listing catalogs without preview aliases",
 );
 
 assert.match(registry, /LISTING_MESSAGE_CATALOG/);

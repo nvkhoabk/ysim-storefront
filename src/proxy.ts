@@ -7,30 +7,40 @@ import {
   isInternalMarketRewrite,
   isMarketRoutingEnabled,
   MARKET_INTERNAL_REWRITE_HEADER,
+  MARKET_INTERNAL_TOKEN_HEADER,
+  marketInternalToken,
   readCountryCodeFromHeaders,
+  stripUntrustedYsimHeaders,
 } from "@/lib/market/market.request";
 import { buildInternalMarketRewriteUrl } from "@/lib/market/market.rewrite";
 import { decideMarketRouting } from "@/lib/market/market.routing";
 import { MARKET_REQUEST_HEADERS } from "@/i18n/runtime/runtime.types";
 
 function addMarketRequestHeaders(
-  request: NextRequest,
+  requestHeaders: Headers,
+  publicPathname: string,
   market: { id: string; locale: string; currency: string },
   source: string,
+  token: string,
 ): Headers {
-  const headers = new Headers(request.headers);
+  const headers = new Headers(requestHeaders);
   headers.set(MARKET_INTERNAL_REWRITE_HEADER, "1");
+  headers.set(MARKET_INTERNAL_TOKEN_HEADER, token);
   headers.set(MARKET_REQUEST_HEADERS.id, market.id);
   headers.set(MARKET_REQUEST_HEADERS.locale, market.locale);
   headers.set(MARKET_REQUEST_HEADERS.currency, market.currency);
   headers.set(MARKET_REQUEST_HEADERS.source, source);
-  headers.set(MARKET_REQUEST_HEADERS.publicPathname, request.nextUrl.pathname);
+  headers.set(MARKET_REQUEST_HEADERS.publicPathname, publicPathname);
   return headers;
 }
 
 function continueInternalRewrite(request: NextRequest): NextResponse {
   const headers = new Headers(request.headers);
   headers.delete(MARKET_INTERNAL_REWRITE_HEADER);
+  return NextResponse.next({ request: { headers } });
+}
+
+function continueWithSanitizedHeaders(headers: Headers): NextResponse {
   return NextResponse.next({ request: { headers } });
 }
 
@@ -49,15 +59,21 @@ export default function proxy(request: NextRequest) {
     return continueInternalRewrite(request);
   }
 
+  const sanitizedHeaders = stripUntrustedYsimHeaders(request.headers);
+  const token = marketInternalToken();
+  const routingEnabled = isMarketRoutingEnabled() && token !== null;
+
   const decision = decideMarketRouting({
-    enabled: isMarketRoutingEnabled(),
+    enabled: routingEnabled,
     pathname: request.nextUrl.pathname,
     search: request.nextUrl.search,
     cookieValue: readMarketCookie(request.headers.get("cookie")),
     countryCode: readCountryCodeFromHeaders(request.headers),
   });
 
-  if (decision.action === "next") return NextResponse.next();
+  if (decision.action === "next") {
+    return continueWithSanitizedHeaders(sanitizedHeaders);
+  }
 
   if (decision.action === "redirect") {
     return preventLocationCaching(
@@ -72,9 +88,11 @@ export default function proxy(request: NextRequest) {
   const response = NextResponse.rewrite(destination, {
     request: {
       headers: addMarketRequestHeaders(
-        request,
+        sanitizedHeaders,
+        request.nextUrl.pathname,
         decision.market,
         decision.source,
+        token as string,
       ),
     },
   });

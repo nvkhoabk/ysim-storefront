@@ -6,8 +6,10 @@ This source integration carries the accepted Vietnamese, English and Lao
 localization catalogs from the preview-only F07A chain into the ordinary
 Storefront request lifecycle.
 
-- Proxy forwards the selected locale and original public pathname only after a
-  localized URL has passed the existing routing decision.
+- Proxy strips every client-supplied `x-ysim-*` header, then forwards the selected
+  locale and original public pathname only after a localized URL has passed the
+  existing routing decision. App Router accepts that context only when it carries
+  the matching server-only internal token.
 - The root document resolves `lang`, direction, message catalogs and localized
   shell configuration from those internal request headers.
 - PageShell consumers inherit localized navigation, footer, accessibility
@@ -18,10 +20,15 @@ Storefront request lifecycle.
   Vietnamese constant.
 - Loading, not-found, route-error and emergency-error states use reviewed
   Vietnamese, English and Lao copy.
+- The ordinary Home, catalog, destination, product, cart, checkout and checkout
+  success bodies consume reviewed catalogs; unprefixed requests retain the
+  Vietnamese legacy rollback path.
 
 ## Activation boundary
 
-`YSIM_MARKET_ROUTING_ENABLED` remains off by default. This source package does
+`YSIM_MARKET_ROUTING_ENABLED` remains off by default. Activation additionally
+requires `YSIM_MARKET_INTERNAL_TOKEN` with at least 32 characters, so the routing
+layer fails closed when its trust boundary is not configured. This source package does
 not change environment files, active source, `.next`, PM2, nginx, WordPress,
 WooCommerce or provider configuration. It performs no order, payment,
 fulfillment or email action.

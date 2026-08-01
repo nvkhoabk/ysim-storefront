@@ -1,32 +1,26 @@
 import Link from "next/link";
 
-import {
-  ArrowLeft,
-  MapPinned,
-} from "lucide-react";
+import { ArrowLeft, MapPinned } from "lucide-react";
 
-import type {
-  DestinationRouteSelectionViewModel,
-} from "@/types/view-models/destination-page";
+import type { DestinationRouteSelectionViewModel } from "@/types/view-models/destination-page";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { createListingTranslator } from "@/i18n/listing/listing.registry";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
 
 export function DestinationSelectionNotice({
   selection,
 }: {
-  selection:
-    DestinationRouteSelectionViewModel;
+  selection: DestinationRouteSelectionViewModel;
 }) {
-  if (
-    selection.kind ===
-    "all"
-  ) {
+  const { locale } = useStorefrontLocale();
+  const t = createListingTranslator(locale);
+  if (selection.kind === "all") {
     return null;
   }
 
   return (
     <aside
-      data-ysim-destination-selection={
-        selection.key
-      }
+      data-ysim-destination-selection={selection.key}
       className="mt-6 flex flex-col gap-4 rounded-[var(--ysim-radius-lg)] border border-[var(--ysim-color-brand-200)] bg-[var(--ysim-color-brand-50)] p-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex min-w-0 items-start gap-3">
@@ -38,34 +32,27 @@ export function DestinationSelectionNotice({
         </span>
 
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ysim-color-brand-700)]">
-            Đang khám phá
+          <p className="text-xs font-bold tracking-[0.08em] text-[var(--ysim-color-brand-700)] uppercase">
+            {t("ordinary.exploring")}
           </p>
 
           <h2 className="mt-1 truncate text-lg font-bold text-[var(--ysim-color-text)]">
-            {
-              selection.label
-            }
+            {selection.label}
           </h2>
 
           <p className="mt-1 text-sm leading-6 text-[var(--ysim-color-text-muted)]">
-            {
-              selection.description
-            }
+            {selection.description}
           </p>
         </div>
       </div>
 
       <Link
-        href="/destinations"
+        href={localizeShellHref("/destinations", locale)}
         className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-[var(--ysim-radius-md)] border border-[var(--ysim-color-brand-700)] bg-white px-4 text-sm font-bold text-[var(--ysim-color-brand-700)] hover:bg-[var(--ysim-color-brand-100)]"
       >
-        <ArrowLeft
-          aria-hidden="true"
-          className="h-4 w-4"
-        />
+        <ArrowLeft aria-hidden="true" className="h-4 w-4" />
 
-        Xem tất cả
+        {t("ordinary.viewAll")}
       </Link>
     </aside>
   );

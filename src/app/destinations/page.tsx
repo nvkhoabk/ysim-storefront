@@ -17,11 +17,25 @@ import {
 } from "@/lib/storefront/navigation/destination-query";
 
 import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
-import { localizeMetadata } from "@/i18n/runtime/runtime.server";
+import {
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+import { createListingTranslator } from "@/i18n/listing/listing.registry";
+import { localizeDestinationPageViewModel } from "@/lib/storefront/localization";
 import { metadata as legacyMetadata } from "./legacy-page";
 
 export async function generateMetadata() {
-  return localizeMetadata(legacyMetadata);
+  const request = await getStorefrontLocaleRequest();
+  const t = createListingTranslator(request.shell.locale);
+  return withLocalizedAlternates(
+    {
+      ...legacyMetadata,
+      title: `${t("destinations.title")} | YSim`,
+      description: t("destinations.description"),
+    },
+    request,
+  );
 }
 
 interface DestinationsPageProps {
@@ -29,9 +43,10 @@ interface DestinationsPageProps {
 }
 
 export default async function DestinationsPage(props: DestinationsPageProps) {
+  const request = await getStorefrontLocaleRequest();
   const mode = getProductionRouteMode("destinations");
 
-  if (mode === "legacy") {
+  if (mode === "legacy" && !request.localized) {
     return <LegacyDestinationsPage />;
   }
 
@@ -44,11 +59,14 @@ export default async function DestinationsPage(props: DestinationsPageProps) {
       (props.searchParams || {}) as DestinationSearchParams,
     ),
   );
+  const localizedPage = request.localized
+    ? localizeDestinationPageViewModel(candidate.page, request.shell.locale)
+    : candidate.page;
 
   if (mode === "candidate") {
     return (
       <DestinationRouteCandidatePage
-        candidate={candidate}
+        candidate={{ ...candidate, page: localizedPage }}
         initialSelection={selection}
       />
     );
@@ -56,7 +74,7 @@ export default async function DestinationsPage(props: DestinationsPageProps) {
 
   return (
     <DestinationPageComposition
-      page={candidate.page}
+      page={localizedPage}
       cartCount={0}
       initialSelection={selection}
     />

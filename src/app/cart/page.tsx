@@ -6,23 +6,45 @@ import { CartCandidateClient } from "@/components/cart/refactor/integration";
 import { createCartRouteCandidateViewModel } from "@/config/storefront-cart-route-candidate";
 
 import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
-import { localizeMetadata } from "@/i18n/runtime/runtime.server";
+import {
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+import { createTransactionTranslator } from "@/i18n/transaction/transaction.registry";
 import { metadata as legacyMetadata } from "./legacy-page";
 
 export async function generateMetadata() {
-  return localizeMetadata(legacyMetadata);
+  const request = await getStorefrontLocaleRequest();
+  const t = createTransactionTranslator(request.shell.locale);
+  return withLocalizedAlternates(
+    {
+      ...legacyMetadata,
+      title: `${t("cart.title")} | YSim`,
+      description: t("cart.description"),
+    },
+    request,
+  );
 }
 
-export default function CartPage() {
+export default async function CartPage() {
+  const request = await getStorefrontLocaleRequest();
+  const t = createTransactionTranslator(request.shell.locale);
   const mode = getProductionRouteMode("cart");
 
-  if (mode === "legacy") {
+  if (mode === "legacy" && !request.localized) {
     return <LegacyCartPage />;
   }
 
+  const candidate = {
+    ...createCartRouteCandidateViewModel(),
+    title: t("cart.title"),
+    description: t("cart.description"),
+    checkoutCandidatePath: "/checkout",
+  };
+
   return (
     <CartCandidateClient
-      candidate={createCartRouteCandidateViewModel()}
+      candidate={candidate}
       showDiagnostics={mode === "candidate"}
     />
   );

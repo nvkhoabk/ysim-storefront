@@ -14,10 +14,15 @@ export const homeMessagesVi = {
     "Chuyển đổi tiền tệ chưa được triển khai. Preview không hiển thị giá quy đổi USD hoặc LAK.",
   "hero.eyebrow": "eSIM du lịch toàn cầu",
   "hero.title": "Kết nối ngay khi bạn đặt chân đến nơi",
+  "hero.highlighted": "chỉ trong vài phút.",
   "hero.description":
     "Chọn gói eSIM phù hợp, nhận mã QR qua email và bắt đầu hành trình mà không cần đổi SIM vật lý.",
   "hero.primary": "Khám phá gói eSIM",
   "hero.secondary": "Tìm gói phù hợp",
+  "hero.benefitGlobal": "Hơn 200 quốc gia",
+  "hero.benefitInstant": "Kích hoạt tức thì",
+  "hero.benefitSecure": "Kết nối an toàn",
+  "hero.benefitSupport": "Hỗ trợ 24/7",
   "destinations.eyebrow": "Điểm đến phổ biến",
   "destinations.title": "Sẵn sàng cho hành trình tiếp theo",
   "destinations.description":
@@ -47,6 +52,9 @@ export const homeMessagesVi = {
     "Một trải nghiệm mua và sử dụng eSIM rõ ràng, nhanh chóng và dễ hỗ trợ.",
   "why.instantTitle": "Nhận eSIM nhanh",
   "why.instantDescription": "Mã QR được gửi sau khi đơn hàng hoàn tất.",
+  "why.transparentTitle": "Giá minh bạch",
+  "why.transparentDescription":
+    "Không phí ẩn, không phát sinh roaming ngoài dự kiến.",
   "why.coverageTitle": "Phủ sóng nhiều quốc gia",
   "why.coverageDescription":
     "Lựa chọn linh hoạt cho các chuyến đi trong khu vực và toàn cầu.",
@@ -74,6 +82,10 @@ export const homeMessagesVi = {
     "Nội dung đánh giá trong preview là bản mẫu tĩnh và không thay thế dữ liệu đánh giá thật.",
   "reviews.quote": "Tôi cài eSIM trước chuyến đi và có mạng ngay khi hạ cánh.",
   "reviews.author": "{name} · khách du lịch đã xác minh",
+  "partners.eyebrow": "Mạng lưới kết nối",
+  "partners.title": "Kết nối qua các đối tác viễn thông toàn cầu",
+  "partners.description":
+    "Tên đối tác được giữ nguyên theo thương hiệu chính thức.",
   "guides.eyebrow": "Cẩm nang du lịch",
   "guides.title": "Chuẩn bị tốt hơn trước khi khởi hành",
   "guides.description":

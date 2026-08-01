@@ -10,7 +10,11 @@ import {
   resolveEsimQuickFilterFromSearchParams,
   type EsimQuickFilterSearchParams,
 } from "@/lib/storefront/catalog/esim-quick-filter";
-import { localizeMetadata } from "@/i18n/runtime/runtime.server";
+import {
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+import { createListingTranslator } from "@/i18n/listing/listing.registry";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +28,16 @@ const baseMetadata: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return localizeMetadata(baseMetadata);
+  const request = await getStorefrontLocaleRequest();
+  const t = createListingTranslator(request.shell.locale);
+  return withLocalizedAlternates(
+    {
+      ...baseMetadata,
+      title: `${t("esim.title")} | YSim`,
+      description: t("esim.description"),
+    },
+    request,
+  );
 }
 
 export default async function Page({

@@ -120,8 +120,12 @@ assert.doesNotMatch(
 console.log("PASS no Vietnamese Home literals remain in preview component");
 
 assert.match(productionHomeSource, /YSIM_PACKAGE_24_ACTIVATION:home/);
-assert.doesNotMatch(productionHomeSource, /localized-home|i18n\/home/);
-console.log("PASS production root page remains unchanged");
+assert.match(productionHomeSource, /localizeHomePageViewModel/);
+assert.match(productionHomeSource, /request\.localized/);
+assert.doesNotMatch(productionHomeSource, /ui-preview\/localized-home/);
+console.log(
+  "PASS ordinary Home route consumes localized view model without preview alias",
+);
 
 for (const requiredPath of [
   "scripts/test-f07a-2a-localization-foundation.mjs",

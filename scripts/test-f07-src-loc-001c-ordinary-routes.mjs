@@ -17,6 +17,11 @@ import { pathToFileURL } from "node:url";
 const ROOT = process.cwd();
 const RUNTIME_FILES = [
   "src/config/markets.ts",
+  "src/lib/market/market.types.ts",
+  "src/lib/market/market.cookie.ts",
+  "src/lib/market/market.registry.ts",
+  "src/lib/market/market.resolve.ts",
+  "src/lib/market/market.request.ts",
   "src/i18n/shell/shell.types.ts",
   "src/i18n/shell/messages/vi.ts",
   "src/i18n/shell/messages/en.ts",
@@ -103,6 +108,9 @@ const ts = await import(pathToFileURL(typescriptPath).href).then(
   (module) => module.default ?? module,
 );
 const tempRoot = await transpileFixture(ts);
+const TRUST_ENV = {
+  YSIM_MARKET_INTERNAL_TOKEN: "f07-src-loc-r2-qa-token-not-a-secret-0001",
+};
 
 try {
   const requestRuntime = await import(
@@ -112,6 +120,9 @@ try {
   const metadataRuntime = await import(
     pathToFileURL(path.join(tempRoot, "src/i18n/runtime/runtime.metadata.mjs"))
       .href
+  );
+  const marketRequest = await import(
+    pathToFileURL(path.join(tempRoot, "src/lib/market/market.request.mjs")).href
   );
 
   const disabled = requestRuntime.resolveStorefrontLocaleRequest(new Headers());
@@ -123,6 +134,36 @@ try {
   console.log(
     "PASS disabled routing preserves Vietnamese default without alternates",
   );
+
+  const spoofed = requestRuntime.resolveStorefrontLocaleRequest(
+    new Headers({
+      "x-ysim-locale": "en",
+      "x-ysim-public-pathname": "/en/esim",
+      "x-ysim-market-internal-rewrite": "1",
+    }),
+    TRUST_ENV,
+  );
+  assert.equal(spoofed.localized, false);
+  assert.equal(
+    marketRequest.isInternalMarketRewrite(
+      new Headers({ "x-ysim-market-internal-rewrite": "1" }),
+      TRUST_ENV,
+    ),
+    false,
+  );
+  const sanitized = marketRequest.stripUntrustedYsimHeaders(
+    new Headers({
+      "x-ysim-locale": "lo",
+      "x-ysim-public-pathname": "//evil.example",
+      "x-ysim-arbitrary": "attacker",
+      accept: "text/html",
+    }),
+  );
+  assert.equal(sanitized.get("x-ysim-locale"), null);
+  assert.equal(sanitized.get("x-ysim-public-pathname"), null);
+  assert.equal(sanitized.get("x-ysim-arbitrary"), null);
+  assert.equal(sanitized.get("accept"), "text/html");
+  console.log("PASS spoofed x-ysim headers are ignored and stripped");
 
   const cases = {
     vi: ["vi-vn", "VND", "/vi/esim/japan"],
@@ -136,7 +177,9 @@ try {
       new Headers({
         "x-ysim-locale": locale,
         "x-ysim-public-pathname": publicPathname,
+        "x-ysim-market-internal-token": TRUST_ENV.YSIM_MARKET_INTERNAL_TOKEN,
       }),
+      TRUST_ENV,
     );
     assert.equal(request.localized, true);
     assert.equal(request.shell.locale, locale);
@@ -160,7 +203,9 @@ try {
     new Headers({
       "x-ysim-locale": "en",
       "x-ysim-public-pathname": "https://evil.example/path",
+      "x-ysim-market-internal-token": TRUST_ENV.YSIM_MARKET_INTERNAL_TOKEN,
     }),
+    TRUST_ENV,
   );
   assert.equal(unsafePath.publicPathname, "/");
   console.log(

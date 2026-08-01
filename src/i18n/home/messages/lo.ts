@@ -14,10 +14,15 @@ export const homeMessagesLo = {
     "ການແປງສະກຸນເງິນຍັງບໍ່ໄດ້ພັດທະນາ. Preview ບໍ່ສະແດງລາຄາ USD ຫຼື LAK ທີ່ຈຳລອງ.",
   "hero.eyebrow": "eSIM ສຳລັບການເດີນທາງທົ່ວໂລກ",
   "hero.title": "ເຊື່ອມຕໍ່ໄດ້ທັນທີເມື່ອຮອດປາຍທາງ",
+  "hero.highlighted": "ໃນເວລາພຽງບໍ່ກີ່ນາທີ.",
   "hero.description":
     "ເລືອກແພັກເກດ eSIM ທີ່ເໝາະສົມ ຮັບ QR code ທາງອີເມວ ແລະ ເລີ່ມເດີນທາງໂດຍບໍ່ຕ້ອງປ່ຽນ SIM.",
   "hero.primary": "ເບິ່ງແພັກເກດ eSIM",
   "hero.secondary": "ຊອກຫາແພັກເກດທີ່ເໝາະສົມ",
+  "hero.benefitGlobal": "ຫຼາຍກວ່າ 200 ປະເທດ",
+  "hero.benefitInstant": "ເປີດໃຊ້ງານທັນທີ",
+  "hero.benefitSecure": "ການເຊື່ອມຕໍ່ປອດໄພ",
+  "hero.benefitSupport": "ຊ່ວຍເຫຼືອ 24/7",
   "destinations.eyebrow": "ຈຸດໝາຍປາຍທາງຍອດນິຍົມ",
   "destinations.title": "ກຽມພ້ອມສຳລັບການເດີນທາງຄັ້ງຕໍ່ໄປ",
   "destinations.description": "ສຳຫຼວດຈຸດໝາຍທີ່ລູກຄ້າ YSim ເລືອກໃຊ້ເລື້ອຍ.",
@@ -45,6 +50,8 @@ export const homeMessagesLo = {
     "ປະສົບການຊື້ ແລະ ໃຊ້ eSIM ທີ່ຊັດເຈນ ວ່ອງໄວ ແລະ ຮັບການຊ່ວຍເຫຼືອໄດ້.",
   "why.instantTitle": "ຮັບ eSIM ຢ່າງວ່ອງໄວ",
   "why.instantDescription": "QR code ຖືກສົ່ງຫຼັງຈາກຄຳສັ່ງຊື້ສຳເລັດ.",
+  "why.transparentTitle": "ລາຄາໂປ່ງໃສ",
+  "why.transparentDescription": "ບໍ່ມີຄ່າທຳນຽມແຝງ ຫຼື roaming ເກີນຄາດ.",
   "why.coverageTitle": "ຄຸ້ມຄອງຫຼາຍປະເທດ",
   "why.coverageDescription":
     "ຕົວເລືອກຍືດຫຍຸ່ນສຳລັບການເດີນທາງໃນພາກພື້ນ ແລະ ທົ່ວໂລກ.",
@@ -71,6 +78,9 @@ export const homeMessagesLo = {
   "reviews.quote":
     "ຂ້ອຍຕິດຕັ້ງ eSIM ກ່ອນເດີນທາງ ແລະ ມີອິນເຕີເນັດທັນທີເມື່ອລົງຈາກເຮືອບິນ.",
   "reviews.author": "{name} · ນັກເດີນທາງທີ່ຢືນຢັນແລ້ວ",
+  "partners.eyebrow": "ເຄືອຂ່າຍການເຊື່ອມຕໍ່",
+  "partners.title": "ເຊື່ອມຕໍ່ຜ່ານຄູ່ຮ່ວມໂທລະຄົມທົ່ວໂລກ",
+  "partners.description": "ຊື່ຄູ່ຮ່ວມຖືກຮັກສາຕາມແບຣນທາງການ.",
   "guides.eyebrow": "ຄູ່ມືການເດີນທາງ",
   "guides.title": "ກຽມຕົວໃຫ້ດີກ່ອນອອກເດີນທາງ",
   "guides.description":

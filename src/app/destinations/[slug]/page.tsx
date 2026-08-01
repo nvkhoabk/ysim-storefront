@@ -12,6 +12,7 @@ import {
   getStorefrontLocaleRequest,
   withLocalizedAlternates,
 } from "@/i18n/runtime/runtime.server";
+import { createListingTranslator } from "@/i18n/listing/listing.registry";
 
 export const dynamic = "force-dynamic";
 
@@ -37,16 +38,18 @@ export async function generateMetadata({
   const { slug } = await params;
   const selection = resolveDestinationSelection(slug);
   const title = destinationPageTitle(selection.label);
+  const request = await getStorefrontLocaleRequest();
+  const t = createListingTranslator(request.shell.locale);
 
   return withLocalizedAlternates(
     {
       title: `${title} | YSim`,
-      description: `Xem các gói eSIM phù hợp cho ${selection.label}, so sánh giá và lựa chọn cấu hình phù hợp với chuyến đi.`,
+      description: t("ordinary.destinationPlansDescription"),
       alternates: {
         canonical: `/destinations/${selection.id}`,
       },
     },
-    await getStorefrontLocaleRequest(),
+    request,
   );
 }
 

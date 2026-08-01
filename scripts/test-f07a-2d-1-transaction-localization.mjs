@@ -146,19 +146,22 @@ console.log(
 );
 
 for (const productionPath of [
-  "src/app/cart/page.tsx",
   "src/app/payment/return/page.tsx",
   "src/app/orders/[orderCode]/page.tsx",
 ]) {
   const source = read(productionPath);
   assert.doesNotMatch(source, /localized-transaction|i18n\/transaction/);
 }
+const cartSource = read("src/app/cart/page.tsx");
+assert.match(cartSource, /createTransactionTranslator/);
+assert.match(cartSource, /request\.localized/);
+assert.doesNotMatch(cartSource, /ui-preview\/localized-transaction/);
 const checkoutSource = read("src/app/checkout/page.tsx");
 assert.match(checkoutSource, /i18n\/transaction\/transaction\.registry/);
 assert.doesNotMatch(checkoutSource, /ui-preview\/localized-transaction/);
 assert.doesNotMatch(checkoutSource, /payments\/create|fulfillment|webhook/);
 console.log(
-  "PASS checkout consumes translation catalog without preview or provider execution",
+  "PASS cart and checkout consume transaction catalog without preview or provider execution",
 );
 
 assert.match(registry, /TRANSACTION_MESSAGE_CATALOG/);
