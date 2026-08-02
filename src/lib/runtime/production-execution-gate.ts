@@ -56,19 +56,31 @@ function productionGateApplies(
 }
 
 function providerFlagsFromPath(pathname: string): readonly string[] {
-  if (pathname === "/api/payments/gpay" || pathname.startsWith("/api/payments/gpay/")) {
+  if (
+    pathname === "/api/payments/gpay" ||
+    pathname.startsWith("/api/payments/gpay/")
+  ) {
     return ["GPAY_ENABLED"];
   }
 
-  if (pathname === "/api/payments/onepay" || pathname.startsWith("/api/payments/onepay/")) {
+  if (
+    pathname === "/api/payments/onepay" ||
+    pathname.startsWith("/api/payments/onepay/")
+  ) {
     return ["ONEPAY_ENABLED"];
   }
 
-  if (pathname === "/api/payments/umoney" || pathname.startsWith("/api/payments/umoney/")) {
+  if (
+    pathname === "/api/payments/umoney" ||
+    pathname.startsWith("/api/payments/umoney/")
+  ) {
     return ["UMONEY_ENABLED"];
   }
 
-  if (pathname === "/api/fulfillment/gigago" || pathname.startsWith("/api/fulfillment/gigago/")) {
+  if (
+    pathname === "/api/fulfillment/gigago" ||
+    pathname.startsWith("/api/fulfillment/gigago/")
+  ) {
     return ["GIGAGO_ENABLED"];
   }
 
@@ -78,15 +90,24 @@ function providerFlagsFromPath(pathname: string): readonly string[] {
 function paymentProviderFlags(providerId: string): readonly string[] {
   const normalizedProvider = normalized(providerId);
 
-  if (normalizedProvider === "gpay_virtual_account" || normalizedProvider.startsWith("gpay_gateway_")) {
+  if (
+    normalizedProvider === "gpay_virtual_account" ||
+    normalizedProvider.startsWith("gpay_gateway_")
+  ) {
     return ["GPAY_ENABLED"];
   }
 
-  if (normalizedProvider === "onepay" || normalizedProvider.startsWith("onepay_")) {
+  if (
+    normalizedProvider === "onepay" ||
+    normalizedProvider.startsWith("onepay_")
+  ) {
     return ["ONEPAY_ENABLED"];
   }
 
-  if (normalizedProvider === "umoney" || normalizedProvider.startsWith("umoney_")) {
+  if (
+    normalizedProvider === "umoney" ||
+    normalizedProvider.startsWith("umoney_")
+  ) {
     return ["UMONEY_ENABLED"];
   }
 
@@ -112,11 +133,17 @@ function requestPolicy(
   if (pathname === "/api/payments" || pathname.startsWith("/api/payments/")) {
     return {
       capability: "payment",
-      requiredFlags: ["PAYMENT_EXECUTION_ENABLED", ...providerFlagsFromPath(pathname)],
+      requiredFlags: [
+        "PAYMENT_EXECUTION_ENABLED",
+        ...providerFlagsFromPath(pathname),
+      ],
     };
   }
 
-  if (pathname === "/api/fulfillment" || pathname.startsWith("/api/fulfillment/")) {
+  if (
+    pathname === "/api/fulfillment" ||
+    pathname.startsWith("/api/fulfillment/")
+  ) {
     const extraFlags = [...providerFlagsFromPath(pathname)];
 
     if (pathname.includes("action-required-alert")) {
@@ -157,14 +184,20 @@ function requestPolicy(
     };
   }
 
-  if (pathname === "/api/agency/topup" || pathname.startsWith("/api/agency/topup/")) {
+  if (
+    pathname === "/api/agency/topup" ||
+    pathname.startsWith("/api/agency/topup/")
+  ) {
     return {
       capability: "agency-gateway-topup",
       requiredFlags: ["AGENCY_GATEWAY_TOPUP_ENABLED"],
     };
   }
 
-  if (pathname === "/api/payment-owner" || pathname.startsWith("/api/payment-owner/")) {
+  if (
+    pathname === "/api/payment-owner" ||
+    pathname.startsWith("/api/payment-owner/")
+  ) {
     return {
       capability: "payment-owner",
       requiredFlags: ["YSIM_PAYMENT_OWNER_ENABLED"],
