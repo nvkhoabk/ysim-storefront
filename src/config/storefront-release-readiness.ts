@@ -8,7 +8,7 @@ export function createReleaseReadinessViewModel():
     title:
       "Full Dev Acceptance & Preview Readiness",
     description:
-      "Bộ quality gate cuối của nhánh UI refactor trước khi triển khai lên sandbox.ysim.vn.",
+      "Bộ quality gate cuối của nhánh UI refactor trước khi triển khai lên môi trường đích.",
     gates: [
       {
         id:

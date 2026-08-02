@@ -17,7 +17,7 @@ function assertRelativeApplicationPath(destination: string): void {
  *
  * Nginx terminates public HTTPS and forwards to the local Next.js listener
  * over HTTP. Next.js can combine X-Forwarded-Proto=https with its local
- * listener address and expose request.url as https://localhost:3001/....
+ * listener address and expose request.url with an HTTPS loopback origin.
  * Reusing that URL unchanged makes the internal proxy attempt TLS against an
  * HTTP-only listener and fail with EPROTO. Only that loopback/non-standard-
  * port transport is normalized back to HTTP; external HTTPS origins remain

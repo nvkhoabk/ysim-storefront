@@ -61,18 +61,22 @@ export async function POST(request: Request) {
 
     const callbackUrl =
       asOptionalString(body.callbackUrl) ||
-      process.env.GPAY_GATEWAY_CALLBACK_URL?.trim() ||
-      "https://sandbox.ysim.vn/checkout/gpay/return";
+      process.env.GPAY_GATEWAY_CALLBACK_URL?.trim();
 
     const webhookUrl =
       asOptionalString(body.webhookUrl) ||
-      process.env.GPAY_GATEWAY_WEBHOOK_URL?.trim() ||
-      "https://sandbox.ysim.vn/api/payments/gpay/webhook";
+      process.env.GPAY_GATEWAY_WEBHOOK_URL?.trim();
+
+    if (!callbackUrl || !webhookUrl) {
+      throw new Error(
+        "GPAY_GATEWAY_CALLBACK_AND_WEBHOOK_URL_REQUIRED",
+      );
+    }
 
     const embedData =
       asOptionalString(body.embedData) ||
       JSON.stringify({
-        source: "ysim-sandbox",
+        source: "ysim-gateway-test",
         requestId: merchantRequestId,
         correlationId: randomUUID(),
       });
