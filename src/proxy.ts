@@ -14,6 +14,7 @@ import {
 } from "@/lib/market/market.request";
 import { buildInternalMarketRewriteUrl } from "@/lib/market/market.rewrite";
 import { decideMarketRouting } from "@/lib/market/market.routing";
+import { decideProductionExecutionGate } from "@/lib/runtime/production-execution-gate";
 import { MARKET_REQUEST_HEADERS } from "@/i18n/runtime/runtime.types";
 
 function addMarketRequestHeaders(
@@ -51,6 +52,33 @@ function preventLocationCaching(response: NextResponse): NextResponse {
 }
 
 export default function proxy(request: NextRequest) {
+  const sanitizedHeaders = stripUntrustedYsimHeaders(request.headers);
+  const executionGate = decideProductionExecutionGate({
+    nodeEnvironment: process.env.NODE_ENV,
+    pathname: request.nextUrl.pathname,
+    method: request.method,
+  });
+
+  if (!executionGate.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        code: executionGate.code,
+        capability: executionGate.capability,
+        requiredFlags: executionGate.requiredFlags,
+        missingFlags: executionGate.missingFlags,
+      },
+      {
+        status: 503,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  }
+
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return continueWithSanitizedHeaders(sanitizedHeaders);
+  }
+
   // A localized URL is rewritten once to the existing unprefixed route.
   // Next.js may evaluate Proxy again for that internal rewrite. The marker
   // prevents the second pass from resolving cookie/IP and redirecting away
@@ -59,7 +87,6 @@ export default function proxy(request: NextRequest) {
     return continueInternalRewrite(request);
   }
 
-  const sanitizedHeaders = stripUntrustedYsimHeaders(request.headers);
   const token = marketInternalToken();
   const routingEnabled = isMarketRoutingEnabled() && token !== null;
 
@@ -102,6 +129,7 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|ui-preview|favicon.ico|icon.png|apple-icon.png|robots.txt|sitemap.xml|.*\\..*).*)",
+    "/api/:path*",
+    "/((?!_next/static|_next/image|ui-preview|favicon.ico|icon.png|apple-icon.png|robots.txt|sitemap.xml|.*\\..*).*)",
   ],
 };

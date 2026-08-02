@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createPaymentSession } from "@/features/payments/payment.service";
+import { decidePaymentProviderExecutionGate } from "@/lib/runtime/production-execution-gate";
 import { createPaymentSchema } from "@/features/payments/payment.validation";
 import type { PaymentProviderId } from "@/features/payments/payment.types";
 import { GigagoReadinessError } from "@/lib/fulfillment/gigago/gigago-readiness-gate";
@@ -51,6 +52,27 @@ export async function POST(request: Request) {
     }
 
     const values = parsed.data;
+    const executionGate = decidePaymentProviderExecutionGate({
+      nodeEnvironment: process.env.NODE_ENV,
+      providerId: values.provider,
+    });
+
+    if (!executionGate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: executionGate.code,
+          capability: executionGate.capability,
+          requiredFlags: executionGate.requiredFlags,
+          missingFlags: executionGate.missingFlags,
+        },
+        {
+          status: 503,
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
+    }
+
     const order = await getWooCommerceAdminOrder(values.orderId);
 
     if (order.order_key !== values.orderKey) {
