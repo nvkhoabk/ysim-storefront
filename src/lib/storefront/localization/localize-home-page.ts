@@ -1,4 +1,11 @@
 import { createHomeTranslator } from "@/i18n/home/home.registry";
+import { createListingTranslator } from "@/i18n/listing/listing.registry";
+import {
+  localizeContinentName,
+  localizeDataLabel,
+  localizeDestinationName,
+  localizeDurationLabel,
+} from "@/i18n/listing/static-destination.config";
 import { localizeShellHref } from "@/i18n/shell/shell.href";
 import type { ShellLocale } from "@/i18n/shell/shell.types";
 import type { HomePageViewModel } from "@/types/view-models/home";
@@ -7,11 +14,87 @@ function localizedHref(href: string, locale: ShellLocale): string {
   return href.startsWith("/") ? localizeShellHref(href, locale) : href;
 }
 
+function hrefSlug(href: string): string {
+  return (
+    href.split("?")[0].split("#")[0].split("/").filter(Boolean).at(-1) || ""
+  );
+}
+
+function guideCopy(
+  value: string,
+  index: number,
+  t: ReturnType<typeof createHomeTranslator>,
+) {
+  const normalized = value.toLowerCase();
+  if (normalized.includes("roaming")) {
+    return {
+      title: t("guides.roamingTitle"),
+      description: t("guides.roamingDescription"),
+    };
+  }
+  if (
+    normalized.includes("device") ||
+    normalized.includes("thiet-bi") ||
+    normalized.includes("dien-thoai") ||
+    index === 2
+  ) {
+    return {
+      title: t("guides.deviceTitle"),
+      description: t("guides.deviceDescription"),
+    };
+  }
+  return {
+    title: t("guides.installTitle"),
+    description: t("guides.installDescription"),
+  };
+}
+
 export function localizeHomePageViewModel(
   page: HomePageViewModel,
   locale: ShellLocale,
 ): HomePageViewModel {
   const t = createHomeTranslator(locale);
+  const listing = createListingTranslator(locale);
+  const localizedDestinations = page.destinations.map((item) => {
+    const name = localizeDestinationName(item.slug, locale, item.name);
+    return {
+      ...item,
+      name,
+      href: localizedHref(item.href, locale),
+      regionLabel: item.regionLabel
+        ? localizeContinentName(
+            item.slug === "usa"
+              ? "north-america"
+              : item.slug === "europe"
+                ? "europe"
+                : "asia",
+            locale,
+            item.regionLabel,
+          )
+        : undefined,
+      description: listing("ordinary.destinationDescription", { name }),
+      imageAlt: listing("ordinary.destinationImageAlt", { name }),
+      durationLabel: localizeDurationLabel(item.durationLabel, locale),
+    };
+  });
+  const localizedGuides = page.guides?.map((item, index) => {
+    const copy = guideCopy(`${item.slug} ${item.familyCode}`, index, t);
+    return {
+      ...item,
+      href: localizedHref(item.href, locale),
+      title: copy.title,
+      excerpt: copy.description,
+      imageAlt: copy.title,
+      category: listing("ordinary.guideCategory"),
+    };
+  });
+  const localizedProducts = page.products.map((item) => ({
+    ...item,
+    href: localizedHref(item.href, locale),
+    dataLabel: localizeDataLabel(item.dataLabel, locale),
+    durationLabel:
+      localizeDurationLabel(item.durationLabel, locale) || item.durationLabel,
+  }));
 
   return {
     ...page,
@@ -41,22 +124,50 @@ export function localizeHomePageViewModel(
         ? { ...page.hero.media, alt: t("hero.description") }
         : undefined,
     },
-    heroSearchItems: page.heroSearchItems.map((item) => ({
-      ...item,
-      href: localizedHref(item.href, locale),
-    })),
-    destinations: page.destinations.map((item) => ({
-      ...item,
-      href: localizedHref(item.href, locale),
-    })),
-    products: page.products.map((item) => ({
-      ...item,
-      href: localizedHref(item.href, locale),
-    })),
-    guides: page.guides?.map((item) => ({
-      ...item,
-      href: localizedHref(item.href, locale),
-    })),
+    heroSearchItems: page.heroSearchItems.map((item) => {
+      const href = localizedHref(item.href, locale);
+      if (item.type === "destination") {
+        const slug = hrefSlug(item.href);
+        const name = localizeDestinationName(slug, locale, item.label);
+        return {
+          ...item,
+          href,
+          label: name,
+          description: listing("ordinary.destinationDescription", { name }),
+          meta: item.meta?.replace(
+            /^Từ\s+/u,
+            `${listing("ordinary.priceFrom")} `,
+          ),
+        };
+      }
+      if (item.type === "guide") {
+        const guide = localizedGuides?.find(
+          (candidate) => hrefSlug(candidate.href) === hrefSlug(item.href),
+        );
+        return guide
+          ? {
+              ...item,
+              href,
+              label: guide.title,
+              description: guide.excerpt,
+              meta: guide.category,
+            }
+          : { ...item, href };
+      }
+      return {
+        ...item,
+        href,
+        description: item.description
+          ?.replace(
+            "Nhiều mức dung lượng",
+            listing("ordinary.manyDataAllowances"),
+          )
+          .replace("Nhiều thời hạn", listing("ordinary.manyDurations")),
+      };
+    }),
+    destinations: localizedDestinations,
+    products: localizedProducts,
+    guides: localizedGuides,
     content: {
       destinationSection: {
         eyebrow: t("destinations.eyebrow"),

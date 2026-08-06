@@ -46,6 +46,24 @@ export const shellMessagesLo = {
   quickAccess: {
     popular: "ຍອດນິຍົມ",
   },
+  search: {
+    destination: "ຈຸດໝາຍ",
+    product: "ສິນຄ້າ",
+    guide: "ຄູ່ມື",
+    placeholder: "ທ່ານຈະໄປໃສ?",
+    label: "ຄົ້ນຫາຈຸດໝາຍ, ສິນຄ້າ ຫຼື ຄູ່ມື",
+    results: "ຜົນການຄົ້ນຫາ",
+    emptyTitle: "ບໍ່ພົບຜົນລັບ",
+    emptyDescription: "ລອງຄົ້ນຫາຊື່ປະເທດ, ປະລິມານ data ຫຼື ຫົວຂໍ້ຄູ່ມື.",
+  },
+  heroMedia: {
+    fallbackAlt: "ຮູບປະກອບການເດີນທາງ ແລະ ການເຊື່ອມຕໍ່ eSIM",
+    eyebrow: "ເດີນທາງຢ່າງເຊື່ອມຕໍ່",
+    coverage: "ຫຼາຍກວ່າ 200 ປະເທດ",
+    ready: "eSIM ພ້ອມໃຊ້",
+    activation: "ເປີດໃຊ້ໃນບໍ່ກີ່ນາທີ",
+    connected: "ເຊື່ອມຕໍ່ແລ້ວ",
+  },
   footer: {
     brandDescription:
       "eSIM ສຳລັບການເດີນທາງສາກົນ ຊ່ວຍໃຫ້ທ່ານເຊື່ອມຕໍ່ໄດ້ໄວ ປອດໄພ ແລະ ສະດວກໃນທຸກການເດີນທາງ.",

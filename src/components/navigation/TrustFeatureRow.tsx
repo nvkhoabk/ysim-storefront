@@ -1,5 +1,7 @@
 // F07A-2B_R2_FUNCTIONAL_SHELL_LOCALIZATION_R3
 
+"use client";
+
 import {
   Globe2,
   Headphones,
@@ -14,6 +16,7 @@ import type {
   TrustFeatureItem,
 } from "@/config/storefront-footer";
 import { DEFAULT_LOCALIZED_SHELL_LABELS } from "@/i18n/shell/shell.defaults";
+import { useOptionalStorefrontLocale } from "@/i18n/runtime";
 
 const iconMap: Record<TrustFeatureIcon, LucideIcon> = {
   instant: Zap,
@@ -23,22 +26,25 @@ const iconMap: Record<TrustFeatureIcon, LucideIcon> = {
 };
 
 export interface TrustFeatureRowProps {
-  items: readonly TrustFeatureItem[];
+  items?: readonly TrustFeatureItem[];
   ariaLabel?: string;
 }
 
-export function TrustFeatureRow({
-  items,
-  ariaLabel = DEFAULT_LOCALIZED_SHELL_LABELS.serviceCommitments,
-}: TrustFeatureRowProps) {
+export function TrustFeatureRow({ items, ariaLabel }: TrustFeatureRowProps) {
+  const runtime = useOptionalStorefrontLocale();
+  const effectiveItems = items ?? runtime?.footer.trustFeatures ?? [];
+  const effectiveAriaLabel =
+    ariaLabel ??
+    runtime?.labels.serviceCommitments ??
+    DEFAULT_LOCALIZED_SHELL_LABELS.serviceCommitments;
   return (
     <section
-      aria-label={ariaLabel}
+      aria-label={effectiveAriaLabel}
       className="border-y border-[var(--ysim-color-border)] bg-white"
     >
       <Container>
         <div className="grid grid-cols-1 divide-y divide-[var(--ysim-color-border)] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
-          {items.map((item) => {
+          {effectiveItems.map((item) => {
             const Icon = iconMap[item.icon];
             return (
               <article

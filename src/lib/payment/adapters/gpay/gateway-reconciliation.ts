@@ -34,10 +34,20 @@ export interface GPayCallbackReconciliationResult {
     boolean;
   embedDataMatches?:
     boolean;
+  providerQueryKind?:
+    "gateway-order" | "virtual-account-detail";
+  accountNumberMatches?:
+    boolean;
+  amountMatches?:
+    boolean;
   query?: {
     status?: string;
     gpayTransactionId?: string;
     userPaymentMethod?: string;
+    providerQueryKind?: "gateway-order" | "virtual-account-detail";
+    accountNumber?: string;
+    equalAmount?: number;
+    virtualAccountStatus?: string;
     queriedAt: string;
   };
 }

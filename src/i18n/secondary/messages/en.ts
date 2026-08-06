@@ -59,6 +59,13 @@ export const secondaryMessagesEn: SecondaryMessages = {
   "guides.sourceSummary": "Source summary: {summary}",
   "guides.read": "Read guide",
   "guides.all": "View all guides",
+  "guides.related": "Related articles",
+  "guides.fallbackTitle": "This content is using a fallback language",
+  "guides.categoryAll": "All",
+  "guides.categoryInstallation": "eSIM installation",
+  "guides.categoryDevice": "Device check",
+  "guides.categoryUsage": "Using your eSIM",
+  "guides.categoryFaq": "Frequently asked questions",
   "support.eyebrow": "Support center",
   "support.title": "Support before, during, and after your trip",
   "support.description":

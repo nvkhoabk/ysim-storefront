@@ -55,6 +55,8 @@ export const detailMessagesVi = {
   "product.breadcrumbCatalog": "Danh sách eSIM",
   "product.breadcrumbCurrent": "Sản phẩm hiện tại",
   "product.optionCount": "{count} lựa chọn",
+  "product.optionLabel": "Lựa chọn {count}",
+  "product.standardPlan": "Gói tiêu chuẩn",
   "product.singleConfiguration": "Sản phẩm này có một cấu hình duy nhất.",
   "product.selectedOption": "Cặp đã chọn",
   "product.outOfStock": "Tạm hết hàng",
@@ -67,9 +69,17 @@ export const detailMessagesVi = {
   "product.addError": "Không thể thêm variation vào giỏ hàng.",
   "product.emailDelivery": "Nhận eSIM qua email",
   "product.qrInstallation": "Cài đặt bằng mã QR",
+  "product.galleryViewImage": "Xem ảnh {name}",
   "product.descriptionTitle": "Mô tả",
   "product.usageEyebrow": "Lưu ý sử dụng",
   "product.usageTitle": "Chuẩn bị trước chuyến đi",
+  "product.usageStableWifi": "Cài đặt eSIM khi có kết nối Wi‑Fi ổn định.",
+  "product.usageKeepInstalled":
+    "Không xóa eSIM sau khi cài đặt nếu chưa được hỗ trợ xác nhận.",
+  "product.usageEnableAtDestination":
+    "Chỉ bật eSIM làm đường dữ liệu chính khi đến điểm đến.",
+  "product.usageUnlockedDevice":
+    "Kiểm tra thiết bị không bị khóa mạng trước khi mua.",
   "destination.eyebrow": "Chi tiết điểm đến",
   "destination.title": "Trang điểm đến",
   "destination.sourceTitle": "Tên nguồn: {{title}}",

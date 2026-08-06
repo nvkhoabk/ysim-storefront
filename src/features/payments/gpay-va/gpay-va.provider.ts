@@ -10,6 +10,8 @@ import {
   updateWooCommerceAdminOrder,
   upsertWooCommerceOrderMeta,
 } from "@/lib/woocommerce/order-admin-write-api";
+import { claimWave1GPayVACanaryBudget } from "@/lib/runtime/wave1-gpay-va-budget";
+import { assertWave1GPayVACanaryRequest } from "@/lib/runtime/wave1-gpay-va-canary";
 
 import type {
   CreatePaymentInput,
@@ -148,10 +150,23 @@ async function createSession(
     throw new Error("Số tiền VA phải là số nguyên VND lớn hơn 0.");
   }
 
-  await enforceGigagoReadinessBeforePayment({
+  const canaryPolicy = assertWave1GPayVACanaryRequest({
+    provider: "gpay_virtual_account",
     orderId: input.orderId,
-    paymentProvider: "gpay_virtual_account",
+    amountVnd: input.amount,
+    nodeEnvironment: process.env.NODE_ENV,
   });
+
+  if (
+    !canaryPolicy &&
+    process.env.GPAY_COMMERCE_AUTOMATION_MODE?.trim().toLowerCase() ===
+      "fulfill"
+  ) {
+    await enforceGigagoReadinessBeforePayment({
+      orderId: input.orderId,
+      paymentProvider: "gpay_virtual_account",
+    });
+  }
 
   const config = getGPayVAConfig();
   const order = await getWooCommerceAdminOrder(input.orderId);
@@ -175,6 +190,8 @@ async function createSession(
       "Trạng thái tạo Virtual Account chưa xác định. Không tự tạo lại để tránh phát sinh hai VA; cần operator kiểm tra GPay.",
     );
   }
+
+  await claimWave1GPayVACanaryBudget(canaryPolicy);
 
   const reference = createStableReference(input);
   const preparedMeta = upsertWooCommerceOrderMeta(order, {

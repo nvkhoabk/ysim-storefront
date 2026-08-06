@@ -1,8 +1,6 @@
 "use client";
 
-import {
-  useState,
-} from "react";
+import { useState } from "react";
 
 import Link from "next/link";
 
@@ -25,6 +23,12 @@ import {
 } from "lucide-react";
 
 import styles from "./OffersPartnerLanding.module.css";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+import {
+  createOffersPartnerCopy,
+  type OffersPartnerCopy,
+} from "@/i18n/offers/offers-partner.config";
 
 type OffersTab =
   | "discount-policy"
@@ -33,119 +37,81 @@ type OffersTab =
   | "settlement"
   | "terms";
 
-const tabs:
-  readonly {
-    id:
-      OffersTab;
-    label: string;
-    placeholderTitle?: string;
-    placeholderDescription?: string;
-  }[] = [
-    {
-      id:
-        "discount-policy",
-      label:
-        "Chính sách chiết khấu",
-    },
-    {
-      id:
-        "sales-reward",
-      label:
-        "Thưởng doanh số",
-      placeholderTitle:
-        "Chương trình thưởng doanh số",
-      placeholderDescription:
-        "Cơ chế tính thưởng, chu kỳ đối soát và mốc doanh số sẽ được bổ sung trong package nội dung tiếp theo.",
-    },
-    {
-      id:
-        "special-offers",
-      label:
-        "Ưu đãi đặc biệt",
-      placeholderTitle:
-        "Ưu đãi đặc biệt dành cho đối tác",
-      placeholderDescription:
-        "Các chiến dịch ưu đãi theo mùa, theo thị trường và theo nhóm sản phẩm đang được hoàn thiện.",
-    },
-    {
-      id:
-        "settlement",
-      label:
-        "Quy đổi & thanh toán",
-      placeholderTitle:
-        "Quy đổi và thanh toán",
-      placeholderDescription:
-        "Quy tắc quy đổi, lịch thanh toán và phương thức đối soát sẽ được bổ sung sau khi chính sách tài chính được duyệt.",
-    },
-    {
-      id:
-        "terms",
-      label:
-        "Điều khoản",
-      placeholderTitle:
-        "Điều khoản chương trình đối tác",
-      placeholderDescription:
-        "Nội dung điều khoản sẽ được phát hành sau khi hoàn tất vòng rà soát pháp lý và vận hành.",
-    },
-  ];
+const tabs: readonly {
+  id: OffersTab;
+  label: string;
+  placeholderTitle?: string;
+  placeholderDescription?: string;
+}[] = [
+  {
+    id: "discount-policy",
+    label: "Chính sách chiết khấu",
+  },
+  {
+    id: "sales-reward",
+    label: "Thưởng doanh số",
+    placeholderTitle: "Chương trình thưởng doanh số",
+    placeholderDescription:
+      "Cơ chế tính thưởng, chu kỳ đối soát và mốc doanh số sẽ được bổ sung trong package nội dung tiếp theo.",
+  },
+  {
+    id: "special-offers",
+    label: "Ưu đãi đặc biệt",
+    placeholderTitle: "Ưu đãi đặc biệt dành cho đối tác",
+    placeholderDescription:
+      "Các chiến dịch ưu đãi theo mùa, theo thị trường và theo nhóm sản phẩm đang được hoàn thiện.",
+  },
+  {
+    id: "settlement",
+    label: "Quy đổi & thanh toán",
+    placeholderTitle: "Quy đổi và thanh toán",
+    placeholderDescription:
+      "Quy tắc quy đổi, lịch thanh toán và phương thức đối soát sẽ được bổ sung sau khi chính sách tài chính được duyệt.",
+  },
+  {
+    id: "terms",
+    label: "Điều khoản",
+    placeholderTitle: "Điều khoản chương trình đối tác",
+    placeholderDescription:
+      "Nội dung điều khoản sẽ được phát hành sau khi hoàn tất vòng rà soát pháp lý và vận hành.",
+  },
+];
 
 const heroBenefits = [
   {
-    icon:
-      Tag,
-    title:
-      "Chiết khấu cao",
-    description:
-      "Biên lợi nhuận hấp dẫn",
+    icon: Tag,
+    title: "Chiết khấu cao",
+    description: "Biên lợi nhuận hấp dẫn",
   },
   {
-    icon:
-      BarChart3,
-    title:
-      "Tăng trưởng bền vững",
-    description:
-      "Càng bán nhiều, ưu đãi càng cao",
+    icon: BarChart3,
+    title: "Tăng trưởng bền vững",
+    description: "Càng bán nhiều, ưu đãi càng cao",
   },
   {
-    icon:
-      Gift,
-    title:
-      "Thưởng hấp dẫn",
-    description:
-      "Thưởng doanh số và chương trình đặc biệt",
+    icon: Gift,
+    title: "Thưởng hấp dẫn",
+    description: "Thưởng doanh số và chương trình đặc biệt",
   },
   {
-    icon:
-      Headphones,
-    title:
-      "Hỗ trợ toàn diện",
-    description:
-      "Đồng hành cùng đối tác 24/7",
+    icon: Headphones,
+    title: "Hỗ trợ toàn diện",
+    description: "Đồng hành cùng đối tác 24/7",
   },
 ] as const;
 
 const tiers = [
   {
-    id:
-      "silver",
-    name:
-      "SILVER",
-    subtitle:
-      "Khởi đầu linh hoạt",
-    discount:
-      "30%",
-    requirement:
-      "Không yêu cầu",
-    accent:
-      "#475569",
-    border:
-      "#dbe4ee",
-    background:
-      "#f8fafc",
-    iconBackground:
-      "#e2e8f0",
-    icon:
-      ShieldCheck,
+    id: "silver",
+    name: "SILVER",
+    subtitle: "Khởi đầu linh hoạt",
+    discount: "30%",
+    requirement: "Không yêu cầu",
+    accent: "#475569",
+    border: "#dbe4ee",
+    background: "#f8fafc",
+    iconBackground: "#e2e8f0",
+    icon: ShieldCheck,
     benefits: [
       "Website White Label cơ bản",
       "Hỗ trợ kỹ thuật 24/7",
@@ -153,26 +119,16 @@ const tiers = [
     ],
   },
   {
-    id:
-      "gold",
-    name:
-      "GOLD",
-    subtitle:
-      "Tăng trưởng nhanh",
-    discount:
-      "40%",
-    requirement:
-      "≥ 200 SIM/tháng",
-    accent:
-      "#b45309",
-    border:
-      "#fcd34d",
-    background:
-      "#fffbeb",
-    iconBackground:
-      "#fef3c7",
-    icon:
-      Award,
+    id: "gold",
+    name: "GOLD",
+    subtitle: "Tăng trưởng nhanh",
+    discount: "40%",
+    requirement: "≥ 200 SIM/tháng",
+    accent: "#b45309",
+    border: "#fcd34d",
+    background: "#fffbeb",
+    iconBackground: "#fef3c7",
+    icon: Award,
     benefits: [
       "Website White Label nâng cao",
       "Hỗ trợ ưu tiên",
@@ -180,26 +136,16 @@ const tiers = [
     ],
   },
   {
-    id:
-      "diamond",
-    name:
-      "DIAMOND",
-    subtitle:
-      "Đối tác chiến lược",
-    discount:
-      "55%",
-    requirement:
-      "≥ 1.000 SIM/tháng",
-    accent:
-      "#07883d",
-    border:
-      "#86efac",
-    background:
-      "#f0fdf4",
-    iconBackground:
-      "#dcfce7",
-    icon:
-      Gem,
+    id: "diamond",
+    name: "DIAMOND",
+    subtitle: "Đối tác chiến lược",
+    discount: "55%",
+    requirement: "≥ 1.000 SIM/tháng",
+    accent: "#07883d",
+    border: "#86efac",
+    background: "#f0fdf4",
+    iconBackground: "#dcfce7",
+    icon: Gem,
     benefits: [
       "API chuyên sâu & tích hợp riêng",
       "Account Manager riêng",
@@ -210,341 +156,157 @@ const tiers = [
 
 const partnerBenefits = [
   {
-    icon:
-      Headphones,
-    title:
-      "Hỗ trợ marketing",
-    description:
-      "Tài liệu, banner và công cụ hỗ trợ bán hàng",
+    icon: Headphones,
+    title: "Hỗ trợ marketing",
+    description: "Tài liệu, banner và công cụ hỗ trợ bán hàng",
   },
   {
-    icon:
-      GraduationCap,
-    title:
-      "Đào tạo miễn phí",
-    description:
-      "Hướng dẫn sản phẩm và kỹ năng bán hàng",
+    icon: GraduationCap,
+    title: "Đào tạo miễn phí",
+    description: "Hướng dẫn sản phẩm và kỹ năng bán hàng",
   },
   {
-    icon:
-      Megaphone,
-    title:
-      "Chương trình đại lý",
-    description:
-      "Nhiều chương trình ưu đãi theo từng thời kỳ",
+    icon: Megaphone,
+    title: "Chương trình đại lý",
+    description: "Nhiều chương trình ưu đãi theo từng thời kỳ",
   },
   {
-    icon:
-      ShieldCheck,
-    title:
-      "Minh bạch & rõ ràng",
-    description:
-      "Chính sách minh bạch, thanh toán nhanh chóng",
+    icon: ShieldCheck,
+    title: "Minh bạch & rõ ràng",
+    description: "Chính sách minh bạch, thanh toán nhanh chóng",
   },
   {
-    icon:
-      Users,
-    title:
-      "Đồng hành phát triển",
-    description:
-      "Cùng đối tác phát triển thị trường bền vững",
+    icon: Users,
+    title: "Đồng hành phát triển",
+    description: "Cùng đối tác phát triển thị trường bền vững",
   },
 ] as const;
 
-function DiscountPolicy() {
+function DiscountPolicy({ copy }: { readonly copy: OffersPartnerCopy }) {
   return (
     <>
       <header>
-        <h2
-          className={
-            styles.sectionTitle
-          }
-        >
-          Chính sách chiết khấu theo hạng đối tác
-        </h2>
+        <h2 className={styles.sectionTitle}>{copy.labels.policyTitle}</h2>
 
-        <p
-          className={
-            styles.sectionDescription
-          }
-        >
-          Càng nâng hạng – Càng hưởng ưu đãi cao.
+        <p className={styles.sectionDescription}>
+          {copy.labels.policyDescription}
         </p>
       </header>
 
-      <div
-        className={
-          styles.tierGrid
-        }
-      >
-        {
-          tiers.map(
-            (
-              tier,
-            ) => {
-              const Icon =
-                tier.icon;
+      <div className={styles.tierGrid}>
+        {tiers.map((tier, index) => {
+          const Icon = tier.icon;
+          const tierCopy = copy.tiers[index];
 
-              return (
-                <article
-                  key={
-                    tier.id
-                  }
-                  className={
-                    styles.tier
-                  }
-                  style={{
-                    "--tier-accent":
-                      tier.accent,
-                    "--tier-border":
-                      tier.border,
-                    "--tier-background":
-                      tier.background,
-                    "--tier-icon-background":
-                      tier.iconBackground,
-                  } as React.CSSProperties}
-                >
-                  <header
-                    className={
-                      styles.tierHeader
-                    }
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={
-                        styles.tierIcon
-                      }
-                    >
-                      <Icon className="h-6 w-6" />
-                    </span>
+          return (
+            <article
+              key={tier.id}
+              className={styles.tier}
+              style={
+                {
+                  "--tier-accent": tier.accent,
+                  "--tier-border": tier.border,
+                  "--tier-background": tier.background,
+                  "--tier-icon-background": tier.iconBackground,
+                } as React.CSSProperties
+              }
+            >
+              <header className={styles.tierHeader}>
+                <span aria-hidden="true" className={styles.tierIcon}>
+                  <Icon className="h-6 w-6" />
+                </span>
 
-                    <div>
-                      <h3
-                        className={
-                          styles.tierName
-                        }
-                      >
-                        {
-                          tier.name
-                        }
-                      </h3>
+                <div>
+                  <h3 className={styles.tierName}>{tier.name}</h3>
 
-                      <p
-                        className={
-                          styles.tierSubtitle
-                        }
-                      >
-                        {
-                          tier.subtitle
-                        }
-                      </p>
-                    </div>
-                  </header>
+                  <p className={styles.tierSubtitle}>{tierCopy.subtitle}</p>
+                </div>
+              </header>
 
-                  <div
-                    className={
-                      styles.tierMetric
-                    }
-                  >
-                    <div
-                      className={
-                        styles.metricColumn
-                      }
-                    >
-                      <p
-                        className={
-                          styles.tierMetricLabel
-                        }
-                      >
-                        Chiết khấu
-                      </p>
+              <div className={styles.tierMetric}>
+                <div className={styles.metricColumn}>
+                  <p className={styles.tierMetricLabel}>
+                    {copy.labels.discount}
+                  </p>
 
-                      <p
-                        className={
-                          styles.tierDiscount
-                        }
-                      >
-                        {
-                          tier.discount
-                        }
-                      </p>
-                    </div>
+                  <p className={styles.tierDiscount}>{tier.discount}</p>
+                </div>
 
-                    <div
-                      className={
-                        styles.metricColumn
-                      }
-                    >
-                      <p
-                        className={
-                          styles.tierMetricLabel
-                        }
-                      >
-                        Yêu cầu doanh số
-                      </p>
+                <div className={styles.metricColumn}>
+                  <p className={styles.tierMetricLabel}>
+                    {copy.labels.salesRequirement}
+                  </p>
 
-                      <p
-                        className={
-                          styles.tierRequirement
-                        }
-                      >
-                        {
-                          tier.requirement
-                        }
-                      </p>
-                    </div>
-                  </div>
+                  <p className={styles.tierRequirement}>
+                    {tierCopy.requirement}
+                  </p>
+                </div>
+              </div>
 
-                  <div
-                    className={
-                      styles.tierBenefits
-                    }
-                  >
-                    <p
-                      className={
-                        styles.tierBenefitsTitle
-                      }
-                    >
-                      Ưu đãi khác
-                    </p>
+              <div className={styles.tierBenefits}>
+                <p className={styles.tierBenefitsTitle}>
+                  {copy.labels.otherBenefits}
+                </p>
 
-                    <ul
-                      className={
-                        styles.tierBenefitList
-                      }
-                    >
-                      {
-                        tier.benefits.map(
-                          (
-                            benefit,
-                          ) => (
-                            <li
-                              key={
-                                benefit
-                              }
-                              className={
-                                styles.tierBenefit
-                              }
-                            >
-                              <Check
-                                aria-hidden="true"
-                                className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"
-                              />
+                <ul className={styles.tierBenefitList}>
+                  {tierCopy.benefits.map((benefit) => (
+                    <li key={benefit} className={styles.tierBenefit}>
+                      <Check
+                        aria-hidden="true"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"
+                      />
 
-                              {
-                                benefit
-                              }
-                            </li>
-                          ),
-                        )
-                      }
-                    </ul>
-                  </div>
-                </article>
-              );
-            },
-          )
-        }
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
-      <div
-        className={
-          styles.partnerBenefits
-        }
-      >
-        {
-          partnerBenefits.map(
-            (
-              benefit,
-            ) => {
-              const Icon =
-                benefit.icon;
+      <div className={styles.partnerBenefits}>
+        {partnerBenefits.map((benefit, index) => {
+          const Icon = benefit.icon;
+          const benefitCopy = copy.partnerBenefits[index];
 
-              return (
-                <article
-                  key={
-                    benefit.title
-                  }
-                  className={
-                    styles.partnerBenefit
-                  }
-                >
-                  <Icon
-                    aria-hidden="true"
-                    className={`h-6 w-6 ${styles.partnerBenefitIcon}`}
-                  />
+          return (
+            <article key={benefit.title} className={styles.partnerBenefit}>
+              <Icon
+                aria-hidden="true"
+                className={`h-6 w-6 ${styles.partnerBenefitIcon}`}
+              />
 
-                  <div>
-                    <h3
-                      className={
-                        styles.partnerBenefitTitle
-                      }
-                    >
-                      {
-                        benefit.title
-                      }
-                    </h3>
+              <div>
+                <h3 className={styles.partnerBenefitTitle}>
+                  {benefitCopy.title}
+                </h3>
 
-                    <p
-                      className={
-                        styles.partnerBenefitDescription
-                      }
-                    >
-                      {
-                        benefit.description
-                      }
-                    </p>
-                  </div>
-                </article>
-              );
-            },
-          )
-        }
+                <p className={styles.partnerBenefitDescription}>
+                  {benefitCopy.description}
+                </p>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </>
   );
 }
 
-function DeferredTab({
-  tab,
-}: {
-  tab:
-    (typeof tabs)[number];
-}) {
+function DeferredTab({ tab }: { tab: (typeof tabs)[number] }) {
   return (
-    <div
-      className={
-        styles.placeholder
-      }
-    >
+    <div className={styles.placeholder}>
       <div>
-        <span
-          aria-hidden="true"
-          className={
-            styles.placeholderIcon
-          }
-        >
+        <span aria-hidden="true" className={styles.placeholderIcon}>
           <Gift className="h-7 w-7" />
         </span>
 
-        <h2
-          className={
-            styles.placeholderTitle
-          }
-        >
-          {
-            tab.placeholderTitle
-          }
-        </h2>
+        <h2 className={styles.placeholderTitle}>{tab.placeholderTitle}</h2>
 
-        <p
-          className={
-            styles.placeholderDescription
-          }
-        >
-          {
-            tab.placeholderDescription
-          }
+        <p className={styles.placeholderDescription}>
+          {tab.placeholderDescription}
         </p>
       </div>
     </div>
@@ -552,283 +314,127 @@ function DeferredTab({
 }
 
 export function OffersPartnerLanding() {
-  const [
-    activeTab,
-    setActiveTab,
-  ] =
-    useState<
-      OffersTab
-    >(
-      "discount-policy",
-    );
+  const { locale } = useStorefrontLocale();
+  const copy = createOffersPartnerCopy(locale);
 
-  const selectedTab =
-    tabs.find(
-      (tab) =>
-        tab.id ===
-        activeTab,
-    ) ||
-    tabs[0];
+  const [activeTab, setActiveTab] = useState<OffersTab>("discount-policy");
+
+  const selectedTab = tabs.find((tab) => tab.id === activeTab) || tabs[0];
+  const selectedTabIndex = tabs.findIndex((tab) => tab.id === selectedTab.id);
+  const selectedTabCopy =
+    copy.tabs[selectedTabIndex < 0 ? 0 : selectedTabIndex];
 
   return (
     <div>
-      <section
-        className={
-          styles.hero
-        }
-      >
-        <div
-          className={
-            styles.heroGrid
-          }
-        >
+      <section className={styles.hero}>
+        <div className={styles.heroGrid}>
           <div>
             <nav
-              aria-label="Breadcrumb"
-              className={
-                styles.breadcrumb
-              }
+              aria-label={copy.labels.breadcrumb}
+              className={styles.breadcrumb}
             >
-              <Link href="/">
-                Trang chủ
+              <Link href={localizeShellHref("/", locale)}>
+                {copy.labels.home}
               </Link>
 
-              <span aria-hidden="true">
-                /
-              </span>
+              <span aria-hidden="true">/</span>
 
-              <span>
-                Ưu đãi
-              </span>
+              <span>{copy.labels.offers}</span>
             </nav>
 
-            <h1
-              className={
-                styles.heroTitle
-              }
-            >
-              Ưu đãi hấp dẫn
+            <h1 className={styles.heroTitle}>
+              {copy.labels.heroLine1}
               <br />
-              – Cùng bạn{" "}
-              <span
-                className={
-                  styles.heroTitleAccent
-                }
-              >
-                phát triển
+              {copy.labels.heroLine2}{" "}
+              <span className={styles.heroTitleAccent}>
+                {copy.labels.heroAccent}
               </span>
             </h1>
 
-            <p
-              className={
-                styles.heroDescription
-              }
-            >
-              Chính sách ưu đãi cạnh tranh, minh bạch và linh hoạt giúp đối tác tối ưu lợi nhuận và phát triển bền vững.
+            <p className={styles.heroDescription}>
+              {copy.labels.heroDescription}
             </p>
 
-            <div
-              className={
-                styles.heroBenefits
-              }
-            >
-              {
-                heroBenefits.map(
-                  (
-                    benefit,
-                  ) => {
-                    const Icon =
-                      benefit.icon;
+            <div className={styles.heroBenefits}>
+              {heroBenefits.map((benefit, index) => {
+                const Icon = benefit.icon;
+                const benefitCopy = copy.heroBenefits[index];
 
-                    return (
-                      <article
-                        key={
-                          benefit.title
-                        }
-                        className={
-                          styles.heroBenefit
-                        }
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={
-                            styles.heroBenefitIcon
-                          }
-                        >
-                          <Icon className="h-6 w-6" />
-                        </span>
+                return (
+                  <article key={benefit.title} className={styles.heroBenefit}>
+                    <span aria-hidden="true" className={styles.heroBenefitIcon}>
+                      <Icon className="h-6 w-6" />
+                    </span>
 
-                        <h2
-                          className={
-                            styles.heroBenefitTitle
-                          }
-                        >
-                          {
-                            benefit.title
-                          }
-                        </h2>
+                    <h2 className={styles.heroBenefitTitle}>
+                      {benefitCopy.title}
+                    </h2>
 
-                        <p
-                          className={
-                            styles.heroBenefitDescription
-                          }
-                        >
-                          {
-                            benefit.description
-                          }
-                        </p>
-                      </article>
-                    );
-                  },
-                )
-              }
+                    <p className={styles.heroBenefitDescription}>
+                      {benefitCopy.description}
+                    </p>
+                  </article>
+                );
+              })}
             </div>
           </div>
 
-          <div
-            aria-label="Minh họa tăng trưởng kinh doanh eSIM"
-            className={
-              styles.visual
-            }
-          >
-            <div
-              className={
-                styles.visualLabel
-              }
-            >
-              Kết nối toàn cầu, mở rộng doanh số cùng YSim
-            </div>
+          <div aria-label={copy.labels.visualAria} className={styles.visual}>
+            <div className={styles.visualLabel}>{copy.labels.visualLabel}</div>
 
-            <Plane
-              aria-hidden="true"
-              className={`h-11 w-11 ${styles.plane}`}
-            />
+            <Plane aria-hidden="true" className={`h-11 w-11 ${styles.plane}`} />
 
-            <div
-              aria-hidden="true"
-              className={
-                styles.travelBag
-              }
-            />
+            <div aria-hidden="true" className={styles.travelBag} />
 
-            <div
-              aria-hidden="true"
-              className={
-                styles.phone
-              }
-            >
-              <span
-                className={
-                  styles.phoneLogo
-                }
-              >
-                YSIM
-              </span>
+            <div aria-hidden="true" className={styles.phone}>
+              <span className={styles.phoneLogo}>YSIM</span>
 
-              <TrendingUp
-                className={`h-16 w-16 ${styles.phoneTrend}`}
-              />
+              <TrendingUp className={`h-16 w-16 ${styles.phoneTrend}`} />
             </div>
           </div>
 
           <aside
-            aria-label="Điểm nổi bật chương trình đối tác"
-            className={
-              styles.metricCards
-            }
+            aria-label={copy.labels.highlightsAria}
+            className={styles.metricCards}
           >
-            <article
-              className={
-                styles.metricCard
-              }
-            >
-              <p
-                className={
-                  styles.metricLabel
-                }
-              >
-                Chiết khấu lên đến
-              </p>
+            <article className={styles.metricCard}>
+              <p className={styles.metricLabel}>{copy.labels.maxDiscount}</p>
 
-              <p
-                className={
-                  styles.metricValue
-                }
-              >
-                55%
-              </p>
+              <p className={styles.metricValue}>55%</p>
 
-              <p
-                className={
-                  styles.metricDescription
-                }
-              >
-                Tùy theo hạng đối tác
+              <p className={styles.metricDescription}>
+                {copy.labels.partnerTierNote}
               </p>
             </article>
 
-            <article
-              className={
-                styles.metricIconCard
-              }
-            >
-              <span
-                aria-hidden="true"
-                className={
-                  styles.metricIcon
-                }
-              >
+            <article className={styles.metricIconCard}>
+              <span aria-hidden="true" className={styles.metricIcon}>
                 <Gift className="h-5 w-5" />
               </span>
 
               <div>
-                <h2
-                  className={
-                    styles.metricLabel
-                  }
-                >
-                  Thưởng doanh số
+                <h2 className={styles.metricLabel}>
+                  {copy.labels.salesReward}
                 </h2>
 
-                <p
-                  className={
-                    styles.metricDescription
-                  }
-                >
-                  Thưởng doanh số hấp dẫn
+                <p className={styles.metricDescription}>
+                  {copy.labels.salesRewardDescription}
                 </p>
               </div>
             </article>
 
-            <article
-              className={
-                styles.metricIconCard
-              }
-            >
-              <span
-                aria-hidden="true"
-                className={
-                  styles.metricIcon
-                }
-              >
+            <article className={styles.metricIconCard}>
+              <span aria-hidden="true" className={styles.metricIcon}>
                 <CreditCard className="h-5 w-5" />
               </span>
 
               <div>
-                <h2
-                  className={
-                    styles.metricLabel
-                  }
-                >
-                  Thanh toán nhanh
+                <h2 className={styles.metricLabel}>
+                  {copy.labels.fastSettlement}
                 </h2>
 
-                <p
-                  className={
-                    styles.metricDescription
-                  }
-                >
-                  Hỗ trợ linh hoạt
+                <p className={styles.metricDescription}>
+                  {copy.labels.flexibleSupport}
                 </p>
               </div>
             </article>
@@ -837,74 +443,45 @@ export function OffersPartnerLanding() {
 
         <div
           role="tablist"
-          aria-label="Nội dung chương trình ưu đãi"
-          className={
-            styles.tabs
-          }
+          aria-label={copy.labels.tabsAria}
+          className={styles.tabs}
         >
-          {
-            tabs.map(
-              (
-                tab,
-              ) => (
-                <button
-                  key={
-                    tab.id
-                  }
-                  type="button"
-                  role="tab"
-                  aria-selected={
-                    activeTab ===
-                    tab.id
-                  }
-                  onClick={() =>
-                    setActiveTab(
-                      tab.id,
-                    )
-                  }
-                  className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
-                >
-                  {
-                    tab.label
-                  }
-                </button>
-              ),
-            )
-          }
+          {tabs.map((tab, index) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
+            >
+              {copy.tabs[index].label}
+            </button>
+          ))}
         </div>
       </section>
 
-      <section
-        role="tabpanel"
-        className={`mt-8 ${styles.contentCard}`}
-      >
-        {
-          activeTab ===
-          "discount-policy"
-            ? (
-                <DiscountPolicy />
-              )
-            : (
-                <DeferredTab
-                  tab={
-                    selectedTab
-                  }
-                />
-              )
-        }
+      <section role="tabpanel" className={`mt-8 ${styles.contentCard}`}>
+        {activeTab === "discount-policy" ? (
+          <DiscountPolicy copy={copy} />
+        ) : (
+          <DeferredTab
+            tab={{
+              ...selectedTab,
+              ...selectedTabCopy,
+            }}
+          />
+        )}
       </section>
 
       <div className="mt-8 flex justify-center">
         <Link
-          href="/support"
+          href={localizeShellHref("/support", locale)}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 text-sm font-extrabold text-white no-underline hover:bg-emerald-800"
         >
-          Trao đổi về chương trình đối tác
+          {copy.labels.contact}
 
-          <ArrowRight
-            aria-hidden="true"
-            className="h-4 w-4"
-          />
+          <ArrowRight aria-hidden="true" className="h-4 w-4" />
         </Link>
       </div>
     </div>

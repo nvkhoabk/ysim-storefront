@@ -8,11 +8,12 @@ import {
   getWooCheckout,
   processWooCheckout,
 } from "@/lib/woocommerce/checkout-api";
+import { readWave1GPayVACanaryPolicy } from "@/lib/runtime/wave1-gpay-va-canary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const paymentMethods: PaymentMethodOption[] = [
+const standardPaymentMethods: PaymentMethodOption[] = [
   {
     id: "gpay_gateway_all",
     title: "Thanh toán qua cổng GPay",
@@ -26,6 +27,20 @@ const paymentMethods: PaymentMethodOption[] = [
       "YSim tạo tài khoản ảo dùng một lần và hiển thị VietQR ngay trên trang.",
   },
 ];
+
+function availablePaymentMethods(): PaymentMethodOption[] {
+  const canary = readWave1GPayVACanaryPolicy({
+    nodeEnvironment: process.env.NODE_ENV,
+  });
+
+  if (!canary) {
+    return standardPaymentMethods;
+  }
+
+  return standardPaymentMethods.filter(
+    (method) => method.id === canary.provider,
+  );
+}
 
 export async function GET() {
   try {
@@ -53,7 +68,7 @@ export async function GET() {
       {
         cart: cartResult.data,
         checkout: checkoutResult.data,
-        paymentMethods,
+        paymentMethods: availablePaymentMethods(),
       },
       {
         status: 200,

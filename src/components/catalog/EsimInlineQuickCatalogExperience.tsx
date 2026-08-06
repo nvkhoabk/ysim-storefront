@@ -18,6 +18,7 @@ import { EsimInlineTypeExplorer } from "./EsimInlineTypeExplorer";
 import { EsimQuickProductCatalog } from "./EsimQuickProductCatalog";
 import { useStorefrontLocale } from "@/i18n/runtime";
 import { localizeShellHref } from "@/i18n/shell/shell.href";
+import { localizeEsimQuickFilterSelection } from "@/i18n/listing/static-destination.config";
 
 function updateBrowserUrl(
   selection: EsimQuickFilterSelection,
@@ -55,14 +56,16 @@ export function EsimInlineQuickCatalogExperience({
   initialSelection: EsimQuickFilterSelection;
 }) {
   const { locale } = useStorefrontLocale();
-  const [selection, setSelection] =
-    useState<EsimQuickFilterSelection>(initialSelection);
+  const [selection, setSelection] = useState<EsimQuickFilterSelection>(() =>
+    localizeEsimQuickFilterSelection(initialSelection, locale),
+  );
 
   const select = useCallback(
     (next: EsimQuickFilterSelection) => {
-      setSelection(next);
+      const localized = localizeEsimQuickFilterSelection(next, locale);
+      setSelection(localized);
 
-      updateBrowserUrl(next, locale);
+      updateBrowserUrl(localized, locale);
 
       scrollToCatalog();
     },

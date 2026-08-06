@@ -1,27 +1,24 @@
 /* YSIM_PACKAGE_39_V2_ROUTE:offers-partner-program */
 
-import type {
-  Metadata,
-} from "next";
-
+import { ProductionOffersComposition } from "@/components/secondary-routes/production";
 import {
-  ProductionOffersComposition,
-} from "@/components/secondary-routes/production";
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+import { createOffersPartnerCopy } from "@/i18n/offers/offers-partner.config";
 
-export const metadata:
-  Metadata = {
-    title:
-      "Chương trình ưu đãi đối tác | YSim",
-    description:
-      "Chính sách chiết khấu, thưởng doanh số và quyền lợi dành cho đối tác YSim.",
-    alternates: {
-      canonical:
-        "/offers",
+export async function generateMetadata() {
+  const request = await getStorefrontLocaleRequest();
+  const copy = createOffersPartnerCopy(request.shell.locale);
+  return withLocalizedAlternates(
+    {
+      title: copy.labels.offers,
+      description: copy.labels.heroDescription,
     },
-  };
+    request,
+  );
+}
 
 export default function Page() {
-  return (
-    <ProductionOffersComposition />
-  );
+  return <ProductionOffersComposition />;
 }

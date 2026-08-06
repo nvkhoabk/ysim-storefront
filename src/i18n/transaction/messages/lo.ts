@@ -154,6 +154,12 @@ export const transactionMessagesLo: TransactionMessages = {
   "payment.copy": "ສຳເນົາ",
   "payment.copied": "ສຳເນົາ {label} ແລ້ວ.",
   "payment.copyFailed": "ບໍ່ສາມາດສຳເນົາ {label} ໄດ້.",
+  "payment.sessionMissingTitle": "ບໍ່ມີ session ການຊຳລະເງິນ",
+  "payment.sessionMissingDescription":
+    "ກັບໄປໜ້າ checkout ເພື່ອເລີ່ມ session ການຊຳລະເງິນທີ່ຖືກຕ້ອງ.",
+  "payment.orderMissingTitle": "ບໍ່ມີຂໍ້ມູນຄຳສັ່ງຊື້",
+  "payment.orderMissingDescription":
+    "ກັບໄປໜ້າ checkout ເພື່ອກວດຂໍ້ມູນຄຳສັ່ງຊື້.",
   "order.eyebrow": "ຜົນຄຳສັ່ງຊື້",
   "order.title": "ບັນທຶກຄຳສັ່ງຊື້ແລ້ວ",
   "order.description":
@@ -168,6 +174,9 @@ export const transactionMessagesLo: TransactionMessages = {
   "order.securityNotice":
     "QR eSIM ແລະ ຂໍ້ມູນ activation ຈິງບໍ່ຢູ່ໃນ candidate.",
   "order.startAgain": "ກັບໄປກະຕ່າ",
+  "order.accessMissingTitle": "ບໍ່ມີສິດເຂົ້າເບິ່ງຄຳສັ່ງຊື້",
+  "order.accessMissingDescription":
+    "ລະຫັດໃນ URL ຍັງບໍ່ພຽງພໍ. ໃຫ້ເປີດຄຳສັ່ງຊື້ຈາກ session checkout ເດີມ.",
   "labels.preview": "candidate ທຸລະກຳຫຼາຍພາສາ",
   "labels.tabs": "ເລືອກຂັ້ນຕອນທຸລະກຳ",
   "labels.cartItems": "ລາຍການສິນຄ້າໃນກະຕ່າ",

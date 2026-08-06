@@ -13,8 +13,6 @@ import {
   MapPinned,
 } from "lucide-react";
 
-import { esimDestinationExplorer } from "@/config/esim-destination-explorer";
-
 import {
   createAllEsimQuickFilterSelection,
   createContinentQuickFilterSelection,
@@ -33,6 +31,7 @@ import type { EsimQuickFilterSelection } from "@/types/view-models/esim-quick-fi
 import styles from "./EsimInlineQuickFilter.module.css";
 import { useStorefrontLocale } from "@/i18n/runtime";
 import { createListingTranslator } from "@/i18n/listing/listing.registry";
+import { createLocalizedEsimDestinationExplorer } from "@/i18n/listing/static-destination.config";
 
 const flagAssetVersion = "7.5.0";
 
@@ -144,9 +143,11 @@ function ContinentGroup({
 }
 
 function CountryPanel({
+  explorer,
   selection,
   onSelect,
 }: {
+  explorer: ReturnType<typeof createLocalizedEsimDestinationExplorer>;
   selection: EsimQuickFilterSelection;
   onSelect: (selection: EsimQuickFilterSelection) => void;
 }) {
@@ -156,7 +157,7 @@ function CountryPanel({
       <h2 className={styles.panelTitle}>{t("ordinary.explorerCountry")}</h2>
 
       <div className={styles.primaryGrid}>
-        {esimDestinationExplorer.primaryContinents.map((group) => (
+        {explorer.primaryContinents.map((group) => (
           <ContinentGroup
             key={group.id}
             group={group}
@@ -167,7 +168,7 @@ function CountryPanel({
       </div>
 
       <div className={styles.secondaryGrid}>
-        {esimDestinationExplorer.secondaryContinents.map((group) => (
+        {explorer.secondaryContinents.map((group) => (
           <ContinentGroup
             key={group.id}
             group={group}
@@ -181,9 +182,11 @@ function CountryPanel({
 }
 
 function RegionPanel({
+  explorer,
   selection,
   onSelect,
 }: {
+  explorer: ReturnType<typeof createLocalizedEsimDestinationExplorer>;
   selection: EsimQuickFilterSelection;
   onSelect: (selection: EsimQuickFilterSelection) => void;
 }) {
@@ -193,7 +196,7 @@ function RegionPanel({
       <h2 className={styles.panelTitle}>{t("ordinary.explorerRegion")}</h2>
 
       <div className={styles.regionGrid}>
-        {esimDestinationExplorer.regions.map((region) => {
+        {explorer.regions.map((region) => {
           const active =
             selection.kind === "region" && selection.id === region.id;
 
@@ -294,21 +297,9 @@ export function EsimInlineTypeExplorer({
   selection: EsimQuickFilterSelection;
   onSelect: (selection: EsimQuickFilterSelection) => void;
 }) {
-  const t = createListingTranslator(useStorefrontLocale().locale);
-  const localizedTypes = {
-    country: {
-      label: t("ordinary.typeCountry"),
-      description: t("ordinary.typeCountryDescription"),
-    },
-    region: {
-      label: t("ordinary.typeRegion"),
-      description: t("ordinary.typeRegionDescription"),
-    },
-    global: {
-      label: t("ordinary.typeGlobal"),
-      description: t("ordinary.typeGlobalDescription"),
-    },
-  } as const;
+  const { locale } = useStorefrontLocale();
+  const t = createListingTranslator(locale);
+  const explorer = createLocalizedEsimDestinationExplorer(locale);
   const [activeType, setActiveType] = useState<EsimExplorerType>(
     typeFromSelection(selection),
   );
@@ -328,6 +319,8 @@ export function EsimInlineTypeExplorer({
   return (
     <section
       aria-label={t("ordinary.explorerLabel")}
+      data-ysim-static-copy-scope="esim-explorer"
+      data-ysim-static-copy-locale={locale}
       className={styles.explorer}
     >
       <aside className={styles.typeColumn}>
@@ -338,7 +331,7 @@ export function EsimInlineTypeExplorer({
           aria-label={t("ordinary.typeTitle")}
           className={styles.typeTabs}
         >
-          {esimDestinationExplorer.types.map((type) => {
+          {explorer.types.map((type) => {
             const active = activeType === type.id;
 
             const Icon = typeIcons[type.id];
@@ -357,14 +350,14 @@ export function EsimInlineTypeExplorer({
                   <span className="flex items-center gap-2">
                     <Icon aria-hidden="true" className="h-4 w-4" />
 
-                    {localizedTypes[type.id].label}
+                    {type.label}
                   </span>
 
                   <ChevronRight aria-hidden="true" className="h-4 w-4" />
                 </span>
 
                 <span className={styles.typeTabDescription}>
-                  {localizedTypes[type.id].description}
+                  {type.description}
                 </span>
               </button>
             );
@@ -394,11 +387,19 @@ export function EsimInlineTypeExplorer({
         className={styles.mainPanel}
       >
         {activeType === "country" ? (
-          <CountryPanel selection={selection} onSelect={onSelect} />
+          <CountryPanel
+            explorer={explorer}
+            selection={selection}
+            onSelect={onSelect}
+          />
         ) : null}
 
         {activeType === "region" ? (
-          <RegionPanel selection={selection} onSelect={onSelect} />
+          <RegionPanel
+            explorer={explorer}
+            selection={selection}
+            onSelect={onSelect}
+          />
         ) : null}
 
         {activeType === "global" ? (

@@ -8,6 +8,8 @@ export const MARKET_REQUEST_HEADERS = {
   publicPathname: "x-ysim-public-pathname",
 } as const;
 
+export const PUBLIC_LOCALE_ROUTE_HEADER = "x-ysim-public-locale-route";
+
 export interface StorefrontLocaleRequest {
   readonly localized: boolean;
   readonly publicPathname: string;

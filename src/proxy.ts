@@ -2,43 +2,36 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 
-import { readMarketCookie } from "@/lib/market/market.cookie";
+import { stripUntrustedYsimHeaders } from "@/lib/market/market.request";
+import { getMarketByLocale } from "@/lib/market/market.registry";
 import {
-  isInternalMarketRewrite,
-  isMarketRoutingEnabled,
-  MARKET_INTERNAL_REWRITE_HEADER,
-  MARKET_INTERNAL_TOKEN_HEADER,
-  marketInternalToken,
-  readCountryCodeFromHeaders,
-  stripUntrustedYsimHeaders,
-} from "@/lib/market/market.request";
-import { buildInternalMarketRewriteUrl } from "@/lib/market/market.rewrite";
-import { decideMarketRouting } from "@/lib/market/market.routing";
+  localizePathname,
+  stripMarketLocale,
+} from "@/lib/market/market.routing";
 import { decideProductionExecutionGate } from "@/lib/runtime/production-execution-gate";
-import { MARKET_REQUEST_HEADERS } from "@/i18n/runtime/runtime.types";
+import {
+  MARKET_REQUEST_HEADERS,
+  PUBLIC_LOCALE_ROUTE_HEADER,
+} from "@/i18n/runtime/runtime.types";
 
 function addMarketRequestHeaders(
   requestHeaders: Headers,
   publicPathname: string,
-  market: { id: string; locale: string; currency: string },
-  source: string,
-  token: string,
+  locale: string,
 ): Headers {
+  const market = getMarketByLocale(locale);
+  if (!market) {
+    throw new Error(`PUBLIC_LOCALE_ROUTE_INVALID:${locale}`);
+  }
+
   const headers = new Headers(requestHeaders);
-  headers.set(MARKET_INTERNAL_REWRITE_HEADER, "1");
-  headers.set(MARKET_INTERNAL_TOKEN_HEADER, token);
+  headers.set(PUBLIC_LOCALE_ROUTE_HEADER, market.locale);
   headers.set(MARKET_REQUEST_HEADERS.id, market.id);
   headers.set(MARKET_REQUEST_HEADERS.locale, market.locale);
   headers.set(MARKET_REQUEST_HEADERS.currency, market.currency);
-  headers.set(MARKET_REQUEST_HEADERS.source, source);
+  headers.set(MARKET_REQUEST_HEADERS.source, "path");
   headers.set(MARKET_REQUEST_HEADERS.publicPathname, publicPathname);
   return headers;
-}
-
-function continueInternalRewrite(request: NextRequest): NextResponse {
-  const headers = new Headers(request.headers);
-  headers.delete(MARKET_INTERNAL_REWRITE_HEADER);
-  return NextResponse.next({ request: { headers } });
 }
 
 function continueWithSanitizedHeaders(headers: Headers): NextResponse {
@@ -53,9 +46,24 @@ function preventLocationCaching(response: NextResponse): NextResponse {
 
 export default function proxy(request: NextRequest) {
   const sanitizedHeaders = stripUntrustedYsimHeaders(request.headers);
+  const pathname = request.nextUrl.pathname;
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    (pathname === "/ui-preview" ||
+      pathname.startsWith("/ui-preview/") ||
+      pathname === "/api/ui-preview" ||
+      pathname.startsWith("/api/ui-preview/"))
+  ) {
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  }
+
   const executionGate = decideProductionExecutionGate({
     nodeEnvironment: process.env.NODE_ENV,
-    pathname: request.nextUrl.pathname,
+    pathname,
     method: request.method,
   });
 
@@ -75,61 +83,30 @@ export default function proxy(request: NextRequest) {
     );
   }
 
-  if (request.nextUrl.pathname.startsWith("/api/")) {
+  if (pathname.startsWith("/api/")) {
     return continueWithSanitizedHeaders(sanitizedHeaders);
   }
 
-  // A localized URL is rewritten once to the existing unprefixed route.
-  // Next.js may evaluate Proxy again for that internal rewrite. The marker
-  // prevents the second pass from resolving cookie/IP and redirecting away
-  // from the locale explicitly selected in the URL.
-  if (isInternalMarketRewrite(request.headers)) {
-    return continueInternalRewrite(request);
-  }
-
-  const token = marketInternalToken();
-  const routingEnabled = isMarketRoutingEnabled() && token !== null;
-
-  const decision = decideMarketRouting({
-    enabled: routingEnabled,
-    pathname: request.nextUrl.pathname,
-    search: request.nextUrl.search,
-    cookieValue: readMarketCookie(request.headers.get("cookie")),
-    countryCode: readCountryCodeFromHeaders(request.headers),
-  });
-
-  if (decision.action === "next") {
-    return continueWithSanitizedHeaders(sanitizedHeaders);
-  }
-
-  if (decision.action === "redirect") {
-    return preventLocationCaching(
-      NextResponse.redirect(new URL(decision.location, request.url), 307),
+  const localized = stripMarketLocale(pathname);
+  if (localized.locale) {
+    return continueWithSanitizedHeaders(
+      addMarketRequestHeaders(sanitizedHeaders, pathname, localized.locale),
     );
   }
 
-  const destination = buildInternalMarketRewriteUrl(
-    request.url,
-    decision.destination,
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return continueWithSanitizedHeaders(sanitizedHeaders);
+  }
+
+  const location = `${localizePathname("vi", pathname)}${request.nextUrl.search}`;
+  return preventLocationCaching(
+    NextResponse.redirect(new URL(location, request.url), 308),
   );
-  const response = NextResponse.rewrite(destination, {
-    request: {
-      headers: addMarketRequestHeaders(
-        sanitizedHeaders,
-        request.nextUrl.pathname,
-        decision.market,
-        decision.source,
-        token as string,
-      ),
-    },
-  });
-  response.headers.set("x-ysim-market-id", decision.market.id);
-  return preventLocationCaching(response);
 }
 
 export const config = {
   matcher: [
     "/api/:path*",
-    "/((?!_next/static|_next/image|ui-preview|favicon.ico|icon.png|apple-icon.png|robots.txt|sitemap.xml|.*\\..*).*)",
+    "/((?!_next(?:/|$)|favicon.ico|icon.png|apple-icon.png|robots.txt|sitemap.xml|.*\\..*).*)",
   ],
 };

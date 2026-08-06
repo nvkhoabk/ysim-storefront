@@ -46,6 +46,24 @@ export const shellMessagesEn = {
   quickAccess: {
     popular: "Popular",
   },
+  search: {
+    destination: "Destinations",
+    product: "Products",
+    guide: "Guides",
+    placeholder: "Where are you going?",
+    label: "Search destinations, products, or guides",
+    results: "Search results",
+    emptyTitle: "No results found",
+    emptyDescription: "Try a country name, data allowance, or guide topic.",
+  },
+  heroMedia: {
+    fallbackAlt: "Travel and eSIM connectivity illustration",
+    eyebrow: "Travel connected",
+    coverage: "200+ countries",
+    ready: "eSIM ready",
+    activation: "Activate in minutes",
+    connected: "Connected",
+  },
   footer: {
     brandDescription:
       "International travel eSIMs that keep you connected quickly, securely and conveniently wherever you go.",

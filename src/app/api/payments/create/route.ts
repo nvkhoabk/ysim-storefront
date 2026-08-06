@@ -10,6 +10,10 @@ import {
   updateWooCommerceAdminOrder,
   upsertWooCommerceOrderMeta,
 } from "@/lib/woocommerce/order-admin-write-api";
+import {
+  assertWave1GPayVACanaryRequest,
+  Wave1GPayVACanaryError,
+} from "@/lib/runtime/wave1-gpay-va-canary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,6 +97,13 @@ export async function POST(request: Request) {
       throw new Error("Các phương thức GPay hiện chỉ hỗ trợ đơn hàng VND.");
     }
 
+    assertWave1GPayVACanaryRequest({
+      provider: values.provider,
+      orderId: order.id,
+      amountVnd: amount,
+      nodeEnvironment: process.env.NODE_ENV,
+    });
+
     const customerName = [order.billing.first_name, order.billing.last_name]
       .filter(Boolean)
       .join(" ")
@@ -124,6 +135,20 @@ export async function POST(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
+    if (error instanceof Wave1GPayVACanaryError) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: error.code,
+          message: error.message,
+        },
+        {
+          status: error.status,
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
+    }
+
     if (error instanceof GigagoReadinessError) {
       return NextResponse.json(
         {

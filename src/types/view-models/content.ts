@@ -1,23 +1,10 @@
-import type {
-  HeroViewModel,
-} from "@/types/view-models/hero";
+import type { HeroViewModel } from "@/types/view-models/hero";
 
-export type ContentLocale =
-  | "vi"
-  | "en"
-  | "ja"
-  | "ko";
+export type ContentLocale = "vi" | "en" | "lo" | "ja" | "ko";
 
-export type ContentKind =
-  | "guide"
-  | "help"
-  | "policy"
-  | "faq";
+export type ContentKind = "guide" | "help" | "policy" | "faq";
 
-export type ContentCalloutTone =
-  | "info"
-  | "success"
-  | "warning";
+export type ContentCalloutTone = "info" | "success" | "warning";
 
 export interface ContentCategoryViewModel {
   id: string;
@@ -98,26 +85,20 @@ export interface ContentCalloutViewModel {
 
 export interface ContentLandingViewModel {
   hero: HeroViewModel;
-  categories:
-    readonly ContentCategoryViewModel[];
+  categories: readonly ContentCategoryViewModel[];
   activeCategoryId?: string;
   section: {
     eyebrow?: string;
     title: string;
     description?: string;
   };
-  articles:
-    readonly ArticleCardViewModel[];
-  callout?:
-    ContentCalloutViewModel;
+  articles: readonly ArticleCardViewModel[];
+  callout?: ContentCalloutViewModel;
 }
 
 export interface ArticlePageCompositionViewModel {
-  article:
-    ArticlePageViewModel;
+  article: ArticlePageViewModel;
   relatedTitle?: string;
-  relatedArticles:
-    readonly ArticleCardViewModel[];
-  callout?:
-    ContentCalloutViewModel;
+  relatedArticles: readonly ArticleCardViewModel[];
+  callout?: ContentCalloutViewModel;
 }

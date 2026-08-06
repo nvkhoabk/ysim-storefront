@@ -22,7 +22,10 @@ import {
   withLocalizedAlternates,
 } from "@/i18n/runtime/runtime.server";
 import { createListingTranslator } from "@/i18n/listing/listing.registry";
-import { localizeDestinationPageViewModel } from "@/lib/storefront/localization";
+import {
+  localizeDestinationPageViewModel,
+  localizeDestinationRouteSelection,
+} from "@/lib/storefront/localization";
 import { metadata as legacyMetadata } from "./legacy-page";
 
 export async function generateMetadata() {
@@ -31,7 +34,7 @@ export async function generateMetadata() {
   return withLocalizedAlternates(
     {
       ...legacyMetadata,
-      title: `${t("destinations.title")} | YSim`,
+      title: t("destinations.title"),
       description: t("destinations.description"),
     },
     request,
@@ -54,10 +57,13 @@ export default async function DestinationsPage(props: DestinationsPageProps) {
     productionAdapter: createProductionDestinationRouteAdapterFromEnvironment(),
   });
 
-  const selection = resolveDestinationRouteSelection(
-    await Promise.resolve(
-      (props.searchParams || {}) as DestinationSearchParams,
+  const selection = localizeDestinationRouteSelection(
+    resolveDestinationRouteSelection(
+      await Promise.resolve(
+        (props.searchParams || {}) as DestinationSearchParams,
+      ),
     ),
+    request.shell.locale,
   );
   const localizedPage = request.localized
     ? localizeDestinationPageViewModel(candidate.page, request.shell.locale)

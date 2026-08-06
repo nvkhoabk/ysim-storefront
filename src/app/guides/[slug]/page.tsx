@@ -1,29 +1,24 @@
 /* YSIM_PACKAGE_24_ACTIVATION:guide-detail */
-import {
-  notFound,
-} from "next/navigation";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 import LegacyGuideDetailPage from "./legacy-page";
 
-import {
-  ArticlePageComposition,
-} from "@/components/content/refactor";
+import { ArticlePageComposition } from "@/components/content/refactor";
 
-import {
-  GuideArticleRouteCandidatePage,
-} from "@/components/content/refactor/integration";
+import { GuideArticleRouteCandidatePage } from "@/components/content/refactor/integration";
 
-import {
-  parseContentLocale,
-} from "@/lib/content/integration";
+import { parseContentLocale } from "@/lib/content/integration";
 
-import {
-  loadGuideArticleRouteCandidate,
-} from "@/lib/content/route-candidate";
+import { loadGuideArticleRouteCandidate } from "@/lib/content/route-candidate";
 
+import { createGuideMetadata } from "@/lib/content/integration";
 import {
-  getProductionRouteMode,
-} from "@/lib/storefront/integration/route-flags";
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+
+import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
 
 interface GuideDetailPageProps {
   params: Promise<{
@@ -34,69 +29,52 @@ interface GuideDetailPageProps {
   }>;
 }
 
+export async function generateMetadata(
+  props: GuideDetailPageProps,
+): Promise<Metadata> {
+  const [{ slug }, request] = await Promise.all([
+    props.params,
+    getStorefrontLocaleRequest(),
+  ]);
+  const locale = parseContentLocale(request.shell.locale);
+  const candidate = await loadGuideArticleRouteCandidate({ locale, slug });
 
-export default async function GuideDetailPage(
-  props:
-    GuideDetailPageProps,
-) {
-  const mode =
-    getProductionRouteMode(
-      "guide-detail",
-    );
+  if (!candidate) return { robots: { index: false, follow: false } };
 
-  if (
-    mode ===
-    "legacy"
-  ) {
-    return (
-      <LegacyGuideDetailPage
-        {...props}
-      />
-    );
+  return withLocalizedAlternates(
+    createGuideMetadata(candidate.page.article),
+    request,
+  );
+}
+
+export default async function GuideDetailPage(props: GuideDetailPageProps) {
+  const mode = getProductionRouteMode("guide-detail");
+
+  if (mode === "legacy") {
+    return <LegacyGuideDetailPage {...props} />;
   }
 
-  const params =
-    await props.params;
+  const params = await props.params;
 
-  const query =
-    props.searchParams
-      ? await props.searchParams
-      : {};
+  const query = props.searchParams ? await props.searchParams : {};
 
-  const locale =
-    parseContentLocale(
-      query.locale,
-    );
+  const request = await getStorefrontLocaleRequest();
+  const locale = parseContentLocale(
+    request.localized ? request.shell.locale : query.locale,
+  );
 
-  const candidate =
-    await loadGuideArticleRouteCandidate({
-      locale,
-      slug:
-        params.slug,
-    });
+  const candidate = await loadGuideArticleRouteCandidate({
+    locale,
+    slug: params.slug,
+  });
 
   if (!candidate) {
     notFound();
   }
 
-  if (
-    mode ===
-    "candidate"
-  ) {
-    return (
-      <GuideArticleRouteCandidatePage
-        candidate={
-          candidate
-        }
-      />
-    );
+  if (mode === "candidate") {
+    return <GuideArticleRouteCandidatePage candidate={candidate} />;
   }
 
-  return (
-    <ArticlePageComposition
-      page={
-        candidate.page
-      }
-    />
-  );
+  return <ArticlePageComposition page={candidate.page} />;
 }

@@ -259,19 +259,11 @@ export function createLocalizedShellBundle(
       {
         title: t("footer.partner"),
         links: [
-          localizedLink(locale, t("footer.partnerProgram"), "/partners"),
-          localizedLink(
-            locale,
-            t("footer.agencyRegister"),
-            "/partners/register",
-          ),
-          localizedLink(locale, t("footer.apiDocs"), "/partners/api"),
+          localizedLink(locale, t("footer.partnerProgram"), "/offers"),
+          localizedLink(locale, t("footer.agencyRegister"), "/offers"),
+          localizedLink(locale, t("footer.apiDocs"), "/support"),
           {
-            ...localizedLink(
-              locale,
-              t("footer.partnerPortal"),
-              "/partners/portal",
-            ),
+            ...localizedLink(locale, t("footer.partnerPortal"), "/support"),
             badge: t("footer.introduction"),
           },
         ],
@@ -306,10 +298,10 @@ export function createLocalizedShellBundle(
     ],
     paymentMethods: ["Visa", "Mastercard", "NAPAS", "GPay", "OnePay"],
     legalLinks: [
-      localizedLink(locale, t("footer.terms"), "/policies/terms"),
-      localizedLink(locale, t("footer.privacy"), "/policies/privacy"),
-      localizedLink(locale, t("footer.refund"), "/policies/refund"),
-      localizedLink(locale, t("footer.paymentPolicy"), "/policies/payment"),
+      localizedLink(locale, t("footer.terms"), "/terms"),
+      localizedLink(locale, t("footer.privacy"), "/privacy-policy"),
+      localizedLink(locale, t("footer.refund"), "/refund-policy"),
+      localizedLink(locale, t("footer.paymentPolicy"), "/terms"),
     ],
     copyright: t("footer.copyright"),
     securityNote: t("footer.securityNote"),

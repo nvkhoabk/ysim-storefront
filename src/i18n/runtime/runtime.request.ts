@@ -6,6 +6,7 @@ import {
 } from "../../lib/market/market.request";
 import {
   MARKET_REQUEST_HEADERS,
+  PUBLIC_LOCALE_ROUTE_HEADER,
   type StorefrontLocaleRequest,
 } from "./runtime.types";
 
@@ -19,10 +20,11 @@ export function resolveStorefrontLocaleRequest(
   env: MarketRuntimeEnvironment = process.env,
 ): StorefrontLocaleRequest {
   const trusted = hasTrustedMarketHeaders(requestHeaders, env);
-  const headerLocale = trusted
-    ? requestHeaders.get(MARKET_REQUEST_HEADERS.locale)
-    : null;
-  const localized = headerLocale !== null;
+  const routeLocale = requestHeaders.get(PUBLIC_LOCALE_ROUTE_HEADER);
+  const headerLocale =
+    routeLocale ??
+    (trusted ? requestHeaders.get(MARKET_REQUEST_HEADERS.locale) : null);
+  const localized = routeLocale !== null || trusted;
   const locale = normalizeShellLocale(headerLocale);
 
   return {

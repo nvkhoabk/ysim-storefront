@@ -55,6 +55,8 @@ export const detailMessagesEn = {
   "product.breadcrumbCatalog": "eSIM listing",
   "product.breadcrumbCurrent": "Current product",
   "product.optionCount": "{count} options",
+  "product.optionLabel": "Option {count}",
+  "product.standardPlan": "Standard plan",
   "product.singleConfiguration": "This product has one configuration.",
   "product.selectedOption": "Selected option",
   "product.outOfStock": "Temporarily out of stock",
@@ -68,9 +70,17 @@ export const detailMessagesEn = {
   "product.addError": "Unable to add this variation to the cart.",
   "product.emailDelivery": "Receive the eSIM by email",
   "product.qrInstallation": "Install with a QR code",
+  "product.galleryViewImage": "View image {name}",
   "product.descriptionTitle": "Description",
   "product.usageEyebrow": "Usage notes",
   "product.usageTitle": "Prepare before the trip",
+  "product.usageStableWifi": "Install the eSIM over a stable Wi‑Fi connection.",
+  "product.usageKeepInstalled":
+    "Do not remove the eSIM after installation unless support confirms it is safe.",
+  "product.usageEnableAtDestination":
+    "Enable the eSIM as your primary data line only after arriving at your destination.",
+  "product.usageUnlockedDevice":
+    "Confirm that your device is carrier-unlocked before purchase.",
   "destination.eyebrow": "Destination detail",
   "destination.title": "Destination page",
   "destination.sourceTitle": "Source title: {{title}}",

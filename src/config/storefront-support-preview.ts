@@ -1,508 +1,381 @@
-import type {
-  HeroViewModel,
-} from "@/types/view-models/hero";
+import type { HeroViewModel } from "@/types/view-models/hero";
 
-import type {
-  SupportPageViewModel,
-} from "@/types/view-models/support";
+import type { SupportPageViewModel } from "@/types/view-models/support";
 
-const supportHero:
-  HeroViewModel = {
-    eyebrow:
-      "Trung tâm hỗ trợ",
+const supportHero: HeroViewModel = {
+  eyebrow: "Trung tâm hỗ trợ",
 
-    title:
-      "Sẵn sàng đồng hành",
+  title: "Sẵn sàng đồng hành",
 
-    highlightedText:
-      "trong mọi hành trình.",
+  highlightedText: "trong mọi hành trình.",
 
-    description:
-      "Tìm hướng dẫn cài đặt, kiểm tra thiết bị và câu trả lời cho các vấn đề thường gặp.",
+  description:
+    "Tìm hướng dẫn cài đặt, kiểm tra thiết bị và câu trả lời cho các vấn đề thường gặp.",
 
-    benefits: [
-      {
-        label:
-          "Kiểm tra thiết bị",
-        icon:
-          "secure",
-      },
-      {
-        label:
-          "Hướng dẫn từng bước",
-        icon:
-          "instant",
-      },
-      {
-        label:
-          "Nhiều kênh hỗ trợ",
-        icon:
-          "global",
-      },
-      {
-        label:
-          "Hỗ trợ 24/7",
-        icon:
-          "support",
-      },
-    ],
+  benefits: [
+    {
+      label: "Kiểm tra thiết bị",
+      icon: "secure",
+    },
+    {
+      label: "Hướng dẫn từng bước",
+      icon: "instant",
+    },
+    {
+      label: "Nhiều kênh hỗ trợ",
+      icon: "global",
+    },
+    {
+      label: "Hỗ trợ 24/7",
+      icon: "support",
+    },
+  ],
 
-    media: {
-	  imageUrl: "/assets/heroes/support-hero.png",
-      eyebrow:
-        "YSim Support",
-      alt:
-        "Minh họa trung tâm hỗ trợ YSim",
+  media: {
+    imageUrl: "/assets/heroes/support-hero.png",
+    eyebrow: "YSim Support",
+    alt: "Minh họa trung tâm hỗ trợ YSim",
+  },
+
+  variant: "brand",
+
+  alignment: "left",
+};
+
+export const supportPreviewPage: SupportPageViewModel = {
+  hero: supportHero,
+
+  topics: [
+    {
+      id: "installation",
+
+      title: "Cài đặt eSIM",
+
+      description: "Hướng dẫn cài đặt, bật dữ liệu và cấu hình roaming data.",
+
+      href: "/guides?category=installation",
+
+      icon: "installation",
     },
 
-    variant:
-      "brand",
+    {
+      id: "device",
 
-    alignment:
-      "left",
-  };
+      title: "Kiểm tra thiết bị",
 
-export const supportPreviewPage:
-  SupportPageViewModel = {
-    hero:
-      supportHero,
+      description: "Xác định điện thoại có hỗ trợ eSIM và không bị khóa mạng.",
 
-    topics: [
-      {
-        id:
-          "installation",
+      href: "#device-compatibility",
 
-        title:
-          "Cài đặt eSIM",
+      icon: "device",
+    },
 
-        description:
-          "Hướng dẫn cài đặt, bật dữ liệu và cấu hình roaming data.",
+    {
+      id: "payment",
 
-        href:
-          "/guides?category=installation",
+      title: "Thanh toán",
 
-        icon:
-          "installation",
-      },
+      description:
+        "Tìm hiểu trạng thái giao dịch, hoàn tiền và thanh toán lại.",
 
-      {
-        id:
-          "device",
+      href: "#faq",
 
-        title:
-          "Kiểm tra thiết bị",
+      icon: "payment",
+    },
 
-        description:
-          "Xác định điện thoại có hỗ trợ eSIM và không bị khóa mạng.",
+    {
+      id: "order",
 
-        href:
-          "#device-compatibility",
+      title: "Đơn hàng và nhận eSIM",
 
-        icon:
-          "device",
-      },
+      description: "Kiểm tra email nhận eSIM, mã đơn hàng và tiến trình xử lý.",
 
-      {
-        id:
-          "payment",
+      href: "#contact",
 
-        title:
-          "Thanh toán",
+      icon: "order",
+    },
+  ],
 
-        description:
-          "Tìm hiểu trạng thái giao dịch, hoàn tiền và thanh toán lại.",
+  devices: [
+    {
+      id: "apple-iphone-15",
 
-        href:
-          "/support/payment",
+      brand: "Apple",
 
-        icon:
-          "payment",
-      },
+      model: "iPhone 15",
 
-      {
-        id:
-          "order",
+      platform: "ios",
 
-        title:
-          "Đơn hàng và nhận eSIM",
+      status: "supported",
 
-        description:
-          "Kiểm tra email nhận eSIM, mã đơn hàng và tiến trình xử lý.",
+      statusLabel: "Hỗ trợ eSIM",
 
-        href:
-          "/support/orders",
+      description: "Thiết bị preview này được đánh dấu hỗ trợ eSIM.",
 
-        icon:
-          "order",
-      },
-    ],
+      notes: [
+        "Kiểm tra mục Thêm eSIM trong Cài đặt → Di động.",
+        "Đảm bảo thiết bị không bị khóa theo nhà mạng.",
+        "Biến thể thị trường có thể có cấu hình SIM khác nhau.",
+      ],
+    },
 
-    devices: [
-      {
-        id:
-          "apple-iphone-15",
+    {
+      id: "apple-iphone-13",
 
-        brand:
-          "Apple",
+      brand: "Apple",
 
-        model:
-          "iPhone 15",
+      model: "iPhone 13",
 
-        platform:
-          "ios",
+      platform: "ios",
 
-        status:
-          "supported",
+      status: "supported",
 
-        statusLabel:
-          "Hỗ trợ eSIM",
+      statusLabel: "Hỗ trợ eSIM",
 
-        description:
-          "Thiết bị preview này được đánh dấu hỗ trợ eSIM.",
+      description: "Thiết bị preview này được đánh dấu hỗ trợ eSIM.",
 
-        notes: [
-          "Kiểm tra mục Thêm eSIM trong Cài đặt → Di động.",
-          "Đảm bảo thiết bị không bị khóa theo nhà mạng.",
-          "Biến thể thị trường có thể có cấu hình SIM khác nhau.",
-        ],
-      },
+      notes: [
+        "Có thể lưu nhiều cấu hình eSIM.",
+        "Kiểm tra tình trạng Khóa nhà cung cấp.",
+      ],
+    },
 
-      {
-        id:
-          "apple-iphone-13",
+    {
+      id: "samsung-galaxy-s24",
 
-        brand:
-          "Apple",
+      brand: "Samsung",
 
-        model:
-          "iPhone 13",
+      model: "Galaxy S24",
 
-        platform:
-          "ios",
+      platform: "android",
 
-        status:
-          "supported",
+      status: "conditional",
 
-        statusLabel:
-          "Hỗ trợ eSIM",
+      statusLabel: "Cần kiểm tra thêm",
 
-        description:
-          "Thiết bị preview này được đánh dấu hỗ trợ eSIM.",
+      description:
+        "Khả năng eSIM có thể phụ thuộc biến thể thị trường và nhà mạng.",
 
-        notes: [
-          "Có thể lưu nhiều cấu hình eSIM.",
-          "Kiểm tra tình trạng Khóa nhà cung cấp.",
-        ],
-      },
+      notes: [
+        "Tìm Trình quản lý SIM → Thêm eSIM.",
+        "Kiểm tra mã model chính xác của thiết bị.",
+        "Kiểm tra firmware và thị trường phân phối.",
+      ],
+    },
 
-      {
-        id:
-          "samsung-galaxy-s24",
+    {
+      id: "google-pixel-8",
 
-        brand:
-          "Samsung",
+      brand: "Google",
 
-        model:
-          "Galaxy S24",
+      model: "Pixel 8",
 
-        platform:
-          "android",
+      platform: "android",
 
-        status:
-          "conditional",
+      status: "supported",
 
-        statusLabel:
-          "Cần kiểm tra thêm",
+      statusLabel: "Hỗ trợ eSIM",
 
-        description:
-          "Khả năng eSIM có thể phụ thuộc biến thể thị trường và nhà mạng.",
+      description: "Thiết bị preview này được đánh dấu hỗ trợ eSIM.",
 
-        notes: [
-          "Tìm Trình quản lý SIM → Thêm eSIM.",
-          "Kiểm tra mã model chính xác của thiết bị.",
-          "Kiểm tra firmware và thị trường phân phối.",
-        ],
-      },
+      notes: [
+        "Tìm mục SIM → Thêm SIM → Thiết lập eSIM.",
+        "Đảm bảo máy không bị khóa mạng.",
+      ],
+    },
 
-      {
-        id:
-          "google-pixel-8",
+    {
+      id: "xiaomi-redmi-note-10",
 
-        brand:
-          "Google",
+      brand: "Xiaomi",
 
-        model:
-          "Pixel 8",
+      model: "Redmi Note 10",
 
-        platform:
-          "android",
+      platform: "android",
 
-        status:
-          "supported",
+      status: "unsupported",
 
-        statusLabel:
-          "Hỗ trợ eSIM",
+      statusLabel: "Không hỗ trợ eSIM",
 
-        description:
-          "Thiết bị preview này được đánh dấu hỗ trợ eSIM.",
+      description:
+        "Thiết bị preview này được đánh dấu không hỗ trợ eSIM tích hợp.",
 
-        notes: [
-          "Tìm mục SIM → Thêm SIM → Thiết lập eSIM.",
-          "Đảm bảo máy không bị khóa mạng.",
-        ],
-      },
+      notes: [
+        "Không tìm thấy lựa chọn Thêm eSIM.",
+        "Không hiển thị mã EID khi kiểm tra *#06#.",
+      ],
+    },
 
-      {
-        id:
-          "xiaomi-redmi-note-10",
+    {
+      id: "oppo-find-x5-pro",
 
-        brand:
-          "Xiaomi",
+      brand: "OPPO",
 
-        model:
-          "Redmi Note 10",
+      model: "Find X5 Pro",
 
-        platform:
-          "android",
+      platform: "android",
 
-        status:
-          "unsupported",
+      status: "conditional",
 
-        statusLabel:
-          "Không hỗ trợ eSIM",
+      statusLabel: "Cần kiểm tra thêm",
 
-        description:
-          "Thiết bị preview này được đánh dấu không hỗ trợ eSIM tích hợp.",
+      description: "Khả năng eSIM có thể khác nhau theo phiên bản thị trường.",
 
-        notes: [
-          "Không tìm thấy lựa chọn Thêm eSIM.",
-          "Không hiển thị mã EID khi kiểm tra *#06#.",
-        ],
-      },
+      notes: [
+        "Kiểm tra mục SIM và mạng di động.",
+        "Xác nhận mã model đầy đủ trước khi mua.",
+      ],
+    },
+  ],
 
-      {
-        id:
-          "oppo-find-x5-pro",
+  manualChecks: [
+    {
+      step: 1,
 
-        brand:
-          "OPPO",
+      title: "Tìm mục Thêm eSIM",
 
-        model:
-          "Find X5 Pro",
+      description:
+        "Mở phần cài đặt Di động, SIM hoặc Mạng và tìm lựa chọn Thêm eSIM.",
+    },
 
-        platform:
-          "android",
+    {
+      step: 2,
 
-        status:
-          "conditional",
+      title: "Kiểm tra mã EID",
 
-        statusLabel:
-          "Cần kiểm tra thêm",
+      description: "Bấm *#06#. Thiết bị hỗ trợ eSIM thường hiển thị mã EID.",
+    },
 
-        description:
-          "Khả năng eSIM có thể khác nhau theo phiên bản thị trường.",
+    {
+      step: 3,
 
-        notes: [
-          "Kiểm tra mục SIM và mạng di động.",
-          "Xác nhận mã model đầy đủ trước khi mua.",
-        ],
-      },
-    ],
+      title: "Kiểm tra khóa mạng",
 
-    manualChecks: [
-      {
-        step:
-          1,
+      description:
+        "Thiết bị bị khóa theo nhà mạng có thể không dùng được eSIM du lịch.",
+    },
 
-        title:
-          "Tìm mục Thêm eSIM",
+    {
+      step: 4,
 
-        description:
-          "Mở phần cài đặt Di động, SIM hoặc Mạng và tìm lựa chọn Thêm eSIM.",
-      },
+      title: "Xác nhận mã model",
 
-      {
-        step:
-          2,
+      description:
+        "Cùng một tên máy có thể có biến thể khác nhau theo thị trường phân phối.",
+    },
+  ],
 
-        title:
-          "Kiểm tra mã EID",
+  faqs: [
+    {
+      id: "install-before-arrival",
 
-        description:
-          "Bấm *#06#. Thiết bị hỗ trợ eSIM thường hiển thị mã EID.",
-      },
+      question: "Nên cài eSIM trước hay sau khi đến nơi?",
 
-      {
-        step:
-          3,
+      answer:
+        "Bạn nên cài eSIM khi còn Wi-Fi ổn định, nhưng chỉ bật làm đường dữ liệu chính khi đến điểm đến, trừ khi gói có quy định khác.",
+    },
 
-        title:
-          "Kiểm tra khóa mạng",
+    {
+      id: "delete-esim",
 
-        description:
-          "Thiết bị bị khóa theo nhà mạng có thể không dùng được eSIM du lịch.",
-      },
+      question: "Có thể xóa rồi cài lại eSIM không?",
 
-      {
-        step:
-          4,
+      answer:
+        "Nhiều mã QR chỉ dùng để cài đặt một lần. Không nên xóa eSIM sau khi cài, trừ khi bộ phận hỗ trợ xác nhận có thể cài lại.",
+    },
 
-        title:
-          "Xác nhận mã model",
+    {
+      id: "physical-sim",
 
-        description:
-          "Cùng một tên máy có thể có biến thể khác nhau theo thị trường phân phối.",
-      },
-    ],
+      question: "Có thể dùng SIM vật lý cùng lúc với eSIM không?",
 
-    faqs: [
-      {
-        id:
-          "install-before-arrival",
+      answer:
+        "Nhiều thiết bị hỗ trợ Dual SIM, nhưng khả năng hoạt động đồng thời phụ thuộc model và cấu hình thiết bị.",
+    },
 
-        question:
-          "Nên cài eSIM trước hay sau khi đến nơi?",
+    {
+      id: "no-eid",
 
-        answer:
-          "Bạn nên cài eSIM khi còn Wi-Fi ổn định, nhưng chỉ bật làm đường dữ liệu chính khi đến điểm đến, trừ khi gói có quy định khác.",
-      },
+      question: "Không thấy mã EID thì phải làm sao?",
 
-      {
-        id:
-          "delete-esim",
+      answer:
+        "Hãy kiểm tra mục Thêm eSIM trong cài đặt, mã model đầy đủ và tài liệu của nhà sản xuất. Khi vẫn chưa chắc chắn, liên hệ YSim trước khi mua.",
+    },
 
-        question:
-          "Có thể xóa rồi cài lại eSIM không?",
+    {
+      id: "activation-start",
 
-        answer:
-          "Nhiều mã QR chỉ dùng để cài đặt một lần. Không nên xóa eSIM sau khi cài, trừ khi bộ phận hỗ trợ xác nhận có thể cài lại.",
-      },
+      question: "Thời hạn gói bắt đầu khi nào?",
 
-      {
-        id:
-          "physical-sim",
+      answer:
+        "Thời điểm bắt đầu phụ thuộc chính sách kích hoạt của từng gói. Thông tin này cần được kiểm tra trên trang chi tiết sản phẩm.",
+    },
+  ],
 
-        question:
-          "Có thể dùng SIM vật lý cùng lúc với eSIM không?",
+  contacts: [
+    {
+      id: "email",
 
-        answer:
-          "Nhiều thiết bị hỗ trợ Dual SIM, nhưng khả năng hoạt động đồng thời phụ thuộc model và cấu hình thiết bị.",
-      },
+      title: "Email hỗ trợ",
 
-      {
-        id:
-          "no-eid",
+      description:
+        "Phù hợp khi cần gửi ảnh chụp màn hình, mã đơn hàng hoặc thông tin thiết bị.",
 
-        question:
-          "Không thấy mã EID thì phải làm sao?",
+      actionLabel: "Gửi email",
 
-        answer:
-          "Hãy kiểm tra mục Thêm eSIM trong cài đặt, mã model đầy đủ và tài liệu của nhà sản xuất. Khi vẫn chưa chắc chắn, liên hệ YSim trước khi mua.",
-      },
+      href: "mailto:support@ysim.vn",
 
-      {
-        id:
-          "activation-start",
+      icon: "email",
 
-        question:
-          "Thời hạn gói bắt đầu khi nào?",
+      availability: "Phản hồi theo SLA hỗ trợ",
+    },
 
-        answer:
-          "Thời điểm bắt đầu phụ thuộc chính sách kích hoạt của từng gói. Thông tin này cần được kiểm tra trên trang chi tiết sản phẩm.",
-      },
-    ],
+    {
+      id: "zalo",
 
-    contacts: [
-      {
-        id:
-          "email",
+      title: "Zalo OA",
 
-        title:
-          "Email hỗ trợ",
+      description: "Trao đổi nhanh với bộ phận hỗ trợ YSim bằng tiếng Việt.",
 
-        description:
-          "Phù hợp khi cần gửi ảnh chụp màn hình, mã đơn hàng hoặc thông tin thiết bị.",
+      actionLabel: "Mở Zalo",
 
-        actionLabel:
-          "Gửi email",
+      href: "/support/zalo",
 
-        href:
-          "mailto:support@ysim.vn",
+      icon: "chat",
 
-        icon:
-          "email",
+      availability: "Kênh preview",
+    },
 
-        availability:
-          "Phản hồi theo SLA hỗ trợ",
-      },
+    {
+      id: "telegram",
 
-      {
-        id:
-          "zalo",
+      title: "Telegram",
 
-        title:
-          "Zalo OA",
+      description: "Kênh hỗ trợ thuận tiện cho khách hàng quốc tế và đối tác.",
 
-        description:
-          "Trao đổi nhanh với bộ phận hỗ trợ YSim bằng tiếng Việt.",
+      actionLabel: "Mở Telegram",
 
-        actionLabel:
-          "Mở Zalo",
+      href: "/support/telegram",
 
-        href:
-          "/support/zalo",
+      icon: "telegram",
 
-        icon:
-          "chat",
+      availability: "Kênh preview",
+    },
 
-        availability:
-          "Kênh preview",
-      },
+    {
+      id: "hotline",
 
-      {
-        id:
-          "telegram",
+      title: "Hotline",
 
-        title:
-          "Telegram",
+      description: "Dành cho tình huống cần hỗ trợ khẩn cấp trong chuyến đi.",
 
-        description:
-          "Kênh hỗ trợ thuận tiện cho khách hàng quốc tế và đối tác.",
+      actionLabel: "Xem hotline",
 
-        actionLabel:
-          "Mở Telegram",
+      href: "/support/hotline",
 
-        href:
-          "/support/telegram",
+      icon: "phone",
 
-        icon:
-          "telegram",
-
-        availability:
-          "Kênh preview",
-      },
-
-      {
-        id:
-          "hotline",
-
-        title:
-          "Hotline",
-
-        description:
-          "Dành cho tình huống cần hỗ trợ khẩn cấp trong chuyến đi.",
-
-        actionLabel:
-          "Xem hotline",
-
-        href:
-          "/support/hotline",
-
-        icon:
-          "phone",
-
-        availability:
-          "Thông tin preview",
-      },
-    ],
-  };
+      availability: "Thông tin preview",
+    },
+  ],
+};

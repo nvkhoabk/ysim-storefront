@@ -19,7 +19,7 @@ import { createListingTranslator } from "@/i18n/listing/listing.registry";
 export const dynamic = "force-dynamic";
 
 const baseMetadata: Metadata = {
-  title: "Mua eSIM du lịch | YSim",
+  title: "Mua eSIM du lịch",
   description:
     "Chọn điểm đến, lọc và sắp xếp các gói eSIM du lịch ngay trên một trang.",
   alternates: {
@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return withLocalizedAlternates(
     {
       ...baseMetadata,
-      title: `${t("esim.title")} | YSim`,
+      title: t("esim.title"),
       description: t("esim.description"),
     },
     request,

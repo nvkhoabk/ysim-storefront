@@ -19,7 +19,7 @@ export async function generateMetadata() {
   return withLocalizedAlternates(
     {
       ...legacyMetadata,
-      title: `${t("cart.title")} | YSim`,
+      title: t("cart.title"),
       description: t("cart.description"),
     },
     request,

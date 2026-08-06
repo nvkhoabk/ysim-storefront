@@ -43,7 +43,7 @@ export async function generateMetadata({
 
   return withLocalizedAlternates(
     {
-      title: `${title} | YSim`,
+      title,
       description: t("ordinary.destinationPlansDescription"),
       alternates: {
         canonical: `/destinations/${selection.id}`,

@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -9,42 +11,31 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import {
-  Badge,
-  Price,
-} from "@/components/ui";
+import { Badge, Price } from "@/components/ui";
 
 import type {
   DestinationBadgeViewModel,
   DestinationCardViewModel,
 } from "@/types/view-models/destination";
 
-import {
-  cn,
-} from "@/lib/ui/cn";
+import { cn } from "@/lib/ui/cn";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { createListingTranslator } from "@/i18n/listing/listing.registry";
+import { localizeDurationLabel } from "@/i18n/listing/static-destination.config";
 
-const badgeIconMap:
-  Record<
-    NonNullable<
-      DestinationBadgeViewModel[
-        "icon"
-      ]
-    >,
-    LucideIcon
-  > = {
-    sparkles:
-      Sparkles,
+const badgeIconMap: Record<
+  NonNullable<DestinationBadgeViewModel["icon"]>,
+  LucideIcon
+> = {
+  sparkles: Sparkles,
 
-    popular:
-      Star,
+  popular: Star,
 
-    global:
-      Globe2,
-  };
+  global: Globe2,
+};
 
 export interface DestinationCardProps {
-  destination:
-    DestinationCardViewModel;
+  destination: DestinationCardViewModel;
   className?: string;
   priority?: boolean;
 }
@@ -54,13 +45,22 @@ export function DestinationCard({
   className,
   priority = false,
 }: DestinationCardProps) {
-  const BadgeIcon =
-    destination.badge?.icon
-      ? badgeIconMap[
-          destination.badge
-            .icon
-        ]
-      : null;
+  const { locale } = useStorefrontLocale();
+  const t = createListingTranslator(locale);
+  const durationLabel = localizeDurationLabel(
+    destination.durationLabel,
+    locale,
+  );
+  const badgeLabel = destination.badge
+    ? destination.badge.icon === "popular"
+      ? t("ordinary.sortPopular")
+      : destination.badge.icon === "global"
+        ? t("filters.regionGlobal")
+        : t("ordinary.featured")
+    : undefined;
+  const BadgeIcon = destination.badge?.icon
+    ? badgeIconMap[destination.badge.icon]
+    : null;
 
   return (
     <article
@@ -72,33 +72,25 @@ export function DestinationCard({
       )}
     >
       <Link
-        href={
-          destination.href
-        }
-        aria-label={`Xem eSIM ${destination.name}`}
+        href={destination.href}
+        aria-label={t("ordinary.destinationLinkAria", {
+          name: destination.name,
+        })}
         className="relative block aspect-[16/10] overflow-hidden bg-[var(--ysim-color-surface-subtle)]"
       >
         <Image
-          src={
-            destination.imageUrl
-          }
-          alt={
-            destination.imageAlt
-          }
+          src={destination.imageUrl}
+          alt={destination.imageAlt}
           fill
-          priority={
-            priority
-          }
+          priority={priority}
           sizes="(max-width: 640px) 82vw, (max-width: 1024px) 45vw, 22rem"
           className="object-cover"
         />
 
-        <span className="absolute left-4 top-4 inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white shadow-[var(--ysim-shadow-sm)]">
+        <span className="absolute top-4 left-4 inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white shadow-[var(--ysim-shadow-sm)]">
           <Image
-            src={
-              destination.flagUrl
-            }
-            alt={`Quốc kỳ ${destination.name}`}
+            src={destination.flagUrl}
+            alt={t("ordinary.flagAlt", { name: destination.name })}
             width={40}
             height={40}
             className="h-full w-full object-cover"
@@ -107,17 +99,10 @@ export function DestinationCard({
 
         {destination.badge ? (
           <Badge
-            icon={
-              BadgeIcon ? (
-                <BadgeIcon />
-              ) : undefined
-            }
-            className="absolute right-4 top-4 shadow-[var(--ysim-shadow-sm)]"
+            icon={BadgeIcon ? <BadgeIcon /> : undefined}
+            className="absolute top-4 right-4 shadow-[var(--ysim-shadow-sm)]"
           >
-            {
-              destination.badge
-                .label
-            }
+            {badgeLabel}
           </Badge>
         ) : null}
       </Link>
@@ -125,49 +110,31 @@ export function DestinationCard({
       <div className="flex flex-1 flex-col p-5">
         <div>
           {destination.regionLabel ? (
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--ysim-color-brand-700)]">
-              {
-                destination
-                  .regionLabel
-              }
+            <p className="text-xs font-bold tracking-[0.1em] text-[var(--ysim-color-brand-700)] uppercase">
+              {destination.regionLabel}
             </p>
           ) : null}
 
           <h2 className="mt-1 text-xl font-bold tracking-[-0.025em] text-[var(--ysim-color-text)]">
             <Link
-              href={
-                destination.href
-              }
+              href={destination.href}
               className="rounded-[var(--ysim-radius-sm)] hover:text-[var(--ysim-color-brand-700)]"
             >
-              {
-                destination.name
-              }
+              {destination.name}
             </Link>
           </h2>
 
           {destination.description ? (
             <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[var(--ysim-color-text-muted)]">
-              {
-                destination
-                  .description
-              }
+              {destination.description}
             </p>
           ) : null}
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-semibold text-[var(--ysim-color-text-muted)]">
-          {destination.durationLabel ? (
-            <span>
-              {
-                destination
-                  .durationLabel
-              }
-            </span>
-          ) : null}
+          {durationLabel ? <span>{durationLabel}</span> : null}
 
-          {destination.productCount !==
-          undefined ? (
+          {destination.productCount !== undefined ? (
             <>
               <span
                 aria-hidden="true"
@@ -175,11 +142,9 @@ export function DestinationCard({
               />
 
               <span>
-                {
-                  destination
-                    .productCount
-                }{" "}
-                gói
+                {t("ordinary.planCount", {
+                  count: destination.productCount,
+                })}
               </span>
             </>
           ) : null}
@@ -187,20 +152,15 @@ export function DestinationCard({
 
         <div className="mt-auto flex items-end justify-between gap-4 pt-6">
           <Price
-            prefix="Từ"
-            amount={
-              destination
-                .priceFrom
-            }
+            prefix={t("ordinary.priceFrom")}
+            amount={destination.priceFrom}
           />
 
           <Link
-            href={
-              destination.href
-            }
+            href={destination.href}
             className="inline-flex shrink-0 items-center gap-2 rounded-[var(--ysim-radius-md)] px-3 py-2 text-sm font-bold text-[var(--ysim-color-brand-700)] transition-colors hover:bg-[var(--ysim-color-brand-50)]"
           >
-            Xem chi tiết
+            {t("common.viewDetails")}
 
             <ArrowRight
               aria-hidden="true"

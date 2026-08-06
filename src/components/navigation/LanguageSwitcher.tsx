@@ -5,9 +5,9 @@
 import type { ChangeEvent } from "react";
 import { Globe2 } from "lucide-react";
 
-import { MARKET_CONFIGS } from "@/config/markets";
 import type { LanguageOption } from "@/config/storefront-navigation";
 import { DEFAULT_LOCALIZED_SHELL_LABELS } from "@/i18n/shell/shell.defaults";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
 import type {
   LocalizedShellLabels,
   ShellLanguageSwitchConfig,
@@ -16,11 +16,6 @@ import type {
 import { cn } from "@/lib/ui/cn";
 
 const DEFAULT_SWITCH_CONFIG: ShellLanguageSwitchConfig = { mode: "display" };
-
-interface MarketPreferenceResponse {
-  readonly success?: boolean;
-  readonly redirectPath?: string;
-}
 
 export interface LanguageSwitcherProps {
   languages: readonly LanguageOption[];
@@ -60,23 +55,13 @@ export function LanguageSwitcher({
       return;
     }
 
-    const market = MARKET_CONFIGS.find(
-      (candidate) => candidate.locale === nextLocale,
+    const localizedPathname = localizeShellHref(
+      window.location.pathname,
+      nextLocale,
     );
-    if (!market) return;
-
-    const returnPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    const response = await fetch("/api/preferences/market", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ marketId: market.id, returnPath }),
-    });
-    if (!response.ok) return;
-
-    const result = (await response.json()) as MarketPreferenceResponse;
-    if (result.success === true && typeof result.redirectPath === "string") {
-      window.location.assign(result.redirectPath);
-    }
+    window.location.assign(
+      `${localizedPathname}${window.location.search}${window.location.hash}`,
+    );
   }
 
   return (

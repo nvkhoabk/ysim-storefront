@@ -46,6 +46,25 @@ export const shellMessagesVi = {
   quickAccess: {
     popular: "Phổ biến",
   },
+  search: {
+    destination: "Điểm đến",
+    product: "Sản phẩm",
+    guide: "Cẩm nang",
+    placeholder: "Bạn sẽ đi đâu?",
+    label: "Tìm điểm đến, sản phẩm hoặc cẩm nang",
+    results: "Kết quả tìm kiếm",
+    emptyTitle: "Không tìm thấy kết quả",
+    emptyDescription:
+      "Thử tìm theo tên quốc gia, dung lượng hoặc chủ đề cẩm nang.",
+  },
+  heroMedia: {
+    fallbackAlt: "Minh họa du lịch và kết nối eSIM",
+    eyebrow: "Du lịch luôn kết nối",
+    coverage: "Hơn 200 quốc gia",
+    ready: "eSIM sẵn sàng",
+    activation: "Kích hoạt trong vài phút",
+    connected: "Đã kết nối",
+  },
   footer: {
     brandDescription:
       "eSIM du lịch quốc tế giúp bạn kết nối nhanh chóng, an toàn và thuận tiện trong mọi hành trình.",

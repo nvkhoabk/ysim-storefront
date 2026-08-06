@@ -21,7 +21,7 @@ export async function generateMetadata() {
   const t = createTransactionTranslator(request.shell.locale);
   return withLocalizedAlternates(
     {
-      title: `${t("success.title")} | YSim`,
+      title: t("success.title"),
       robots: { index: false, follow: false },
     },
     request,

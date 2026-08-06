@@ -160,6 +160,12 @@ export const transactionMessagesVi: TransactionMessages = {
   "payment.copy": "Sao chép",
   "payment.copied": "Đã sao chép {label}.",
   "payment.copyFailed": "Không thể sao chép {label}.",
+  "payment.sessionMissingTitle": "Chưa có phiên thanh toán",
+  "payment.sessionMissingDescription":
+    "Hãy quay lại trang thanh toán để bắt đầu một phiên hợp lệ.",
+  "payment.orderMissingTitle": "Chưa có thông tin đơn hàng",
+  "payment.orderMissingDescription":
+    "Hãy quay lại trang thanh toán để kiểm tra thông tin đơn hàng.",
   "order.eyebrow": "Kết quả đơn hàng",
   "order.title": "Đơn hàng đã được ghi nhận",
   "order.description":
@@ -174,6 +180,9 @@ export const transactionMessagesVi: TransactionMessages = {
   "order.securityNotice":
     "QR eSIM và thông tin kích hoạt thật không được đưa vào candidate.",
   "order.startAgain": "Quay lại giỏ hàng",
+  "order.accessMissingTitle": "Chưa có quyền truy cập đơn hàng",
+  "order.accessMissingDescription":
+    "Mã đơn trên URL chưa đủ để truy cập. Hãy mở lại đơn từ cùng phiên thanh toán.",
   "labels.preview": "Candidate giao dịch đã bản địa hóa",
   "labels.tabs": "Chọn bước giao dịch",
   "labels.cartItems": "Danh sách sản phẩm trong giỏ hàng",

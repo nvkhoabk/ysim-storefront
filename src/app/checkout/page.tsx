@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return withLocalizedAlternates(
     {
       ...baseMetadata,
-      title: `${t("checkout.title")} | YSim`,
+      title: t("checkout.title"),
       description: t("checkout.description"),
     },
     request,

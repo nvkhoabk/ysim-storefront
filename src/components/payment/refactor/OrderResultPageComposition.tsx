@@ -1,11 +1,8 @@
+"use client";
+
 import Link from "next/link";
 
-import {
-  ArrowLeft,
-  CreditCard,
-  Headphones,
-  ReceiptText,
-} from "lucide-react";
+import { ArrowLeft, CreditCard, Headphones, ReceiptText } from "lucide-react";
 
 import {
   Container,
@@ -14,79 +11,60 @@ import {
   SectionHeader,
 } from "@/components/layout";
 
-import type {
-  OrderResultPageViewModel,
-} from "@/types/view-models/payment-result";
+import type { OrderResultPageViewModel } from "@/types/view-models/payment-result";
 
-import {
-  OrderContactCards,
-} from "./OrderContactCards";
+import { OrderContactCards } from "./OrderContactCards";
 
-import {
-  OrderResultSummary,
-} from "./OrderResultSummary";
+import { OrderResultSummary } from "./OrderResultSummary";
 
-import {
-  PaymentStatusBadge,
-} from "./PaymentStatusBadge";
+import { PaymentStatusBadge } from "./PaymentStatusBadge";
 
-import {
-  PaymentTimeline,
-} from "./PaymentTimeline";
+import { PaymentTimeline } from "./PaymentTimeline";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+import { createTransactionTranslator } from "@/i18n/transaction/transaction.registry";
 
 export interface OrderResultPageCompositionProps {
-  order:
-    OrderResultPageViewModel;
+  order: OrderResultPageViewModel;
 }
 
 export function OrderResultPageComposition({
   order,
 }: OrderResultPageCompositionProps) {
+  const { locale } = useStorefrontLocale();
+  const t = createTransactionTranslator(locale);
+
   return (
-    <PageShell
-      cartCount={0}
-    >
-      <Section
-        variant="subtle"
-        spacing="lg"
-      >
+    <PageShell cartCount={0}>
+      <Section variant="subtle" spacing="lg">
         <Container>
           <Link
-            href="/ui-preview/payment-result-refactor"
+            href={localizeShellHref("/payment/return", locale)}
             className="inline-flex min-h-10 items-center gap-2 rounded-[var(--ysim-radius-md)] px-3 text-sm font-bold text-[var(--ysim-color-brand-700)] hover:bg-[var(--ysim-color-brand-100)]"
           >
             <ArrowLeft className="h-4 w-4" />
 
-            Quay lại kết quả thanh toán
+            {t("common.back")}
           </Link>
 
           <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--ysim-color-brand-700)]">
+              <p className="text-sm font-bold tracking-[0.12em] text-[var(--ysim-color-brand-700)] uppercase">
                 Thông tin đơn hàng
               </p>
 
-              <h1 className="mt-2 text-[var(--ysim-font-size-display)] font-bold leading-[var(--ysim-line-height-tight)] tracking-[-0.05em] text-[var(--ysim-color-text)]">
-                {
-                  order.orderCode
-                }
+              <h1 className="mt-2 leading-[var(--ysim-line-height-tight)] font-bold tracking-[-0.05em] text-[var(--ysim-color-text)] text-[var(--ysim-font-size-display)]">
+                {order.orderCode}
               </h1>
 
               <p className="mt-3 text-sm text-[var(--ysim-color-text-muted)]">
-                Tạo lúc{" "}
-                {
-                  order.createdAtLabel
-                }
+                Tạo lúc {order.createdAtLabel}
               </p>
             </div>
 
             <PaymentStatusBadge
-              status={
-                order.status
-              }
-              label={
-                order.statusLabel
-              }
+              status={order.status}
+              label={order.statusLabel}
               className="self-start sm:self-auto"
             />
           </div>
@@ -97,17 +75,9 @@ export function OrderResultPageComposition({
         <Container>
           <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]">
             <div className="space-y-5">
-              <OrderResultSummary
-                order={
-                  order
-                }
-              />
+              <OrderResultSummary order={order} />
 
-              <OrderContactCards
-                order={
-                  order
-                }
-              />
+              <OrderContactCards order={order} />
             </div>
 
             <div className="space-y-5">
@@ -126,10 +96,7 @@ export function OrderResultPageComposition({
                       </dt>
 
                       <dd className="mt-0.5 font-bold text-[var(--ysim-color-text)]">
-                        {
-                          order.payment
-                            .methodLabel
-                        }
+                        {order.payment.methodLabel}
                       </dd>
                     </div>
                   </div>
@@ -142,12 +109,8 @@ export function OrderResultPageComposition({
                         Mã giao dịch
                       </dt>
 
-                      <dd className="mt-0.5 break-all font-bold text-[var(--ysim-color-text)]">
-                        {
-                          order.payment
-                            .providerReference ||
-                          "Chưa có"
-                        }
+                      <dd className="mt-0.5 font-bold break-all text-[var(--ysim-color-text)]">
+                        {order.payment.providerReference || "Chưa có"}
                       </dd>
                     </div>
                   </div>
@@ -155,24 +118,16 @@ export function OrderResultPageComposition({
               </section>
 
               <section className="rounded-[var(--ysim-radius-xl)] border border-[var(--ysim-color-border)] bg-white p-5 shadow-[var(--ysim-shadow-sm)] sm:p-6">
-                <SectionHeader
-                  title="Tiến trình"
-                />
+                <SectionHeader title="Tiến trình" />
 
-                <PaymentTimeline
-                  items={
-                    order.timeline
-                  }
-                />
+                <PaymentTimeline items={order.timeline} />
               </section>
 
               <section className="rounded-[var(--ysim-radius-xl)] border border-[var(--ysim-color-brand-200)] bg-[var(--ysim-color-brand-50)] p-5">
-                <p className="flex items-start gap-3 text-sm font-semibold leading-relaxed text-[var(--ysim-color-brand-900)]">
+                <p className="flex items-start gap-3 text-sm leading-relaxed font-semibold text-[var(--ysim-color-brand-900)]">
                   <Headphones className="mt-0.5 h-5 w-5 shrink-0" />
 
-                  {
-                    order.supportText
-                  }
+                  {order.supportText}
                 </p>
               </section>
             </div>

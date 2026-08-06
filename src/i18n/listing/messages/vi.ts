@@ -152,6 +152,38 @@ export const listingMessagesVi = {
   "ordinary.chooseAnotherDestination": "Chọn điểm đến khác",
   "ordinary.selectedDestination": "Điểm đến đang chọn",
   "ordinary.matchingProducts": "Sản phẩm phù hợp",
+  "ordinary.featured": "Nổi bật",
+  "ordinary.manyDataAllowances": "Nhiều mức dung lượng",
+  "ordinary.durationDays": "{count} ngày",
+  "ordinary.durationRange": "{min}–{max} ngày",
+  "ordinary.durationFrom": "Từ {count} ngày",
+  "ordinary.durationUntil": "Đến {count} ngày",
+  "ordinary.destinationDescription":
+    "Khám phá các gói eSIM du lịch cho {name}.",
+  "ordinary.destinationImageAlt": "Điểm đến eSIM du lịch {name}",
+  "ordinary.previousDestinations": "Xem điểm đến trước",
+  "ordinary.nextDestinations": "Xem điểm đến tiếp theo",
+  "ordinary.previousProducts": "Xem sản phẩm trước",
+  "ordinary.nextProducts": "Xem sản phẩm tiếp theo",
+  "ordinary.previousReviews": "Xem đánh giá trước",
+  "ordinary.nextReviews": "Xem đánh giá tiếp theo",
+  "ordinary.destinationLinkAria": "Xem eSIM {name}",
+  "ordinary.productLinkAria": "Xem {name}",
+  "ordinary.flagAlt": "Quốc kỳ {name}",
+  "ordinary.ratingAria": "{rating} trên 5 sao",
+  "ordinary.guideCategory": "Cẩm nang",
+  "ordinary.readArticle": "Đọc bài viết",
+  "ordinary.readArticleAria": "Đọc {title}",
+  "ordinary.selectionDestinationDescription":
+    "Danh mục được lọc theo đúng điểm đến bạn vừa chọn từ trang Mua eSIM.",
+  "ordinary.selectionGlobalDescription":
+    "Các lựa chọn phù hợp hành trình qua nhiều quốc gia hoặc châu lục.",
+  "ordinary.selectionRegionDescription":
+    "Danh mục đang ưu tiên các gói dùng tại nhiều quốc gia trong cùng khu vực.",
+  "ordinary.selectionContinentDescription":
+    "Danh mục được lọc theo châu lục bạn vừa chọn từ trang Mua eSIM.",
+  "ordinary.selectionAllDescription":
+    "Khám phá toàn bộ điểm đến và gói eSIM hiện có.",
   "states.loading": "Đang tải danh sách...",
   "states.error": "Không thể tải danh sách.",
   "states.retry": "Thử lại",

@@ -161,6 +161,12 @@ export const transactionMessagesEn: TransactionMessages = {
   "payment.copy": "Copy",
   "payment.copied": "Copied {label}.",
   "payment.copyFailed": "Unable to copy {label}.",
+  "payment.sessionMissingTitle": "No payment session",
+  "payment.sessionMissingDescription":
+    "Return to checkout to start a valid payment session.",
+  "payment.orderMissingTitle": "No order details",
+  "payment.orderMissingDescription":
+    "Return to checkout to review the order details.",
   "order.eyebrow": "Order result",
   "order.title": "The order has been recorded",
   "order.description":
@@ -175,6 +181,9 @@ export const transactionMessagesEn: TransactionMessages = {
   "order.securityNotice":
     "Real eSIM QR and activation data are not included in this candidate.",
   "order.startAgain": "Return to cart",
+  "order.accessMissingTitle": "Order access is unavailable",
+  "order.accessMissingDescription":
+    "The order code in the URL is not sufficient. Reopen the order from the same checkout session.",
   "labels.preview": "Localized transaction candidate",
   "labels.tabs": "Choose transaction step",
   "labels.cartItems": "Cart item list",

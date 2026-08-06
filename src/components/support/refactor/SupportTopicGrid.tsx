@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 import {
@@ -8,89 +10,66 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import {
-  Container,
-  Section,
-  SectionHeader,
-} from "@/components/layout";
+import { Container, Section, SectionHeader } from "@/components/layout";
 
 import type {
   SupportTopicIcon,
   SupportTopicViewModel,
 } from "@/types/view-models/support";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { createSupportUiCopy } from "@/i18n/support/support.config";
 
-const iconMap:
-  Record<
-    SupportTopicIcon,
-    LucideIcon
-  > = {
-    installation:
-      QrCode,
+const iconMap: Record<SupportTopicIcon, LucideIcon> = {
+  installation: QrCode,
 
-    device:
-      Smartphone,
+  device: Smartphone,
 
-    payment:
-      CreditCard,
+  payment: CreditCard,
 
-    order:
-      PackageSearch,
-  };
+  order: PackageSearch,
+};
 
 export interface SupportTopicGridProps {
-  topics:
-    readonly SupportTopicViewModel[];
+  topics: readonly SupportTopicViewModel[];
 }
 
-export function SupportTopicGrid({
-  topics,
-}: SupportTopicGridProps) {
+export function SupportTopicGrid({ topics }: SupportTopicGridProps) {
+  const { locale } = useStorefrontLocale();
+  const copy = createSupportUiCopy(locale);
+
   return (
     <Section>
       <Container>
         <SectionHeader
-          eyebrow="Tìm câu trả lời"
-          title="Bạn cần hỗ trợ về vấn đề gì?"
-          description="Chọn nhóm nội dung phù hợp để tìm hướng dẫn nhanh."
+          eyebrow={copy.sections.topicsEyebrow}
+          title={copy.sections.topicsTitle}
+          description={copy.sections.topicsDescription}
         />
 
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          {topics.map(
-            (topic) => {
-              const Icon =
-                iconMap[
-                  topic.icon
-                ];
+          {topics.map((topic) => {
+            const Icon = iconMap[topic.icon];
 
-              return (
-                <Link
-                  key={
-                    topic.id
-                  }
-                  href={
-                    topic.href
-                  }
-                  className="group rounded-[var(--ysim-radius-xl)] border border-[var(--ysim-color-border)] bg-white p-6 shadow-[var(--ysim-shadow-sm)] transition-[transform,border-color,box-shadow] hover:-translate-y-1 hover:border-[var(--ysim-color-brand-200)] hover:shadow-[var(--ysim-shadow-card-hover)]"
-                >
-                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--ysim-radius-md)] bg-[var(--ysim-color-brand-50)] text-[var(--ysim-color-brand-700)]">
-                    <Icon className="h-6 w-6" />
-                  </span>
+            return (
+              <Link
+                key={topic.id}
+                href={topic.href}
+                className="group rounded-[var(--ysim-radius-xl)] border border-[var(--ysim-color-border)] bg-white p-6 shadow-[var(--ysim-shadow-sm)] transition-[transform,border-color,box-shadow] hover:-translate-y-1 hover:border-[var(--ysim-color-brand-200)] hover:shadow-[var(--ysim-shadow-card-hover)]"
+              >
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--ysim-radius-md)] bg-[var(--ysim-color-brand-50)] text-[var(--ysim-color-brand-700)]">
+                  <Icon className="h-6 w-6" />
+                </span>
 
-                  <h2 className="mt-5 text-lg font-bold text-[var(--ysim-color-text)] group-hover:text-[var(--ysim-color-brand-700)]">
-                    {
-                      topic.title
-                    }
-                  </h2>
+                <h2 className="mt-5 text-lg font-bold text-[var(--ysim-color-text)] group-hover:text-[var(--ysim-color-brand-700)]">
+                  {topic.title}
+                </h2>
 
-                  <p className="mt-2 text-sm leading-relaxed text-[var(--ysim-color-text-muted)]">
-                    {
-                      topic.description
-                    }
-                  </p>
-                </Link>
-              );
-            },
-          )}
+                <p className="mt-2 text-sm leading-relaxed text-[var(--ysim-color-text-muted)]">
+                  {topic.description}
+                </p>
+              </Link>
+            );
+          })}
         </div>
       </Container>
     </Section>

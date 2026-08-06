@@ -249,7 +249,11 @@ export function ProductDetailCandidateClient({
                     {matrix.primaryDimensions.map((dimension) => (
                       <fieldset key={dimension.key}>
                         <legend className="text-sm font-bold text-[var(--ysim-color-text)]">
-                          {dimension.label}
+                          {dimension.kind === "capacity"
+                            ? t("product.dataLabel")
+                            : dimension.kind === "duration"
+                              ? t("product.durationLabel")
+                              : dimension.label}
                         </legend>
 
                         <div className="mt-2 flex flex-wrap gap-2">

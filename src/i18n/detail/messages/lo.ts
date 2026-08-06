@@ -54,6 +54,8 @@ export const detailMessagesLo = {
   "product.breadcrumbCatalog": "ລາຍການ eSIM",
   "product.breadcrumbCurrent": "ສິນຄ້າປັດຈຸບັນ",
   "product.optionCount": "{count} ຕົວເລືອກ",
+  "product.optionLabel": "ຕົວເລືອກ {count}",
+  "product.standardPlan": "ແພັກເກດມາດຕະຖານ",
   "product.singleConfiguration": "ສິນຄ້ານີ້ມີໜຶ່ງການຕັ້ງຄ່າ.",
   "product.selectedOption": "ຕົວເລືອກທີ່ເລືອກ",
   "product.outOfStock": "ສິນຄ້າໝົດຊົ່ວຄາວ",
@@ -66,9 +68,17 @@ export const detailMessagesLo = {
   "product.addError": "ບໍ່ສາມາດເພີ່ມ variation ເຂົ້າກະຕ່າໄດ້.",
   "product.emailDelivery": "ຮັບ eSIM ທາງອີເມວ",
   "product.qrInstallation": "ຕິດຕັ້ງດ້ວຍ QR code",
+  "product.galleryViewImage": "ເບິ່ງຮູບ {name}",
   "product.descriptionTitle": "ລາຍລະອຽດ",
   "product.usageEyebrow": "ຂໍ້ຄວນຮູ້",
   "product.usageTitle": "ກຽມຕົວກ່ອນເດີນທາງ",
+  "product.usageStableWifi":
+    "ຕິດຕັ້ງ eSIM ເມື່ອມີການເຊື່ອມຕໍ່ Wi‑Fi ທີ່ໝັ້ນຄົງ.",
+  "product.usageKeepInstalled":
+    "ຢ່າລຶບ eSIM ຫຼັງຕິດຕັ້ງ ຈົນກວ່າຝ່າຍຊ່ວຍເຫຼືອຈະຢືນຢັນ.",
+  "product.usageEnableAtDestination":
+    "ເປີດ eSIM ເປັນສາຍຂໍ້ມູນຫຼັກເມື່ອຮອດຈຸດໝາຍແລ້ວເທົ່ານັ້ນ.",
+  "product.usageUnlockedDevice": "ກວດສອບວ່າອຸປະກອນບໍ່ຖືກລັອກເຄືອຂ່າຍກ່ອນຊື້.",
   "destination.eyebrow": "ລາຍລະອຽດຈຸດໝາຍ",
   "destination.title": "ໜ້າຈຸດໝາຍ",
   "destination.sourceTitle": "ຊື່ຈາກແຫຼ່ງ: {{title}}",
