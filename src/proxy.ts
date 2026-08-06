@@ -1,10 +1,17 @@
-// F07A-1B_MARKET_ROUTING_R4
+// F07A-1B_MARKET_ROUTING_R5_LOCALIZED_ROUTES
 
 import { NextResponse, type NextRequest } from "next/server";
 
-import { stripUntrustedYsimHeaders } from "@/lib/market/market.request";
+import { readMarketCookie } from "@/lib/market/market.cookie";
+import {
+  isMarketRoutingEnabled,
+  marketInternalToken,
+  readCountryCodeFromHeaders,
+  stripUntrustedYsimHeaders,
+} from "@/lib/market/market.request";
 import { getMarketByLocale } from "@/lib/market/market.registry";
 import {
+  decideMarketRouting,
   localizePathname,
   stripMarketLocale,
 } from "@/lib/market/market.routing";
@@ -96,6 +103,49 @@ export default function proxy(request: NextRequest) {
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     return continueWithSanitizedHeaders(sanitizedHeaders);
+  }
+
+  const routingEnabled = isMarketRoutingEnabled();
+  const internalToken = marketInternalToken();
+
+  if (routingEnabled && internalToken === null) {
+    return NextResponse.json(
+      {
+        success: false,
+        code: "MARKET_ROUTING_CONFIGURATION_INVALID",
+      },
+      {
+        status: 503,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  }
+
+  if (routingEnabled) {
+    const decision = decideMarketRouting({
+      enabled: true,
+      pathname,
+      search: request.nextUrl.search,
+      cookieValue: readMarketCookie(request.headers.get("cookie")),
+      countryCode: readCountryCodeFromHeaders(request.headers),
+    });
+
+    if (decision.action !== "redirect") {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "MARKET_ROUTING_DECISION_INVALID",
+        },
+        {
+          status: 503,
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
+    }
+
+    return preventLocationCaching(
+      NextResponse.redirect(new URL(decision.location, request.url), 307),
+    );
   }
 
   const location = `${localizePathname("vi", pathname)}${request.nextUrl.search}`;

@@ -1,4 +1,4 @@
-// F07A-1B_MARKET_ROUTING_R4
+// F07A-1B_MARKET_ROUTING_R5_LOCALIZED_ROUTES
 
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
@@ -18,7 +18,7 @@ const packageMarkerSource = readFileSync(
   fileURLToPath(import.meta.url),
   "utf8",
 );
-assert.match(packageMarkerSource, /F07A-1B_MARKET_ROUTING_R4/);
+assert.match(packageMarkerSource, /F07A-1B_MARKET_ROUTING_R5_LOCALIZED_ROUTES/);
 
 const repoRoot = path.resolve(path.dirname(scriptPath), "..");
 
@@ -302,34 +302,29 @@ try {
     "utf8",
   );
   assert.match(proxySource, /NextResponse\.redirect/);
-  assert.match(proxySource, /NextResponse\.rewrite/);
+  assert.doesNotMatch(proxySource, /NextResponse\.rewrite/);
   assert.match(proxySource, /isMarketRoutingEnabled/);
-  assert.match(proxySource, /isInternalMarketRewrite/);
-  assert.match(proxySource, /MARKET_INTERNAL_REWRITE_HEADER/);
-  assert.match(proxySource, /buildInternalMarketRewriteUrl/);
-  assert.doesNotMatch(
-    proxySource,
-    /new URL\(decision\.destination, request\.url\)/,
-  );
-  assert.match(
-    proxySource,
-    /headers\.delete\(MARKET_INTERNAL_REWRITE_HEADER\)/,
-  );
+  assert.match(proxySource, /marketInternalToken/);
+  assert.match(proxySource, /readCountryCodeFromHeaders/);
+  assert.match(proxySource, /readMarketCookie/);
+  assert.match(proxySource, /decideMarketRouting/);
+  assert.match(proxySource, /MARKET_ROUTING_CONFIGURATION_INVALID/);
+  assert.match(proxySource, /decision\.action !== "redirect"/);
   assert.doesNotMatch(proxySource, /cookies\.set|MARKET_COOKIE_NAME/);
   assert.match(routeSource, /response\.cookies\.set/);
   assert.match(routeSource, /MARKET_ROUTING_DISABLED/);
   assert.match(routeSource, /marketSelectionRedirectPath/);
   assert.doesNotMatch(routeSource, /location\.href|window\./);
 
-  const markerCheckIndex = proxySource.indexOf(
-    "isInternalMarketRewrite(request.headers)",
+  const localizedRouteIndex = proxySource.indexOf(
+    "const localized = stripMarketLocale(pathname)",
   );
   const routingDecisionIndex = proxySource.indexOf("decideMarketRouting({");
-  assert.ok(markerCheckIndex >= 0);
+  assert.ok(localizedRouteIndex >= 0);
   assert.ok(routingDecisionIndex >= 0);
-  assert.ok(markerCheckIndex < routingDecisionIndex);
+  assert.ok(localizedRouteIndex < routingDecisionIndex);
   console.log(
-    "PASS localized rewrite recursion guard executes before market resolution",
+    "PASS explicit localized routes are served directly before market resolution",
   );
 
   console.log(
@@ -349,9 +344,7 @@ try {
   console.log(
     `PASS cross-platform Node execution contract: platform=${process.platform}`,
   );
-  console.log(
-    "PASS: F07A-1B R4 loopback transport normalization and market routing contract.",
-  );
+  console.log("PASS: F07A-1B R5 localized-route market routing contract.");
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
