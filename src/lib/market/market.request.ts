@@ -9,6 +9,14 @@ export const MARKET_TEST_COUNTRY_HEADER = "x-ysim-test-country";
 export const MARKET_INTERNAL_REWRITE_HEADER = "x-ysim-market-internal-rewrite";
 export const MARKET_INTERNAL_TOKEN_HEADER = "x-ysim-market-internal-token";
 
+const PRESERVED_OPERATIONAL_AUTH_HEADERS = new Set([
+  "x-ysim-reconciliation-secret",
+  "x-ysim-sandbox-secret",
+  "x-ysim-test-key",
+  "x-ysim-test-secret",
+  "x-ysim-webhook-token",
+]);
+
 export interface MarketRuntimeEnvironment {
   readonly NODE_ENV?: string;
   readonly YSIM_MARKET_ROUTING_ENABLED?: string;
@@ -73,7 +81,12 @@ export function stripUntrustedYsimHeaders(headers: Headers): Headers {
   const sanitized = new Headers(headers);
 
   for (const name of [...sanitized.keys()]) {
-    if (name.toLowerCase().startsWith("x-ysim-")) {
+    const normalizedName = name.toLowerCase();
+
+    if (
+      normalizedName.startsWith("x-ysim-") &&
+      !PRESERVED_OPERATIONAL_AUTH_HEADERS.has(normalizedName)
+    ) {
       sanitized.delete(name);
     }
   }
