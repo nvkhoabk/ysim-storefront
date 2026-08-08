@@ -2,14 +2,12 @@ import { createHash } from "node:crypto";
 
 import { after, NextResponse } from "next/server";
 
-import type {
-  GPayCallbackReconciliationResult,
-  GPayGatewayCallbackVerification,
-} from "@/lib/payment/adapters/gpay";
+import type { GPayGatewayCallbackVerification } from "@/lib/payment/adapters/gpay";
 import {
   getGPayCommerceAutomationMode,
   runGPayCommerceAutomation,
 } from "@/lib/fulfillment/gigago/gpay-commerce-automation";
+import { GPayPaymentRecordLockError } from "@/lib/fulfillment/gigago/gpay-payment-record-lock";
 import {
   GPAY_FAST_ACK_VERSION,
   isGPayFastAckCandidate,
@@ -35,10 +33,6 @@ import {
 import { verifyGPayVAWebhookSignature } from "@/features/payments/gpay-va/gpay-va.crypto";
 import type { GPayVAWebhookPayload } from "@/features/payments/gpay-va/gpay-va.types";
 import { reconcileVerifiedGPayVAWebhook } from "@/features/payments/gpay-va/gpay-va.reconciliation";
-import {
-  assertWave1GPayVACanaryRequest,
-  Wave1GPayVACanaryError,
-} from "@/lib/runtime/wave1-gpay-va-canary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -265,14 +259,39 @@ export async function POST(request: Request) {
       );
     }
 
-    const expectedAmount = orderAmount(order.total);
+    const orderAlreadyPaid =
+      Boolean(order.date_paid || order.date_paid_gmt) ||
+      order.status === "processing" ||
+      order.status === "completed" ||
+      paymentStatus === "SUCCESS";
 
-    assertWave1GPayVACanaryRequest({
-      provider: "gpay_virtual_account",
-      orderId: order.id,
-      amountVnd: expectedAmount,
-      nodeEnvironment: process.env.NODE_ENV,
-    });
+    if (orderAlreadyPaid) {
+      const reviewMeta = upsertWooCommerceOrderMeta(order, {
+        _ysim_gpay_va_duplicate_payment_status: "MANUAL_REVIEW",
+        _ysim_gpay_va_duplicate_payment_trans_id: payload.gpay_trans_id,
+        _ysim_gpay_va_duplicate_payment_bank_transaction_id:
+          payload.bank_transaction_id || "",
+        _ysim_gpay_va_duplicate_payment_amount: payload.amount,
+        _ysim_gpay_va_duplicate_payment_received_at: new Date().toISOString(),
+      });
+
+      await updateWooCommerceAdminOrder(order.id, {
+        meta_data: reviewMeta,
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          acknowledged: true,
+          paymentAccepted: false,
+          code: "ORDER_ALREADY_PAID_DIFFERENT_TRANSACTION",
+          orderId: order.id,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    const expectedAmount = orderAmount(order.total);
 
     if (
       !Number.isInteger(payload.amount) ||
@@ -312,40 +331,12 @@ export async function POST(request: Request) {
       reference: reference.reference,
       canonicalSha256,
     });
-    let reconciliation: GPayCallbackReconciliationResult;
-
-    try {
-      reconciliation = await reconcileVerifiedGPayVAWebhook({
-        verification,
-        accountNumber: payload.account_number,
-        amountVnd: expectedAmount,
-      });
-    } catch (error) {
-      const pendingMeta = upsertWooCommerceOrderMeta(order, {
-        _ysim_payment_status: "RECONCILIATION_RETRY",
-        _ysim_gpay_va_status: "PAYMENT_RECONCILIATION_RETRY",
-        _ysim_gpay_va_gpay_trans_id: payload.gpay_trans_id,
-      });
-
-      await updateWooCommerceAdminOrder(order.id, {
-        meta_data: pendingMeta,
-      });
-
-      console.error("GPay VA detail reconciliation query failed:", {
-        orderId: order.id,
-        name: error instanceof Error ? error.name : "UnknownError",
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          acknowledged: false,
-          code: "VA_QUERY_RECONCILIATION_RETRY",
-          orderId: order.id,
-        },
-        { status: 503, headers: { "Cache-Control": "no-store" } },
-      );
-    }
+    const reconciliation = reconcileVerifiedGPayVAWebhook({
+      verification,
+      merchantOrderIdMatches: expectedReference === reference.reference,
+      accountNumberMatches: expectedAccount === payload.account_number,
+      amountMatches: payload.amount === expectedAmount,
+    });
 
     if (!reconciliation.confirmed) {
       const pendingMeta = upsertWooCommerceOrderMeta(order, {
@@ -362,15 +353,15 @@ export async function POST(request: Request) {
         {
           success: false,
           acknowledged: false,
-          code: "VA_QUERY_RECONCILIATION_NOT_CONFIRMED",
+          code: "VA_SIGNED_WEBHOOK_NOT_CONFIRMED",
           orderId: order.id,
         },
-        { status: 503, headers: { "Cache-Control": "no-store" } },
+        { status: 409, headers: { "Cache-Control": "no-store" } },
       );
     }
 
     const receivedMeta = upsertWooCommerceOrderMeta(order, {
-      _ysim_gpay_va_status: "PAYMENT_RECEIVED_QUERY_CONFIRMED",
+      _ysim_gpay_va_status: "PAYMENT_RECEIVED_SIGNED_WEBHOOK_CONFIRMED",
       _ysim_gpay_va_gpay_trans_id: payload.gpay_trans_id,
       _ysim_gpay_va_bank_transaction_id: payload.bank_transaction_id || "",
       _ysim_gpay_va_paid_at: new Date().toISOString(),
@@ -474,17 +465,15 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    if (error instanceof Wave1GPayVACanaryError) {
+    if (error instanceof GPayPaymentRecordLockError) {
       return NextResponse.json(
         {
           success: false,
+          acknowledged: false,
           code: error.code,
           message: error.message,
         },
-        {
-          status: error.status,
-          headers: { "Cache-Control": "no-store" },
-        },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
       );
     }
 

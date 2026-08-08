@@ -2,6 +2,9 @@
   "name": "ysim-storefront",
   "version": "0.1.0",
   "private": true,
+  "imports": {
+    "#durable-operation-lock": "./src/lib/runtime/durable-operation-lock.ts"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,6 +17,8 @@
     "audit:f07:ui-locale": "node scripts/audit-f07-prd-002f-ui-locale-runtime.mjs",
     "test:f07:static-ui-localization": "node scripts/test-f07-prd-002g-static-ui-localization.mjs",
     "audit:f07:static-ui-localization": "node scripts/audit-f07-prd-002g-static-ui-localization-runtime.mjs",
+    "test:f07:payment-core": "node scripts/test-f07-prd-payment-core-correction-r1.mjs",
+    "test:f07:payment-core-hardening": "node scripts/test-f07-prd-payment-core-hardening-r1.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {
@@ -21,7 +26,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "lucide-react": "^1.24.0",
-    "next": "16.2.10",
+    "next": "16.2.11",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.81.0",
@@ -29,13 +34,18 @@
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
+  "overrides": {
+    "nanoid": "3.3.18",
+    "postcss": "8.5.26",
+    "sharp": "0.35.3"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.2.11",
     "prettier": "^3.9.5",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",

@@ -21,6 +21,8 @@ import {
   type GigagoFulfillmentMode,
   type GigagoFulfillmentSubmission,
 } from "./gigago-fulfillment-service";
+import { classifyGPayPaidOrderTransaction } from "./gpay-payment-idempotency";
+import { acquireGPayPaymentRecordLock } from "./gpay-payment-record-lock";
 
 export type GPayCommerceAutomationMode = "disabled" | "record" | "fulfill";
 
@@ -89,6 +91,11 @@ const PAYMENT_META = {
   automationMode: "_ysim_gpay_automation_mode",
   reconciliationReason: "_ysim_gpay_reconciliation_reason",
   automationSource: "_ysim_gpay_automation_source",
+  duplicatePaymentStatus: "_ysim_gpay_duplicate_payment_status",
+  duplicatePaymentTransactionId: "_ysim_gpay_duplicate_payment_trans_id",
+  duplicatePaymentCallbackSha256:
+    "_ysim_gpay_duplicate_payment_callback_sha256",
+  duplicatePaymentReceivedAt: "_ysim_gpay_duplicate_payment_received_at",
   fulfillmentAttemptedAt: "_ysim_gigago_auto_attempted_at",
   fulfillmentResult: "_ysim_gigago_auto_result",
   fulfillmentError: "_ysim_gigago_auto_error",
@@ -101,8 +108,6 @@ const DEFAULT_ALLOWED_ORDER_STATUSES = [
   "processing",
   "completed",
 ] as const;
-
-const inFlight = new Map<number, Promise<GPayCommerceAutomationResult>>();
 
 function configuredMode(): GPayCommerceAutomationMode {
   const value = process.env.GPAY_COMMERCE_AUTOMATION_MODE?.trim().toLowerCase();
@@ -317,6 +322,20 @@ function eligibleReconciliation(
     };
   }
 
+  if (reconciliation.mode === "signed-webhook") {
+    if (
+      reconciliation.confirmed === true &&
+      reconciliation.providerQueryKind === "virtual-account-webhook" &&
+      reconciliation.merchantOrderIdMatches === true &&
+      reconciliation.accountNumberMatches === true &&
+      reconciliation.amountMatches === true
+    ) {
+      return { eligible: true, reason: "SIGNED_VA_WEBHOOK_CONFIRMED" };
+    }
+
+    return { eligible: false, reason: "SIGNED_VA_WEBHOOK_NOT_CONFIRMED" };
+  }
+
   if (!queryConfirmationRequired()) {
     return {
       eligible: true,
@@ -485,6 +504,28 @@ async function persistPaymentSuccess({
   };
 }
 
+async function persistDifferentTransactionReview({
+  order,
+  verification,
+  reconciliation,
+}: {
+  order: WooCommerceAdminOrder;
+  verification: GPayGatewayCallbackVerification;
+  reconciliation: GPayCallbackReconciliationResult;
+}): Promise<void> {
+  const metadata = upsertWooCommerceOrderMeta(order, {
+    [PAYMENT_META.duplicatePaymentStatus]: "MANUAL_REVIEW",
+    [PAYMENT_META.duplicatePaymentTransactionId]: transactionId(
+      verification,
+      reconciliation,
+    ),
+    [PAYMENT_META.duplicatePaymentCallbackSha256]: verification.canonicalSha256,
+    [PAYMENT_META.duplicatePaymentReceivedAt]: new Date().toISOString(),
+  });
+
+  await updateWooCommerceAdminOrder(order.id, { meta_data: metadata });
+}
+
 async function persistFulfillmentOutcome({
   orderId,
   state,
@@ -560,6 +601,52 @@ async function executeUnlocked(
   const order = await getWooCommerceAdminOrder(embed.orderId);
 
   assertGPayCommerceOrderIdentity(order, embed);
+
+  const incomingTransactionId = transactionId(verification, reconciliation);
+  const transactionDisposition = classifyGPayPaidOrderTransaction({
+    orderPaid: isWooCommerceOrderPaid(order),
+    existingTransactionId: readWooCommerceOrderMetaString(
+      order,
+      PAYMENT_META.providerTransactionId,
+    ),
+    incomingTransactionId,
+  });
+
+  if (transactionDisposition === "same-transaction-duplicate") {
+    return {
+      mode,
+      attempted: true,
+      paymentRecorded: true,
+      commerceStateChanged: false,
+      fulfillmentAttempted: false,
+      fulfillmentSucceeded: null,
+      fulfillmentState: "not-started",
+      duplicatePaymentEvent: true,
+      orderId: order.id,
+      reason: "PAYMENT_ALREADY_RECORDED_SAME_TRANSACTION",
+    };
+  }
+
+  if (transactionDisposition === "different-transaction-review") {
+    await persistDifferentTransactionReview({
+      order,
+      verification,
+      reconciliation,
+    });
+
+    return {
+      mode,
+      attempted: true,
+      paymentRecorded: false,
+      commerceStateChanged: false,
+      fulfillmentAttempted: false,
+      fulfillmentSucceeded: null,
+      fulfillmentState: "not-started",
+      duplicatePaymentEvent: false,
+      orderId: order.id,
+      reason: "ORDER_ALREADY_PAID_DIFFERENT_TRANSACTION",
+    };
+  }
 
   const payment = await persistPaymentSuccess({
     order,
@@ -670,26 +757,21 @@ export async function runGPayCommerceAutomation(
   reconciliation: GPayCallbackReconciliationResult,
   options: GPayCommerceAutomationOptions = {},
 ): Promise<GPayCommerceAutomationResult> {
-  const embed = verification.parsedEmbedData;
-  const orderId = isRecord(embed) ? parsePositiveInteger(embed.orderId) : null;
+  const mode = options.modeOverride ?? configuredMode();
+  const eligibility = eligibleReconciliation(verification, reconciliation);
 
-  if (!orderId) {
+  if (mode === "disabled" || !eligibility.eligible) {
     return executeUnlocked(verification, reconciliation, options);
   }
 
-  const existing = inFlight.get(orderId);
+  const embed = parseGPayCommerceEmbedData(verification);
+  const lock = await acquireGPayPaymentRecordLock(embed.orderId);
 
-  if (existing) {
-    return existing;
+  try {
+    // executeUnlocked fetches the order only after this durable lock is held,
+    // so every PM2 worker observes the paid state written by its predecessor.
+    return await executeUnlocked(verification, reconciliation, options);
+  } finally {
+    await lock.release();
   }
-
-  const task = executeUnlocked(verification, reconciliation, options).finally(
-    () => {
-      inFlight.delete(orderId);
-    },
-  );
-
-  inFlight.set(orderId, task);
-
-  return task;
 }

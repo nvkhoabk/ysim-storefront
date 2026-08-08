@@ -3,60 +3,44 @@ import type {
   GPayGatewayCallbackVerification,
 } from "@/lib/payment/adapters/gpay";
 
-import { getGPayVirtualAccountDetail } from "./gpay-va.client";
-
-export async function reconcileVerifiedGPayVAWebhook({
+export function reconcileVerifiedGPayVAWebhook({
   verification,
-  accountNumber,
-  amountVnd,
+  merchantOrderIdMatches,
+  accountNumberMatches,
+  amountMatches,
 }: {
   readonly verification: GPayGatewayCallbackVerification;
-  readonly accountNumber: string;
-  readonly amountVnd: number;
-}): Promise<GPayCallbackReconciliationResult> {
-  if (!verification.verified) {
-    return {
-      mode: "query",
-      attempted: false,
-      confirmed: false,
-      reason: "VA_CALLBACK_SIGNATURE_INVALID",
-      callbackStatus: verification.normalizedStatus,
-    };
-  }
-
-  const detail = await getGPayVirtualAccountDetail(accountNumber);
-  const queriedAccount = detail.account_number?.trim() ?? "";
-  const queriedStatus = detail.status?.trim().toUpperCase() ?? "";
-  const queriedAmount = detail.equal_amount;
-  const accountMatches = queriedAccount === accountNumber;
-  const amountMatches =
-    Number.isSafeInteger(queriedAmount) && queriedAmount === amountVnd;
-  const statusCompatible = queriedStatus === "OPEN";
-  const confirmed = accountMatches && amountMatches && statusCompatible;
+  readonly merchantOrderIdMatches: boolean;
+  readonly accountNumberMatches: boolean;
+  readonly amountMatches: boolean;
+}): GPayCallbackReconciliationResult {
+  const transactionIdPresent = Boolean(
+    verification.callback.gpayTransactionId.trim(),
+  );
+  const callbackSucceeded = verification.normalizedStatus === "SUCCESS";
+  const confirmed =
+    verification.verified &&
+    callbackSucceeded &&
+    transactionIdPresent &&
+    merchantOrderIdMatches &&
+    accountNumberMatches &&
+    amountMatches;
 
   return {
-    mode: "query",
-    attempted: true,
+    mode: "signed-webhook",
+    attempted: false,
     confirmed,
-    reason: confirmed
-      ? "VA_DETAIL_QUERY_RECONCILIATION_CONFIRMED"
-      : "VA_DETAIL_QUERY_RECONCILIATION_MISMATCH",
+    reason: !verification.verified
+      ? "VA_CALLBACK_SIGNATURE_INVALID"
+      : confirmed
+        ? "VA_SIGNED_CHANGE_BALANCE_CONFIRMED"
+        : "VA_SIGNED_CHANGE_BALANCE_IDENTITY_MISMATCH",
     callbackStatus: verification.normalizedStatus,
-    queriedStatus: confirmed ? "SUCCESS" : "FAILED",
-    gpayBillIdMatches: accountMatches,
-    statusCompatible,
-    providerQueryKind: "virtual-account-detail",
-    accountNumberMatches: accountMatches,
+    merchantOrderIdMatches,
+    gpayBillIdMatches: accountNumberMatches,
+    statusCompatible: callbackSucceeded,
+    providerQueryKind: "virtual-account-webhook",
+    accountNumberMatches,
     amountMatches,
-    query: {
-      status: queriedStatus,
-      gpayTransactionId: verification.callback.gpayTransactionId,
-      userPaymentMethod: "VA",
-      providerQueryKind: "virtual-account-detail",
-      accountNumber: queriedAccount,
-      equalAmount: queriedAmount,
-      virtualAccountStatus: queriedStatus,
-      queriedAt: new Date().toISOString(),
-    },
   };
 }

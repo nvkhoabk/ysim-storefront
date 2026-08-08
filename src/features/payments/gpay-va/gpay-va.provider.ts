@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { getGPayCommerceAutomationMode } from "@/lib/fulfillment/gigago/gpay-commerce-automation";
 import { enforceGigagoReadinessBeforePayment } from "@/lib/fulfillment/gigago/gigago-readiness-gate";
 import {
   getWooCommerceAdminOrder,
@@ -10,8 +11,6 @@ import {
   updateWooCommerceAdminOrder,
   upsertWooCommerceOrderMeta,
 } from "@/lib/woocommerce/order-admin-write-api";
-import { claimWave1GPayVACanaryBudget } from "@/lib/runtime/wave1-gpay-va-budget";
-import { assertWave1GPayVACanaryRequest } from "@/lib/runtime/wave1-gpay-va-canary";
 
 import type {
   CreatePaymentInput,
@@ -23,6 +22,7 @@ import {
   getGPayVirtualAccountDetail,
 } from "./gpay-va.client";
 import { getGPayVAConfig } from "./gpay-va.config";
+import { acquireGPayVACreateLock } from "./gpay-va.create-lock";
 import type { GPayVirtualAccountData } from "./gpay-va.types";
 
 const META = {
@@ -150,35 +150,26 @@ async function createSession(
     throw new Error("Số tiền VA phải là số nguyên VND lớn hơn 0.");
   }
 
-  const canaryPolicy = assertWave1GPayVACanaryRequest({
-    provider: "gpay_virtual_account",
-    orderId: input.orderId,
-    amountVnd: input.amount,
-    nodeEnvironment: process.env.NODE_ENV,
-  });
-
-  if (
-    !canaryPolicy &&
-    process.env.GPAY_COMMERCE_AUTOMATION_MODE?.trim().toLowerCase() ===
-      "fulfill"
-  ) {
+  if (getGPayCommerceAutomationMode() === "fulfill") {
     await enforceGigagoReadinessBeforePayment({
       orderId: input.orderId,
       paymentProvider: "gpay_virtual_account",
     });
   }
 
-  const config = getGPayVAConfig();
-  const order = await getWooCommerceAdminOrder(input.orderId);
-  const existing = await reuseExisting(order, input);
+  const initialOrder = await getWooCommerceAdminOrder(input.orderId);
+  const existing = await reuseExisting(initialOrder, input);
 
   if (existing) {
     return existing;
   }
 
-  const createState = readWooCommerceOrderMetaString(order, META.createState);
+  const createState = readWooCommerceOrderMetaString(
+    initialOrder,
+    META.createState,
+  );
   const existingAccount = readWooCommerceOrderMetaString(
-    order,
+    initialOrder,
     META.accountNumber,
   );
 
@@ -191,73 +182,103 @@ async function createSession(
     );
   }
 
-  await claimWave1GPayVACanaryBudget(canaryPolicy);
-
-  const reference = createStableReference(input);
-  const preparedMeta = upsertWooCommerceOrderMeta(order, {
-    [META.provider]: "gpay_virtual_account",
-    [META.paymentStatus]: "PENDING",
-    [META.merchantTransactionId]: reference,
-    [META.createState]: "creating",
-    [META.mapId]: reference,
-    [META.equalAmount]: input.amount,
-    [META.bankCode]: config.bankCode,
-    [META.remark]: reference,
-  });
-
-  await updateWooCommerceAdminOrder(order.id, {
-    payment_method: "gpay_virtual_account",
-    payment_method_title: "GPay Virtual Account",
-    meta_data: preparedMeta,
-  });
-
-  let data: GPayVirtualAccountData;
+  const lock = await acquireGPayVACreateLock(input.orderId);
 
   try {
-    data = await createGPayVirtualAccount({
-      account_name: config.accountName,
-      account_type: "O",
-      bank_code: config.bankCode,
-      description: reference,
-      equal_amount: input.amount,
-      map_id: reference,
-      map_type: "MHD",
-    });
-  } catch (error) {
-    const refreshed = await getWooCommerceAdminOrder(order.id);
-    const failedMeta = upsertWooCommerceOrderMeta(refreshed, {
-      [META.createState]: "uncertain",
+    const config = getGPayVAConfig();
+    const order = await getWooCommerceAdminOrder(input.orderId);
+    const existingAfterLock = await reuseExisting(order, input);
+
+    if (existingAfterLock) {
+      return existingAfterLock;
+    }
+
+    const lockedCreateState = readWooCommerceOrderMetaString(
+      order,
+      META.createState,
+    );
+    const lockedExistingAccount = readWooCommerceOrderMetaString(
+      order,
+      META.accountNumber,
+    );
+
+    if (
+      !lockedExistingAccount &&
+      (lockedCreateState === "creating" || lockedCreateState === "uncertain")
+    ) {
+      throw new Error(
+        "Trạng thái tạo Virtual Account chưa xác định. Không tự tạo lại để tránh phát sinh hai VA; cần operator kiểm tra GPay.",
+      );
+    }
+
+    const reference = createStableReference(input);
+    const preparedMeta = upsertWooCommerceOrderMeta(order, {
+      [META.provider]: "gpay_virtual_account",
+      [META.paymentStatus]: "PENDING",
+      [META.merchantTransactionId]: reference,
+      [META.createState]: "creating",
+      [META.mapId]: reference,
+      [META.equalAmount]: input.amount,
+      [META.bankCode]: config.bankCode,
+      [META.remark]: reference,
     });
 
     await updateWooCommerceAdminOrder(order.id, {
-      meta_data: failedMeta,
+      payment_method: "gpay_virtual_account",
+      payment_method_title: "GPay Virtual Account",
+      meta_data: preparedMeta,
     });
 
-    throw new Error(
-      error instanceof Error
-        ? `Không thể tạo tài khoản ảo GPay: ${error.message}`
-        : "Không thể tạo tài khoản ảo GPay.",
-    );
+    let data: GPayVirtualAccountData;
+
+    try {
+      data = await createGPayVirtualAccount({
+        account_name: config.accountName,
+        account_type: "O",
+        bank_code: config.bankCode,
+        description: reference,
+        equal_amount: input.amount,
+        map_id: reference,
+        map_type: "MHD",
+      });
+    } catch (error) {
+      const refreshed = await getWooCommerceAdminOrder(order.id);
+      const failedMeta = upsertWooCommerceOrderMeta(refreshed, {
+        [META.createState]: "uncertain",
+      });
+
+      await updateWooCommerceAdminOrder(order.id, {
+        meta_data: failedMeta,
+      });
+
+      throw new Error(
+        error instanceof Error
+          ? `Không thể tạo tài khoản ảo GPay: ${error.message}`
+          : "Không thể tạo tài khoản ảo GPay.",
+      );
+    }
+
+    const refreshed = await getWooCommerceAdminOrder(order.id);
+    const createdMeta = upsertWooCommerceOrderMeta(refreshed, {
+      [META.createState]: "created",
+      [META.accountNumber]: data.account_number || "",
+      [META.accountName]: data.account_name || "",
+      [META.accountType]: data.account_type || "O",
+      [META.status]: data.status || "OPEN",
+      [META.expireAt]: data.expire_at || "",
+      [META.createdAt]: new Date().toISOString(),
+    });
+
+    await updateWooCommerceAdminOrder(order.id, {
+      payment_method: "gpay_virtual_account",
+      payment_method_title: "GPay Virtual Account",
+      meta_data: createdMeta,
+    });
+
+    return sessionFromData(input, data, reference, config.bankCode);
+  } finally {
+    await lock.release();
   }
-
-  const refreshed = await getWooCommerceAdminOrder(order.id);
-  const createdMeta = upsertWooCommerceOrderMeta(refreshed, {
-    [META.createState]: "created",
-    [META.accountNumber]: data.account_number || "",
-    [META.accountName]: data.account_name || "",
-    [META.accountType]: data.account_type || "O",
-    [META.status]: data.status || "OPEN",
-    [META.expireAt]: data.expire_at || "",
-    [META.createdAt]: new Date().toISOString(),
-  });
-
-  await updateWooCommerceAdminOrder(order.id, {
-    payment_method: "gpay_virtual_account",
-    payment_method_title: "GPay Virtual Account",
-    meta_data: createdMeta,
-  });
-
-  return sessionFromData(input, data, reference, config.bankCode);
 }
 
 export const gpayVirtualAccountProvider: PaymentProvider = {
