@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createPaymentSession } from "@/features/payments/payment.service";
+import { GPayVACreateLockError } from "@/features/payments/gpay-va/gpay-va.create-lock";
 import { decidePaymentProviderExecutionGate } from "@/lib/runtime/production-execution-gate";
 import { createPaymentSchema } from "@/features/payments/payment.validation";
 import type { PaymentProviderId } from "@/features/payments/payment.types";
@@ -10,10 +11,6 @@ import {
   updateWooCommerceAdminOrder,
   upsertWooCommerceOrderMeta,
 } from "@/lib/woocommerce/order-admin-write-api";
-import {
-  assertWave1GPayVACanaryRequest,
-  Wave1GPayVACanaryError,
-} from "@/lib/runtime/wave1-gpay-va-canary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,13 +94,6 @@ export async function POST(request: Request) {
       throw new Error("Các phương thức GPay hiện chỉ hỗ trợ đơn hàng VND.");
     }
 
-    assertWave1GPayVACanaryRequest({
-      provider: values.provider,
-      orderId: order.id,
-      amountVnd: amount,
-      nodeEnvironment: process.env.NODE_ENV,
-    });
-
     const customerName = [order.billing.first_name, order.billing.last_name]
       .filter(Boolean)
       .join(" ")
@@ -135,7 +125,7 @@ export async function POST(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    if (error instanceof Wave1GPayVACanaryError) {
+    if (error instanceof GPayVACreateLockError) {
       return NextResponse.json(
         {
           success: false,

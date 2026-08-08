@@ -16,6 +16,7 @@ import {
   getGPayCommerceAutomationMode,
   runGPayCommerceAutomation,
 } from "@/lib/fulfillment/gigago/gpay-commerce-automation";
+import { GPayPaymentRecordLockError } from "@/lib/fulfillment/gigago/gpay-payment-record-lock";
 import {
   GPAY_FAST_ACK_VERSION,
   isGPayFastAckCandidate,
@@ -483,6 +484,30 @@ export async function POST(request: Request) {
         { source: "gpay-webhook" },
       );
     } catch (error) {
+      if (error instanceof GPayPaymentRecordLockError) {
+        await writeGPayDebugEvent({
+          type: "webhook.response",
+          requestId: providerRequestId ?? localRequestId,
+          operation: "gpay.webhook.payment-record-lock-busy",
+          data: {
+            status: 503,
+            code: error.code,
+          },
+        });
+
+        return NextResponse.json(
+          {
+            success: false,
+            received: true,
+            acknowledged: false,
+            verified: true,
+            code: error.code,
+            requestId: providerRequestId ?? localRequestId,
+          },
+          { status: 503, headers: { "Cache-Control": "no-store" } },
+        );
+      }
+
       commerceAutomation = {
         mode: getGPayCommerceAutomationMode(),
         attempted: true,
@@ -638,6 +663,20 @@ export async function POST(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
+    if (error instanceof GPayPaymentRecordLockError) {
+      return NextResponse.json(
+        {
+          success: false,
+          received: true,
+          acknowledged: false,
+          verified: true,
+          code: error.code,
+          requestId: localRequestId,
+        },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
     console.error(
       "Cannot process GPay webhook:",
       error instanceof Error ? error.message : "unknown error",

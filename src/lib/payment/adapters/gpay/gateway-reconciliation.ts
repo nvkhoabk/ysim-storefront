@@ -14,7 +14,8 @@ import {
 
 export type GPayCallbackReconciliationMode =
   | "verify-only"
-  | "query";
+  | "query"
+  | "signed-webhook";
 
 export interface GPayCallbackReconciliationResult {
   mode:
@@ -35,7 +36,9 @@ export interface GPayCallbackReconciliationResult {
   embedDataMatches?:
     boolean;
   providerQueryKind?:
-    "gateway-order" | "virtual-account-detail";
+    | "gateway-order"
+    | "virtual-account-detail"
+    | "virtual-account-webhook";
   accountNumberMatches?:
     boolean;
   amountMatches?:

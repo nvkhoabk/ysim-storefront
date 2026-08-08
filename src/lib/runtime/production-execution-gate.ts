@@ -14,10 +14,7 @@ export type ProductionExecutionGateDecision =
   | { readonly allowed: true }
   | {
       readonly allowed: false;
-      readonly code:
-        | "YSIM_PRODUCTION_EXECUTION_DISABLED"
-        | "YSIM_WAVE1_PUBLIC_CHECKOUT_DISABLED"
-        | "YSIM_WAVE1_PAYMENT_ROUTE_DISABLED";
+      readonly code: "YSIM_PRODUCTION_EXECUTION_DISABLED";
       readonly capability: ProductionExecutionCapability;
       readonly requiredFlags: readonly string[];
       readonly missingFlags: readonly string[];
@@ -60,6 +57,13 @@ function productionGateApplies(
 
 function providerFlagsFromPath(pathname: string): readonly string[] {
   if (
+    pathname === "/api/payments/gpay/virtual-account" ||
+    pathname.startsWith("/api/payments/gpay/virtual-account/")
+  ) {
+    return ["GPAY_ENABLED", "GPAY_VA_ENABLED"];
+  }
+
+  if (
     pathname === "/api/payments/gpay" ||
     pathname.startsWith("/api/payments/gpay/")
   ) {
@@ -93,10 +97,11 @@ function providerFlagsFromPath(pathname: string): readonly string[] {
 function paymentProviderFlags(providerId: string): readonly string[] {
   const normalizedProvider = normalized(providerId);
 
-  if (
-    normalizedProvider === "gpay_virtual_account" ||
-    normalizedProvider.startsWith("gpay_gateway_")
-  ) {
+  if (normalizedProvider === "gpay_virtual_account") {
+    return ["GPAY_ENABLED", "GPAY_VA_ENABLED"];
+  }
+
+  if (normalizedProvider.startsWith("gpay_gateway_")) {
     return ["GPAY_ENABLED"];
   }
 
@@ -240,44 +245,6 @@ export function decideProductionExecutionGate(
 
   if (!productionGateApplies(request.nodeEnvironment, environment)) {
     return { allowed: true };
-  }
-
-  const normalizedMethod = request.method.trim().toUpperCase();
-  const wave1CanaryArmed =
-    normalized(environment.YSIM_WAVE1_GPAY_VA_CANARY_MODE) === "armed";
-
-  if (
-    request.pathname === "/api/checkout" &&
-    normalizedMethod === "POST" &&
-    wave1CanaryArmed
-  ) {
-    return {
-      allowed: false,
-      code: "YSIM_WAVE1_PUBLIC_CHECKOUT_DISABLED",
-      capability: "payment",
-      requiredFlags: [],
-      missingFlags: [],
-    };
-  }
-
-  if (wave1CanaryArmed && request.pathname.startsWith("/api/payments/")) {
-    const allowedWave1Route =
-      (request.pathname === "/api/payments/create" &&
-        normalizedMethod === "POST") ||
-      (request.pathname === "/api/payments/gpay/virtual-account/webhook" &&
-        (normalizedMethod === "POST" || normalizedMethod === "GET")) ||
-      (request.pathname === "/api/payments/gpay/virtual-account/status" &&
-        normalizedMethod === "GET");
-
-    if (!allowedWave1Route) {
-      return {
-        allowed: false,
-        code: "YSIM_WAVE1_PAYMENT_ROUTE_DISABLED",
-        capability: "payment",
-        requiredFlags: [],
-        missingFlags: [],
-      };
-    }
   }
 
   const policy = requestPolicy(request.pathname, request.method);
