@@ -13,6 +13,10 @@ import {
 
 import { GigagoClient } from "./gigago.client";
 import { getGigagoConfig } from "./gigago.config";
+import {
+  expectedGigagoEnvironment,
+  gigagoEnvironmentMatchesMode,
+} from "./gigago-environment-policy";
 import { GigagoError } from "./gigago.errors";
 import {
   mapGigagoDemoPlan,
@@ -83,6 +87,20 @@ const DEMO_META = {
 
 function metadataKeys(mode: GigagoFulfillmentMode) {
   return mode === "demo" ? DEMO_META : LIVE_META;
+}
+
+function assertGigagoEnvironmentForMode(
+  environment: "sandbox" | "production",
+  mode: GigagoFulfillmentMode,
+): void {
+  if (gigagoEnvironmentMatchesMode(environment, mode)) {
+    return;
+  }
+
+  throw new GigagoError({
+    code: "GIGAGO_CONFIG_ERROR",
+    message: `Gigago fulfillment mode ${mode} yêu cầu GIGAGO_ENV=${expectedGigagoEnvironment(mode)}.`,
+  });
 }
 
 function requiredEnvironment(name: string): string {
@@ -298,13 +316,7 @@ export async function previewGigagoFulfillment(
   mode: GigagoFulfillmentMode,
 ): Promise<GigagoFulfillmentPreview> {
   const config = getGigagoConfig();
-
-  if (config.environment !== "sandbox") {
-    throw new GigagoError({
-      code: "GIGAGO_CONFIG_ERROR",
-      message: "F02 protected test workflow chỉ chạy trong Gigago sandbox.",
-    });
-  }
+  assertGigagoEnvironmentForMode(config.environment, mode);
 
   const { preview } = await loadPreview(
     orderId,
@@ -320,13 +332,7 @@ export async function submitGigagoFulfillment(
   mode: GigagoFulfillmentMode,
 ): Promise<GigagoFulfillmentSubmission> {
   const config = getGigagoConfig();
-
-  if (config.environment !== "sandbox") {
-    throw new GigagoError({
-      code: "GIGAGO_CONFIG_ERROR",
-      message: "F02 protected test workflow chỉ chạy trong Gigago sandbox.",
-    });
-  }
+  assertGigagoEnvironmentForMode(config.environment, mode);
 
   const client = new GigagoClient(config);
   const { order, preview } = await loadPreview(orderId, mode, client);
@@ -412,13 +418,7 @@ export async function getGigagoFulfillmentStatus(
   snapshot: GigagoFulfillmentSnapshot;
 }> {
   const config = getGigagoConfig();
-
-  if (config.environment !== "sandbox") {
-    throw new GigagoError({
-      code: "GIGAGO_CONFIG_ERROR",
-      message: "F02 protected test workflow chỉ chạy trong Gigago sandbox.",
-    });
-  }
+  assertGigagoEnvironmentForMode(config.environment, mode);
 
   const client = new GigagoClient(config);
   const order = await getWooCommerceAdminOrder(orderId);
