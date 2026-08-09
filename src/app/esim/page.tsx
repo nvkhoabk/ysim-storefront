@@ -1,63 +1,62 @@
+/* YSIM_PACKAGE_41_ROUTE:esim-inline-quick-filter */
+
 import type { Metadata } from "next";
 
-import {
-  EsimPackageAssistantBanner,
-} from "@/components/esim/EsimPackageAssistantBanner";
+import { EsimInlineQuickFilterPage } from "@/components/catalog";
+
+import { loadCatalog } from "@/lib/storefront/integration/secondary-routes/service";
 
 import {
-  EsimCatalogShell,
-} from "@/components/esim/catalog";
-
+  resolveEsimQuickFilterFromSearchParams,
+  type EsimQuickFilterSearchParams,
+} from "@/lib/storefront/catalog/esim-quick-filter";
 import {
-  AnnouncementBar,
-} from "@/components/layout/AnnouncementBar";
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+import { createListingTranslator } from "@/i18n/listing/listing.registry";
 
-import {
-  Header,
-} from "@/components/layout/Header";
+export const dynamic = "force-dynamic";
 
-import {
-  FooterBenefits,
-} from "@/components/layout/FooterBenefits";
-
-import {
-  Footer,
-} from "@/components/layout/footer/Footer";
-
-import {
-  SiteContainer,
-} from "@/components/layout/primitives";
-
-export const metadata: Metadata = {
-  title: "eSIM du lịch quốc tế",
+const baseMetadata: Metadata = {
+  title: "Mua eSIM du lịch",
   description:
-    "Khám phá eSIM theo quốc gia, khu vực và toàn cầu cho hơn 200 quốc gia và vùng lãnh thổ.",
+    "Chọn điểm đến, lọc và sắp xếp các gói eSIM du lịch ngay trên một trang.",
+  alternates: {
+    canonical: "/esim",
+  },
 };
 
-export default function EsimPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const request = await getStorefrontLocaleRequest();
+  const t = createListingTranslator(request.shell.locale);
+  return withLocalizedAlternates(
+    {
+      ...baseMetadata,
+      title: t("esim.title"),
+      description: t("esim.description"),
+    },
+    request,
+  );
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<EsimQuickFilterSearchParams>;
+}) {
+  const [catalog, resolvedSearchParams] = await Promise.all([
+    loadCatalog(),
+    searchParams,
+  ]);
+
+  const initialSelection =
+    resolveEsimQuickFilterFromSearchParams(resolvedSearchParams);
+
   return (
-    <>
-      <AnnouncementBar />
-
-      <Header />
-
-      <main className="bg-slate-50">
-        <section className="py-5 sm:py-7">
-          <SiteContainer size="wide">
-            <EsimCatalogShell />
-          </SiteContainer>
-        </section>
-
-        <section className="pb-8 sm:pb-10">
-          <SiteContainer size="wide">
-            <EsimPackageAssistantBanner />
-          </SiteContainer>
-        </section>
-
-        <FooterBenefits />
-      </main>
-
-      <Footer />
-    </>
+    <EsimInlineQuickFilterPage
+      products={catalog.products}
+      initialSelection={initialSelection}
+    />
   );
 }

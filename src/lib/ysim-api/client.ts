@@ -11,7 +11,7 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly body: unknown,
-    message?: string
+    message?: string,
   ) {
     super(message ?? `API Error ${status}`);
   }
@@ -21,35 +21,26 @@ export class YSimApiClient {
   private readonly baseUrl: string;
 
   constructor(baseUrl?: string) {
-    this.baseUrl =
-      (baseUrl ??
-        process.env.YSIM_API_BASE_URL ??
-        "").replace(/\/$/, "");
-
-    if (!this.baseUrl) {
-      throw new Error(
-        "YSIM_API_BASE_URL is not configured."
-      );
-    }
+    this.baseUrl = (baseUrl ?? process.env.YSIM_API_BASE_URL ?? "").replace(
+      /\/$/,
+      "",
+    );
   }
 
-  async get<T>(
-    path: string,
-    options: ApiClientOptions = {}
-  ): Promise<T> {
+  async get<T>(path: string, options: ApiClientOptions = {}): Promise<T> {
     return this.request<T>(
       path,
       {
         method: "GET",
       },
-      options
+      options,
     );
   }
 
   async post<T>(
     path: string,
     body: unknown,
-    options: ApiClientOptions = {}
+    options: ApiClientOptions = {},
   ): Promise<T> {
     return this.request<T>(
       path,
@@ -57,89 +48,63 @@ export class YSimApiClient {
         method: "POST",
         body: JSON.stringify(body),
       },
-      options
+      options,
     );
   }
 
   private async request<T>(
     path: string,
     init: RequestInit,
-    options: ApiClientOptions
+    options: ApiClientOptions,
   ): Promise<T> {
+    if (!this.baseUrl) {
+      throw new Error("YSIM_API_BASE_URL is not configured.");
+    }
 
-    const timeout =
-      options.timeout ?? 10000;
+    const timeout = options.timeout ?? 10000;
 
-    const retries =
-      options.retries ?? 1;
+    const retries = options.retries ?? 1;
 
     let lastError: unknown;
 
-    for (
-      let attempt = 0;
-      attempt <= retries;
-      attempt++
-    ) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
       try {
+        const controller = new AbortController();
 
-        const controller =
-          new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeout);
 
-        const timer =
-          setTimeout(
-            () => controller.abort(),
-            timeout
-          );
+        const response = await fetch(`${this.baseUrl}${path}`, {
+          ...init,
 
-        const response =
-          await fetch(
-            `${this.baseUrl}${path}`,
-            {
-              ...init,
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...init.headers,
+          },
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-                Accept:
-                  "application/json",
-                ...init.headers,
-              },
+          signal: controller.signal,
 
-              signal:
-                controller.signal,
+          cache: options.cache ?? "no-store",
 
-              cache:
-                options.cache ??
-                "no-store",
-
-              next:
-                options.next,
-            }
-          );
+          next: options.next,
+        });
 
         clearTimeout(timer);
 
-        let payload: unknown =
-          null;
+        let payload: unknown = null;
 
         try {
-          payload =
-            await response.json();
+          payload = await response.json();
         } catch {
           payload = null;
         }
 
         if (!response.ok) {
-          throw new ApiError(
-            response.status,
-            payload
-          );
+          throw new ApiError(response.status, payload);
         }
 
         return payload as T;
-
       } catch (error) {
-
         lastError = error;
 
         if (attempt >= retries) {
@@ -152,17 +117,13 @@ export class YSimApiClient {
   }
 
   async getConfig(): Promise<ApiConfig> {
-    return this.get<ApiConfig>(
-      "/config",
-      {
-        cache: "force-cache",
-        next: {
-          revalidate: 300,
-        },
-      }
-    );
+    return this.get<ApiConfig>("/config", {
+      cache: "force-cache",
+      next: {
+        revalidate: 300,
+      },
+    });
   }
 }
 
-export const api =
-  new YSimApiClient();
+export const api = new YSimApiClient();

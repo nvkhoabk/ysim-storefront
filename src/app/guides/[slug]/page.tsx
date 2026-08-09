@@ -1,87 +1,80 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowLeft, BookOpen } from "lucide-react";
+/* YSIM_PACKAGE_24_ACTIVATION:guide-detail */
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
-import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
-import { Header } from "@/components/layout/Header";
-import { travelGuides } from "@/data/travel-guides";
+import LegacyGuideDetailPage from "./legacy-page";
 
-interface TravelGuidePageProps {
+import { ArticlePageComposition } from "@/components/content/refactor";
+
+import { GuideArticleRouteCandidatePage } from "@/components/content/refactor/integration";
+
+import { parseContentLocale } from "@/lib/content/integration";
+
+import { loadGuideArticleRouteCandidate } from "@/lib/content/route-candidate";
+
+import { createGuideMetadata } from "@/lib/content/integration";
+import {
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+
+import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
+
+interface GuideDetailPageProps {
   params: Promise<{
     slug: string;
   }>;
+  searchParams?: Promise<{
+    locale?: string;
+  }>;
 }
 
-export function generateStaticParams() {
-  return travelGuides.map((guide) => ({
-    slug: guide.slug,
-  }));
+export async function generateMetadata(
+  props: GuideDetailPageProps,
+): Promise<Metadata> {
+  const [{ slug }, request] = await Promise.all([
+    props.params,
+    getStorefrontLocaleRequest(),
+  ]);
+  const locale = parseContentLocale(request.shell.locale);
+  const candidate = await loadGuideArticleRouteCandidate({ locale, slug });
+
+  if (!candidate) return { robots: { index: false, follow: false } };
+
+  return withLocalizedAlternates(
+    createGuideMetadata(candidate.page.article),
+    request,
+  );
 }
 
-export default async function TravelGuidePage({
-  params,
-}: TravelGuidePageProps) {
-  const { slug } = await params;
+export default async function GuideDetailPage(props: GuideDetailPageProps) {
+  const mode = getProductionRouteMode("guide-detail");
 
-  const guide = travelGuides.find((item) => item.slug === slug);
+  if (mode === "legacy") {
+    return <LegacyGuideDetailPage {...props} />;
+  }
 
-  if (!guide) {
+  const params = await props.params;
+
+  const query = props.searchParams ? await props.searchParams : {};
+
+  const request = await getStorefrontLocaleRequest();
+  const locale = parseContentLocale(
+    request.localized ? request.shell.locale : query.locale,
+  );
+
+  const candidate = await loadGuideArticleRouteCandidate({
+    locale,
+    slug: params.slug,
+  });
+
+  if (!candidate) {
     notFound();
   }
 
-  return (
-    <>
-      <AnnouncementBar />
-      <Header />
+  if (mode === "candidate") {
+    return <GuideArticleRouteCandidatePage candidate={candidate} />;
+  }
 
-      <main className="min-h-[65vh] bg-slate-50 px-5 py-10 sm:px-6 lg:px-8">
-        <article className="mx-auto max-w-4xl">
-          <Link
-            href="/guides"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-green-700 hover:text-green-800"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Quay lại cẩm nang
-          </Link>
-
-          <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="relative aspect-[16/8] bg-slate-100">
-              <Image
-                src={guide.image}
-                alt={guide.title}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 896px"
-                className="object-cover"
-              />
-
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-transparent" />
-            </div>
-
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-2 text-green-700">
-                <BookOpen className="h-4 w-4" />
-
-                <span className="text-sm font-semibold">{guide.category}</span>
-              </div>
-
-              <h1 className="mt-3 text-3xl leading-tight font-bold text-slate-950 sm:text-4xl">
-                {guide.title}
-              </h1>
-
-              <p className="mt-5 text-base leading-7 text-slate-600">
-                {guide.excerpt}
-              </p>
-
-              <div className="mt-8 rounded-2xl border border-green-100 bg-green-50 p-5 text-sm leading-7 text-slate-700">
-                Nội dung chi tiết của bài viết sẽ được bổ sung trong giai đoạn
-                xây dựng hệ thống nội dung và cẩm nang YSim.
-              </div>
-            </div>
-          </div>
-        </article>
-      </main>
-    </>
-  );
+  return <ArticlePageComposition page={candidate.page} />;
 }

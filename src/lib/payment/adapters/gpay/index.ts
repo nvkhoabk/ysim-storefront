@@ -17,3 +17,4 @@ export * from "./gateway-security";
 export * from "./gateway-init-order";
 export * from "./gateway-query-order";
 export * from "./gateway-callback";
+export * from "./gateway-reconciliation";

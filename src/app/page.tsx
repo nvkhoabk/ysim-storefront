@@ -1,59 +1,44 @@
-import { FeaturedProducts } from "@/components/home/FeaturedProducts";
-import { HeroSection } from "@/components/home/HeroSection";
-import { HomeGuideSection } from "@/components/home/HomeGuideSection";
-import { HomeValueRow } from "@/components/home/HomeValueRow";
-import { PopularDestinations } from "@/components/home/PopularDestinations";
-import { TestimonialsSection } from "@/components/home/TestimonialsSection";
-import { TravelGuidesSection } from "@/components/home/TravelGuidesSection";
-import { FooterBenefits } from "@/components/layout/FooterBenefits";
-import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/footer/Footer";
-import { getProducts } from "@/lib/woocommerce/products";
-import type { WooCommerceProduct } from "@/lib/woocommerce/types";
+/* YSIM_PACKAGE_24_ACTIVATION:home */
+import LegacyHomePage from "./legacy-page";
+
+import { HomePageComposition } from "@/components/home/refactor";
+
+import { HomeRouteCandidatePage } from "@/components/home/refactor/integration";
+
+import {
+  createProductionHomeRouteAdapterFromEnvironment,
+  loadHomeRouteCandidate,
+} from "@/lib/storefront/integration/home";
+
+import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
+import { getStorefrontLocaleRequest } from "@/i18n/runtime/runtime.server";
+import { localizeHomePageViewModel } from "@/lib/storefront/localization";
 
 export default async function HomePage() {
-  let products: WooCommerceProduct[] = [];
-  let catalogError = false;
+  const request = await getStorefrontLocaleRequest();
+  const mode = getProductionRouteMode("home");
 
-  try {
-    products = await getProducts({
-      perPage: 8,
-      locale: "vi",
-    });
-  } catch (error) {
-    catalogError = true;
-    console.error("Cannot load localized products:", error);
+  if (mode === "legacy" && !request.localized) {
+    return <LegacyHomePage />;
   }
 
-  return (
-    <>
-      <AnnouncementBar />
-      <Header />
+  const productionAdapter = createProductionHomeRouteAdapterFromEnvironment();
 
-      <main>
-        <HeroSection />
-        <PopularDestinations />
-        <HomeValueRow />
-        <HomeGuideSection />
+  const candidate = await loadHomeRouteCandidate({
+    productionAdapter,
+  });
 
-        {catalogError ? (
-          <section className="bg-white px-5 py-16 lg:px-8">
-            <div className="mx-auto max-w-7xl rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
-              Danh sách sản phẩm đang tạm thời không khả dụng. Vui lòng thử lại
-              sau.
-            </div>
-          </section>
-        ) : (
-          <FeaturedProducts products={products} />
-        )}
+  const localizedPage = request.localized
+    ? localizeHomePageViewModel(candidate.page, request.shell.locale)
+    : candidate.page;
 
-        <TestimonialsSection />
-        <TravelGuidesSection />
-        <FooterBenefits />
-      </main>
+  if (mode === "candidate") {
+    return (
+      <HomeRouteCandidatePage
+        candidate={{ ...candidate, page: localizedPage }}
+      />
+    );
+  }
 
-      <Footer />
-    </>
-  );
+  return <HomePageComposition page={localizedPage} />;
 }

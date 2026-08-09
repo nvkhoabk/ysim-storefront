@@ -1,45 +1,65 @@
-import type {
-  Metadata,
-} from "next";
+/* YSIM_PACKAGE_24_ACTIVATION:guides */
+import LegacyGuidesPage from "./legacy-page";
+import type { Metadata } from "next";
 
+import { ContentLandingComposition } from "@/components/content/refactor";
+
+import { GuideLandingRouteCandidatePage } from "@/components/content/refactor/integration";
+
+import { parseContentLocale } from "@/lib/content/integration";
+
+import { loadGuideLandingRouteCandidate } from "@/lib/content/route-candidate";
+
+import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
+
+import { createSecondaryTranslator } from "@/i18n/secondary/secondary.registry";
 import {
-  GuidesPage,
-} from "@/components/guides";
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
 
-import {
-  AnnouncementBar,
-} from "@/components/layout/AnnouncementBar";
+export async function generateMetadata(): Promise<Metadata> {
+  const request = await getStorefrontLocaleRequest();
+  const t = createSecondaryTranslator(request.shell.locale);
 
-import {
-  Header,
-} from "@/components/layout/Header";
-
-import {
-  FooterBenefits,
-} from "@/components/layout/FooterBenefits";
-
-import {
-  Footer,
-} from "@/components/layout/footer/Footer";
-
-export const metadata: Metadata = {
-  title: "Hướng dẫn sử dụng eSIM | YSim",
-  description:
-    "Hướng dẫn mua, nhận, cài đặt và sử dụng eSIM YSim trên iPhone, iPad và Android.",
-};
-
-export default function GuidesRoutePage() {
-  return (
-    <>
-      <AnnouncementBar />
-
-      <Header />
-
-      <GuidesPage />
-
-      <FooterBenefits />
-
-      <Footer />
-    </>
+  return withLocalizedAlternates(
+    {
+      title: t("guides.title"),
+      description: t("guides.description"),
+    },
+    request,
   );
+}
+
+interface GuidesPageProps {
+  searchParams?: Promise<{
+    locale?: string;
+    category?: string;
+  }>;
+}
+
+export default async function GuidesPage(props: GuidesPageProps) {
+  const mode = getProductionRouteMode("guides");
+
+  if (mode === "legacy") {
+    return <LegacyGuidesPage />;
+  }
+
+  const query = props.searchParams ? await props.searchParams : {};
+
+  const request = await getStorefrontLocaleRequest();
+  const locale = parseContentLocale(
+    request.localized ? request.shell.locale : query.locale,
+  );
+
+  const candidate = await loadGuideLandingRouteCandidate({
+    locale,
+    category: query.category,
+  });
+
+  if (mode === "candidate") {
+    return <GuideLandingRouteCandidatePage candidate={candidate} />;
+  }
+
+  return <ContentLandingComposition page={candidate.page} />;
 }

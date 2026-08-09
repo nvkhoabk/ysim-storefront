@@ -1,45 +1,24 @@
-import type {
-  Metadata,
-} from "next";
+/* YSIM_PACKAGE_39_V2_ROUTE:offers-partner-program */
 
+import { ProductionOffersComposition } from "@/components/secondary-routes/production";
 import {
-  OffersPage,
-} from "@/components/offers";
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+import { createOffersPartnerCopy } from "@/i18n/offers/offers-partner.config";
 
-import {
-  AnnouncementBar,
-} from "@/components/layout/AnnouncementBar";
-
-import {
-  Header,
-} from "@/components/layout/Header";
-
-import {
-  FooterBenefits,
-} from "@/components/layout/FooterBenefits";
-
-import {
-  Footer,
-} from "@/components/layout/footer/Footer";
-
-export const metadata: Metadata = {
-  title: "Ưu đãi đối tác | YSim",
-  description:
-    "Khám phá chính sách chiết khấu, thưởng doanh số và quyền lợi dành cho đối tác YSim.",
-};
-
-export default function OffersRoutePage() {
-  return (
-    <>
-      <AnnouncementBar />
-
-      <Header />
-
-      <OffersPage />
-
-      <FooterBenefits />
-
-      <Footer />
-    </>
+export async function generateMetadata() {
+  const request = await getStorefrontLocaleRequest();
+  const copy = createOffersPartnerCopy(request.shell.locale);
+  return withLocalizedAlternates(
+    {
+      title: copy.labels.offers,
+      description: copy.labels.heroDescription,
+    },
+    request,
   );
+}
+
+export default function Page() {
+  return <ProductionOffersComposition />;
 }
