@@ -1,34 +1,29 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Check,
-  CreditCard,
-  Gift,
-  LoaderCircle,
-  User,
-} from "lucide-react";
+import { Check, CreditCard, Gift, LoaderCircle, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  type FieldErrors,
-  useForm,
-  useWatch,
-} from "react-hook-form";
+import { type FieldErrors, useForm, useWatch } from "react-hook-form";
 
 import {
   checkoutFormSchema,
+  type CheckoutFormFields,
   type CheckoutFormInput,
 } from "@/features/checkout/checkout.validation";
 
-import type {
-  WooCommerceCheckout,
-} from "@/features/checkout/checkout.types";
+import type { WooCommerceCheckout } from "@/features/checkout/checkout.types";
 
 import type {
   PaymentMethodOption,
   PaymentSession,
 } from "@/features/payments/payment.types";
+
+import { VirtualAccountPaymentPanel } from "./VirtualAccountPaymentPanel";
+import { useTransactionTranslations } from "@/i18n/transaction/useTransactionTranslations";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+import type { TransactionTranslator } from "@/i18n/transaction/transaction.types";
 
 interface CheckoutFormProps {
   paymentMethods: PaymentMethodOption[];
@@ -36,16 +31,7 @@ interface CheckoutFormProps {
 
 interface CheckoutApiResponse {
   checkout: WooCommerceCheckout;
-  selectedPaymentProvider:
-    PaymentMethodOption["id"];
-}
-
-interface PaymentErrorResponse {
-  message?: string;
-
-  error?: {
-    message?: string;
-  };
+  selectedPaymentProvider: PaymentMethodOption["id"];
 }
 
 interface CartTotalsResponse {
@@ -73,26 +59,15 @@ interface CheckoutAmount {
   currency: string;
 }
 
-function FieldError({
-  message,
-}: {
-  message?: string;
-}) {
+function FieldError({ message }: { message?: string }) {
   if (!message) {
     return null;
   }
 
-  return (
-    <p className="mt-1.5 text-sm text-red-600">
-      {message}
-    </p>
-  );
+  return <p className="mt-1.5 text-sm text-red-600">{message}</p>;
 }
 
-function getErrorMessage(
-  payload: unknown,
-  fallback: string,
-): string {
+function getErrorMessage(payload: unknown, fallback: string): string {
   if (
     typeof payload !== "object" ||
     payload === null ||
@@ -101,32 +76,18 @@ function getErrorMessage(
     return fallback;
   }
 
-  const record =
-    payload as Record<string, unknown>;
+  const record = payload as Record<string, unknown>;
 
-  if (
-    typeof record.message === "string" &&
-    record.message.trim()
-  ) {
+  if (typeof record.message === "string" && record.message.trim()) {
     return record.message;
   }
 
-  const error =
-    record.error;
+  const error = record.error;
 
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    !Array.isArray(error)
-  ) {
-    const errorRecord =
-      error as Record<string, unknown>;
+  if (typeof error === "object" && error !== null && !Array.isArray(error)) {
+    const errorRecord = error as Record<string, unknown>;
 
-    if (
-      typeof errorRecord.message ===
-        "string" &&
-      errorRecord.message.trim()
-    ) {
+    if (typeof errorRecord.message === "string" && errorRecord.message.trim()) {
       return errorRecord.message;
     }
   }
@@ -152,59 +113,35 @@ function getErrorMessage(
  */
 function normalizeCartAmount(
   totals: CartTotalsResponse,
+  t: TransactionTranslator,
 ): CheckoutAmount {
-  const rawAmount =
-    Number(totals.total_price);
+  const rawAmount = Number(totals.total_price);
 
-  const minorUnit =
-    Number(
-      totals.currency_minor_unit,
-    );
+  const minorUnit = Number(totals.currency_minor_unit);
 
-  if (
-    !Number.isFinite(rawAmount) ||
-    rawAmount <= 0
-  ) {
-    throw new Error(
-      "Tổng tiền giỏ hàng không hợp lệ.",
-    );
+  if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
+    throw new Error(t("common.error"));
   }
 
-  if (
-    !Number.isInteger(minorUnit) ||
-    minorUnit < 0
-  ) {
-    throw new Error(
-      "Đơn vị tiền tệ của giỏ hàng không hợp lệ.",
-    );
+  if (!Number.isInteger(minorUnit) || minorUnit < 0) {
+    throw new Error(t("common.error"));
   }
 
-  const amount =
-    rawAmount /
-    Math.pow(10, minorUnit);
+  const amount = rawAmount / Math.pow(10, minorUnit);
 
-  if (
-    !Number.isFinite(amount) ||
-    amount <= 0
-  ) {
-    throw new Error(
-      "Không thể xác định số tiền thanh toán.",
-    );
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error(t("common.error"));
   }
 
-  const currency =
-    totals.currency_code?.trim();
+  const currency = totals.currency_code?.trim();
 
   if (!currency) {
-    throw new Error(
-      "Không xác định được loại tiền của giỏ hàng.",
-    );
+    throw new Error(t("common.error"));
   }
 
   return {
     amount,
-    currency:
-      currency.toUpperCase(),
+    currency: currency.toUpperCase(),
   };
 }
 
@@ -216,113 +153,86 @@ function normalizeCartAmount(
  * WooCommerce Checkout API có thể trả trường đó
  * bằng null sau khi order đã được tạo.
  */
-async function getCurrentCartAmount():
-Promise<CheckoutAmount> {
-  const response =
-    await fetch(
-      "/api/cart",
-      {
-        method: "GET",
+async function getCurrentCartAmount(
+  t: TransactionTranslator,
+): Promise<CheckoutAmount> {
+  const response = await fetch("/api/cart", {
+    method: "GET",
 
-        headers: {
-          Accept:
-            "application/json",
-        },
+    headers: {
+      Accept: "application/json",
+    },
 
-        cache: "no-store",
-      },
-    );
+    cache: "no-store",
+  });
 
-  const payload: unknown =
-    await response.json();
+  const payload: unknown = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      getErrorMessage(
-        payload,
-        "Không thể đọc thông tin giỏ hàng.",
-      ),
-    );
+    throw new Error(getErrorMessage(payload, t("common.error")));
   }
 
-  const cartData =
-    payload as CartApiResponse;
+  const cartData = payload as CartApiResponse;
 
-  const totals =
-    cartData.totals ??
-    cartData.cart?.totals;
+  const totals = cartData.totals ?? cartData.cart?.totals;
 
   if (!totals) {
-    throw new Error(
-      "Cart API không trả về thông tin tổng tiền.",
-    );
+    throw new Error(t("common.error"));
   }
 
-  return normalizeCartAmount(
-    totals,
-  );
+  return normalizeCartAmount(totals, t);
 }
 
-export function CheckoutForm({
-  paymentMethods,
-}: CheckoutFormProps) {
-  const router =
-    useRouter();
+export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
+  const router = useRouter();
+  const t = useTransactionTranslations();
+  const { locale } = useStorefrontLocale();
 
-  const [
-    submitError,
-    setSubmitError,
-  ] =
-    useState<string | null>(
-      null,
-    );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [virtualAccountPayment, setVirtualAccountPayment] = useState<{
+    session: PaymentSession;
+    orderKey: string;
+  } | null>(null);
 
   const {
     register,
     handleSubmit,
     control,
 
-    formState: {
-      errors,
-      isSubmitting,
+    formState: { errors, isSubmitting },
+  } = useForm<CheckoutFormFields, unknown, CheckoutFormInput>({
+    resolver: zodResolver(checkoutFormSchema),
+
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      country: "VN",
+
+      purchaseFor: "self",
+
+      recipientName: "",
+      recipientEmail: "",
+
+      paymentMethod: "gpay_gateway_all",
+
+      customerNote: "",
+      acceptTerms: false,
     },
-  } =
-    useForm<CheckoutFormInput>({
-      resolver:
-        zodResolver(
-          checkoutFormSchema,
-        ),
+  });
 
-      defaultValues: {
-        fullName: "",
-        email: "",
-        phone: "",
-        country: "VN",
+  const purchaseFor = useWatch({
+    control,
+    name: "purchaseFor",
+  });
 
-        purchaseFor:
-          "self",
+  const paymentMethod = useWatch({
+    control,
+    name: "paymentMethod",
+  });
 
-        recipientName: "",
-        recipientEmail: "",
-
-        paymentMethod:
-          paymentMethods[0]?.id ??
-          "gpay_gateway_all",
-
-        customerNote: "",
-        acceptTerms: false,
-      },
-    });
-
-  const purchaseFor =
-    useWatch({
-      control,
-      name: "purchaseFor",
-    });
-
-  async function submitCheckout(
-    values: CheckoutFormInput,
-  ) {
+  async function submitCheckout(values: CheckoutFormInput) {
     setSubmitError(null);
 
     try {
@@ -334,71 +244,36 @@ export function CheckoutForm({
        * vì sau khi WooCommerce tạo Order,
        * __experimentalCart có thể bằng null.
        */
-      const {
-        amount,
-        currency,
-      } =
-        await getCurrentCartAmount();
+      const { amount, currency } = await getCurrentCartAmount(t);
 
       /*
        * Bước 2:
        * Tạo WooCommerce Order từ cart hiện tại.
        */
-      const checkoutResponse =
-        await fetch(
-          "/api/checkout",
-          {
-            method: "POST",
+      const checkoutResponse = await fetch("/api/checkout", {
+        method: "POST",
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-            body:
-              JSON.stringify(
-                values,
-              ),
-          },
-        );
+        body: JSON.stringify(values),
+      });
 
-      const checkoutData:
-        unknown =
-        await checkoutResponse
-          .json();
+      const checkoutData: unknown = await checkoutResponse.json();
 
-      if (
-        !checkoutResponse.ok
-      ) {
-        throw new Error(
-          getErrorMessage(
-            checkoutData,
-            "Không thể tạo đơn hàng.",
-          ),
-        );
+      if (!checkoutResponse.ok) {
+        throw new Error(getErrorMessage(checkoutData, t("common.error")));
       }
 
-      const {
-        checkout,
-        selectedPaymentProvider,
-      } =
-        checkoutData as
-          CheckoutApiResponse;
+      const { checkout, selectedPaymentProvider } =
+        checkoutData as CheckoutApiResponse;
 
-      if (
-        !checkout.order_id ||
-        !checkout.order_key
-      ) {
-        throw new Error(
-          "WooCommerce không trả về đầy đủ thông tin đơn hàng.",
-        );
+      if (!checkout.order_id || !checkout.order_key) {
+        throw new Error(t("common.error"));
       }
 
-      const orderNumber =
-        checkout.order_number ??
-        String(
-          checkout.order_id,
-        );
+      const orderNumber = checkout.order_number ?? String(checkout.order_id);
 
       /*
        * Bước 3:
@@ -407,67 +282,60 @@ export function CheckoutForm({
        * Không redirect theo redirect_url của WooCommerce
        * trước khi GPay init-order hoàn tất.
        */
-      const paymentResponse =
-        await fetch(
-          "/api/payments/create",
-          {
-            method: "POST",
+      const paymentResponse = await fetch("/api/payments/create", {
+        method: "POST",
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-            body:
-              JSON.stringify({
-                provider:
-                  selectedPaymentProvider,
+        body: JSON.stringify({
+          provider: selectedPaymentProvider,
 
-                orderId:
-                  checkout.order_id,
+          orderId: checkout.order_id,
 
-                orderNumber,
+          orderNumber,
 
-                orderKey:
-                  checkout.order_key,
+          orderKey: checkout.order_key,
 
-                amount,
-                currency,
+          amount,
+          currency,
 
-                customerName:
-                  values.fullName,
+          customerName: values.fullName,
 
-                customerEmail:
-                  values.email,
+          customerEmail: values.email,
 
-                customerPhone:
-                  values.phone,
+          customerPhone: values.phone,
 
-                description:
-                  `Thanh toán đơn YSim #${orderNumber}`,
-              }),
-          },
-        );
+          description: `YSim order #${orderNumber}`,
+        }),
+      });
 
-      const paymentData:
-        unknown =
-        await paymentResponse
-          .json();
+      const paymentData: unknown = await paymentResponse.json();
 
-      if (
-        !paymentResponse.ok
-      ) {
-        throw new Error(
-          getErrorMessage(
-            paymentData,
-            "Không thể khởi tạo thanh toán.",
-          ),
-        );
+      if (!paymentResponse.ok) {
+        throw new Error(getErrorMessage(paymentData, t("common.error")));
       }
 
-      const paymentSession =
-        paymentData as
-          PaymentSession;
+      const paymentSession = paymentData as PaymentSession;
+
+      if (paymentSession.provider === "gpay_virtual_account") {
+        sessionStorage.setItem(
+          "ysim:gpay-va:pending-payment",
+          JSON.stringify({
+            session: paymentSession,
+            orderKey: checkout.order_key,
+            createdAt: new Date().toISOString(),
+          }),
+        );
+
+        setVirtualAccountPayment({
+          session: paymentSession,
+          orderKey: checkout.order_key,
+        });
+
+        return;
+      }
 
       /*
        * Bước 4:
@@ -475,74 +343,41 @@ export function CheckoutForm({
        * URL này phải được ưu tiên trước WooCommerce
        * payment_result.redirect_url.
        */
-      if (
-        paymentSession.redirectUrl
-      ) {
-        if (
-          paymentSession.provider
-            .startsWith(
-              "gpay_gateway_",
-            )
-        ) {
-          if (
-            !paymentSession
-              .providerBillId
-          ) {
-            throw new Error(
-              "GPay không trả về mã hóa đơn thanh toán.",
-            );
+      if (paymentSession.redirectUrl) {
+        if (paymentSession.provider.startsWith("gpay_gateway_")) {
+          if (!paymentSession.providerBillId) {
+            throw new Error(t("common.error"));
           }
 
           sessionStorage.setItem(
             "ysim:gpay:pending-payment",
 
             JSON.stringify({
-              orderId:
-                paymentSession
-                  .orderId,
+              orderId: paymentSession.orderId,
 
-              orderNumber:
-                paymentSession
-                  .orderNumber,
+              orderNumber: paymentSession.orderNumber,
 
-              orderKey:
-                checkout
-                  .order_key,
+              orderKey: checkout.order_key,
 
-              provider:
-                paymentSession
-                  .provider,
+              provider: paymentSession.provider,
 
-              gpayBillId:
-                paymentSession
-                  .providerBillId,
+              gpayBillId: paymentSession.providerBillId,
 
-              merchantOrderId:
-                paymentSession
-                  .merchantTransactionId,
+              merchantOrderId: paymentSession.merchantTransactionId,
 
-              billUrl:
-                paymentSession
-                  .redirectUrl,
+              billUrl: paymentSession.redirectUrl,
 
-              expiresAt:
-                paymentSession
-                  .expiresAt,
+              expiresAt: paymentSession.expiresAt,
 
               amount,
               currency,
 
-              createdAt:
-                new Date()
-                  .toISOString(),
+              createdAt: new Date().toISOString(),
             }),
           );
         }
 
-        window.location.assign(
-          paymentSession
-            .redirectUrl,
-        );
+        window.location.assign(paymentSession.redirectUrl);
 
         return;
       }
@@ -552,30 +387,18 @@ export function CheckoutForm({
        * Không fallback sang trang order-received của WooCommerce,
        * vì điều đó sẽ che lỗi init-order.
        */
-      if (
-        selectedPaymentProvider
-          .startsWith(
-            "gpay_gateway_",
-          )
-      ) {
-        throw new Error(
-          "GPay không trả về đường dẫn thanh toán.",
-        );
+      if (selectedPaymentProvider.startsWith("gpay_gateway_")) {
+        throw new Error(t("common.error"));
       }
 
       /*
        * Chỉ dùng WooCommerce redirect_url với provider
        * không có redirect riêng.
        */
-      const wooRedirectUrl =
-        checkout
-          .payment_result
-          ?.redirect_url;
+      const wooRedirectUrl = checkout.payment_result?.redirect_url;
 
       if (wooRedirectUrl) {
-        window.location.assign(
-          wooRedirectUrl,
-        );
+        window.location.assign(wooRedirectUrl);
 
         return;
       }
@@ -584,40 +407,38 @@ export function CheckoutForm({
        * Provider không redirect sử dụng trang trạng thái chung.
        */
       router.push(
-        `/checkout/payment/${checkout.order_id}?key=${encodeURIComponent(
-          checkout.order_key,
-        )}`,
+        localizeShellHref(
+          `/checkout/payment/${checkout.order_id}?key=${encodeURIComponent(
+            checkout.order_key,
+          )}`,
+          locale,
+        ),
       );
     } catch (error) {
-      console.error(
-        "Checkout submit failed:",
-        error,
-      );
+      console.error("Checkout submit failed:", error);
 
       setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Không thể tạo đơn hàng.",
+        error instanceof Error ? error.message : t("common.error"),
       );
     }
   }
 
-  function handleInvalid(
-    formErrors:
-      FieldErrors<CheckoutFormInput>,
-  ) {
-    console.error(
-      "Checkout validation errors:",
-      formErrors,
+  function handleInvalid(formErrors: FieldErrors<CheckoutFormFields>) {
+    console.error("Checkout validation errors:", formErrors);
+  }
+
+  if (virtualAccountPayment) {
+    return (
+      <VirtualAccountPaymentPanel
+        session={virtualAccountPayment.session}
+        orderKey={virtualAccountPayment.orderKey}
+      />
     );
   }
 
   return (
     <form
-      onSubmit={handleSubmit(
-        submitCheckout,
-        handleInvalid,
-      )}
+      onSubmit={handleSubmit(submitCheckout, handleInvalid)}
       className="space-y-6"
     >
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -628,11 +449,11 @@ export function CheckoutForm({
 
           <div>
             <p className="text-xs font-semibold tracking-wide text-green-700 uppercase">
-              Bước 1
+              {t("checkout.step1")}
             </p>
 
             <h2 className="text-xl font-semibold text-slate-950">
-              Thông tin người mua
+              {t("checkout.buyerTitle")}
             </h2>
           </div>
         </div>
@@ -640,113 +461,72 @@ export function CheckoutForm({
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <label className="sm:col-span-2">
             <span className="text-sm font-semibold text-slate-800">
-              Họ và tên *
+              {t("checkout.fullNameRequired")}
             </span>
 
             <input
               type="text"
               autoComplete="name"
-              {...register(
-                "fullName",
-              )}
+              {...register("fullName")}
               className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
             />
 
-            <FieldError
-              message={
-                errors
-                  .fullName
-                  ?.message
-              }
-            />
+            <FieldError message={errors.fullName?.message} />
           </label>
 
           <label>
             <span className="text-sm font-semibold text-slate-800">
-              Email nhận eSIM *
+              {t("checkout.emailRequired")}
             </span>
 
             <input
               type="email"
               autoComplete="email"
-              {...register(
-                "email",
-              )}
+              {...register("email")}
               className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
             />
 
-            <FieldError
-              message={
-                errors.email
-                  ?.message
-              }
-            />
+            <FieldError message={errors.email?.message} />
           </label>
 
           <label>
             <span className="text-sm font-semibold text-slate-800">
-              Số điện thoại *
+              {t("checkout.phoneRequired")}
             </span>
 
             <input
               type="tel"
               autoComplete="tel"
-              {...register(
-                "phone",
-              )}
+              {...register("phone")}
               className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
             />
 
-            <FieldError
-              message={
-                errors.phone
-                  ?.message
-              }
-            />
+            <FieldError message={errors.phone?.message} />
           </label>
 
           <label className="sm:col-span-2">
             <span className="text-sm font-semibold text-slate-800">
-              Quốc gia *
+              {t("checkout.countryRequired")}
             </span>
 
             <select
-              {...register(
-                "country",
-              )}
+              {...register("country")}
               className="mt-2 h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
             >
-              <option value="VN">
-                Việt Nam
-              </option>
+              <option value="VN">{t("checkout.country.VN")}</option>
 
-              <option value="PH">
-                Philippines
-              </option>
+              <option value="PH">{t("checkout.country.PH")}</option>
 
-              <option value="TH">
-                Thái Lan
-              </option>
+              <option value="TH">{t("checkout.country.TH")}</option>
 
-              <option value="SG">
-                Singapore
-              </option>
+              <option value="SG">{t("checkout.country.SG")}</option>
 
-              <option value="MY">
-                Malaysia
-              </option>
+              <option value="MY">{t("checkout.country.MY")}</option>
 
-              <option value="ID">
-                Indonesia
-              </option>
+              <option value="ID">{t("checkout.country.ID")}</option>
             </select>
 
-            <FieldError
-              message={
-                errors.country
-                  ?.message
-              }
-            />
+            <FieldError message={errors.country?.message} />
           </label>
         </div>
       </section>
@@ -759,11 +539,11 @@ export function CheckoutForm({
 
           <div>
             <p className="text-xs font-semibold tracking-wide text-green-700 uppercase">
-              Người sử dụng
+              {t("checkout.recipientEyebrow")}
             </p>
 
             <h2 className="text-xl font-semibold text-slate-950">
-              eSIM dành cho ai?
+              {t("checkout.recipientQuestion")}
             </h2>
           </div>
         </div>
@@ -773,9 +553,7 @@ export function CheckoutForm({
             <input
               type="radio"
               value="self"
-              {...register(
-                "purchaseFor",
-              )}
+              {...register("purchaseFor")}
               className="peer sr-only"
             />
 
@@ -784,11 +562,11 @@ export function CheckoutForm({
 
               <span>
                 <strong className="block text-sm text-slate-900">
-                  Mua cho chính tôi
+                  {t("checkout.selfTitle")}
                 </strong>
 
                 <span className="mt-1 block text-xs text-slate-500">
-                  QR gửi về email người mua
+                  {t("checkout.selfDescription")}
                 </span>
               </span>
             </span>
@@ -798,9 +576,7 @@ export function CheckoutForm({
             <input
               type="radio"
               value="gift"
-              {...register(
-                "purchaseFor",
-              )}
+              {...register("purchaseFor")}
               className="peer sr-only"
             />
 
@@ -809,62 +585,45 @@ export function CheckoutForm({
 
               <span>
                 <strong className="block text-sm text-slate-900">
-                  Mua tặng người khác
+                  {t("checkout.giftTitle")}
                 </strong>
 
                 <span className="mt-1 block text-xs text-slate-500">
-                  Gửi QR đến người nhận
+                  {t("checkout.giftDescription")}
                 </span>
               </span>
             </span>
           </label>
         </div>
 
-        {purchaseFor ===
-        "gift" ? (
+        {purchaseFor === "gift" ? (
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <label>
               <span className="text-sm font-semibold text-slate-800">
-                Tên người nhận *
+                {t("checkout.recipientNameRequired")}
               </span>
 
               <input
                 type="text"
-                {...register(
-                  "recipientName",
-                )}
+                {...register("recipientName")}
                 className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
               />
 
-              <FieldError
-                message={
-                  errors
-                    .recipientName
-                    ?.message
-                }
-              />
+              <FieldError message={errors.recipientName?.message} />
             </label>
 
             <label>
               <span className="text-sm font-semibold text-slate-800">
-                Email người nhận *
+                {t("checkout.recipientEmailRequired")}
               </span>
 
               <input
                 type="email"
-                {...register(
-                  "recipientEmail",
-                )}
+                {...register("recipientEmail")}
                 className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
               />
 
-              <FieldError
-                message={
-                  errors
-                    .recipientEmail
-                    ?.message
-                }
-              />
+              <FieldError message={errors.recipientEmail?.message} />
             </label>
           </div>
         ) : null}
@@ -878,73 +637,58 @@ export function CheckoutForm({
 
           <div>
             <p className="text-xs font-semibold tracking-wide text-green-700 uppercase">
-              Bước 2
+              {t("checkout.step2")}
             </p>
 
             <h2 className="text-xl font-semibold text-slate-950">
-              Phương thức thanh toán
+              {t("payment.eyebrow")}
             </h2>
           </div>
         </div>
 
         <div className="mt-6 space-y-3">
-          {paymentMethods.map(
-            (method) => (
-              <label
-                key={method.id}
-                className="block cursor-pointer"
-              >
-                <input
-                  type="radio"
-                  value={
-                    method.id
-                  }
-                  {...register(
-                    "paymentMethod",
-                  )}
-                  className="peer sr-only"
-                />
+          {paymentMethods.map((method) => (
+            <label key={method.id} className="block cursor-pointer">
+              <input
+                type="radio"
+                value={method.id}
+                {...register("paymentMethod")}
+                className="peer sr-only"
+              />
 
-                <span className="flex items-start gap-4 rounded-xl border border-slate-300 p-4 transition peer-checked:border-green-700 peer-checked:bg-green-50">
-                  <span className="mt-1 h-4 w-4 rounded-full border-4 border-white bg-slate-300 ring-1 ring-slate-300 peer-checked:bg-green-700" />
+              <span className="flex items-start gap-4 rounded-xl border border-slate-300 p-4 transition peer-checked:border-green-700 peer-checked:bg-green-50">
+                <span className="mt-1 h-4 w-4 rounded-full border-4 border-white bg-slate-300 ring-1 ring-slate-300 peer-checked:bg-green-700" />
 
-                  <span>
-                    <strong className="block text-sm text-slate-900">
-                      {
-                        method.title
-                      }
-                    </strong>
+                <span>
+                  <strong className="block text-sm text-slate-900">
+                    {method.title}
+                  </strong>
 
-                    <span className="mt-1 block text-sm leading-6 text-slate-500">
-                      {
-                        method.description
-                      }
-                    </span>
+                  <span className="mt-1 block text-sm leading-6 text-slate-500">
+                    {method.description}
                   </span>
                 </span>
-              </label>
-            ),
-          )}
+              </span>
+            </label>
+          ))}
         </div>
 
-        <FieldError
-          message={
-            errors
-              .paymentMethod
-              ?.message
-          }
-        />
+        {paymentMethod === "gpay_virtual_account" ? (
+          <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm leading-6 text-green-900">
+            {t("checkout.virtualAccountNotice")}
+          </div>
+        ) : null}
+
+        <FieldError message={errors.paymentMethod?.message} />
 
         <label className="mt-5 block">
           <span className="text-sm font-semibold text-slate-800">
-            Ghi chú đơn hàng
+            {t("checkout.noteLabel")}
           </span>
 
           <textarea
             rows={3}
-            {...register(
-              "customerNote",
-            )}
+            {...register("customerNote")}
             className="mt-2 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
           />
         </label>
@@ -954,25 +698,16 @@ export function CheckoutForm({
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
-            {...register(
-              "acceptTerms",
-            )}
+            {...register("acceptTerms")}
             className="mt-1 h-4 w-4 rounded border-slate-300 text-green-700 focus:ring-green-600"
           />
 
           <span className="text-sm leading-6 text-slate-600">
-            Tôi xác nhận thiết bị hỗ trợ eSIM và đồng ý với điều khoản sử dụng,
-            chính sách thanh toán và hoàn tiền của YSim.
+            {t("checkout.terms")}
           </span>
         </label>
 
-        <FieldError
-          message={
-            errors
-              .acceptTerms
-              ?.message
-          }
-        />
+        <FieldError message={errors.acceptTerms?.message} />
 
         {submitError ? (
           <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -982,19 +717,16 @@ export function CheckoutForm({
 
         <button
           type="submit"
-          disabled={
-            isSubmitting
-          }
+          disabled={isSubmitting}
           className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-700 px-6 text-base font-semibold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? (
             <>
               <LoaderCircle className="h-5 w-5 animate-spin" />
-
-              Đang tạo đơn hàng...
+              {t("checkout.submitting")}
             </>
           ) : (
-            "Đặt hàng và thanh toán"
+            t("checkout.submit")
           )}
         </button>
       </section>

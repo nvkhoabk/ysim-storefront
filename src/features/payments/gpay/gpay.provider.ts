@@ -2,7 +2,7 @@ import {
   initGPayGatewayOrder,
   type GPayGatewayPaymentMethod,
 } from "@/lib/payment/adapters/gpay";
-
+import { enforceGigagoReadinessBeforePayment } from "@/lib/fulfillment/gigago/gigago-readiness-gate";
 import type {
   CreatePaymentInput,
   PaymentProvider,
@@ -39,7 +39,9 @@ function createGPayGatewayProvider(
     id: definition.id,
 
     async createPayment(input: CreatePaymentInput): Promise<PaymentSession> {
-      if (input.currency.toUpperCase() !== "VND") {
+      const currency = input.currency.toUpperCase();
+
+      if (currency !== "VND") {
         throw new Error("GPay Gateway hiện chỉ được cấu hình cho VND.");
       }
 
@@ -47,16 +49,18 @@ function createGPayGatewayProvider(
         throw new Error("Số tiền gửi GPay phải là số nguyên VND lớn hơn 0.");
       }
 
+      await enforceGigagoReadinessBeforePayment({
+        orderId: input.orderId,
+        paymentProvider: definition.id,
+      });
+
       const storefrontBaseUrl = requireEnvironmentVariable(
         "GPAY_STOREFRONT_BASE_URL",
       );
-
       const webhookUrl =
         process.env.GPAY_GATEWAY_WEBHOOK_URL?.trim() ||
         `${storefrontBaseUrl}/api/payments/gpay/webhook`;
-
       const requestId = createRequestId(input);
-
       const embedData = JSON.stringify({
         source: "ysim-storefront",
         orderId: input.orderId,
@@ -64,6 +68,8 @@ function createGPayGatewayProvider(
         orderKey: input.orderKey,
         paymentProvider: definition.id,
         merchantOrderId: requestId,
+        amount: input.amount,
+        currency,
       });
 
       const result = await initGPayGatewayOrder({
@@ -85,16 +91,12 @@ function createGPayGatewayProvider(
       return {
         provider: definition.id,
         status: "redirect_required",
-
         orderId: input.orderId,
         orderNumber: input.orderNumber,
-
         merchantTransactionId: result.requestId,
         providerBillId: result.billId,
-
         amount: input.amount,
-        currency: input.currency.toUpperCase(),
-
+        currency,
         redirectUrl: result.billUrl,
         expiresAt: result.expiredTime,
         message: "Chuyển sang cổng thanh toán bảo mật của GPay.",

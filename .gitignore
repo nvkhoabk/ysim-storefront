@@ -48,3 +48,5 @@ secrets/
 
 .data/
 
+.ysim-patches/
+artifacts/

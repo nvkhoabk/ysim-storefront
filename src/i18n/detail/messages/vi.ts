@@ -1,0 +1,118 @@
+// F07A-2C-3_LOCALIZED_DETAIL_CANDIDATE_R4
+
+import type { DetailMessages } from "../detail.types";
+
+export const detailMessagesVi = {
+  "preview.title": "Ứng viên bản địa hóa trang chi tiết",
+  "preview.description":
+    "Kiểm tra nội dung giao diện tĩnh cho trang chi tiết sản phẩm và điểm đến bằng tiếng Việt, tiếng Anh và tiếng Lào.",
+  "preview.candidate":
+    "Đây là route preview biệt lập. Các route chi tiết production chưa được kích hoạt bản địa hóa bởi gói này.",
+  "preview.dynamicBoundary":
+    "Tên, mô tả và thuộc tính nguồn được giữ nguyên để không tạo bản dịch giả cho dữ liệu WooCommerce.",
+  "preview.currencyPending":
+    "Giá {{currency}} chưa được hiển thị cho đến khi pipeline tỷ giá và snapshot đơn hàng được hoàn thiện.",
+  "tabs.product": "Chi tiết eSIM",
+  "tabs.destination": "Chi tiết điểm đến",
+  "common.catalogSource": "Nguồn catalog",
+  "common.backToListings": "Quay lại danh sách",
+  "common.viewDetails": "Xem chi tiết",
+  "common.days": "{{count}} ngày",
+  "common.notAvailable": "Chưa khả dụng",
+  "common.sourceContent": "Nội dung nguồn",
+  "product.eyebrow": "Chi tiết sản phẩm",
+  "product.title": "Trang chi tiết eSIM",
+  "product.sourceTitle": "Tên nguồn: {{title}}",
+  "product.sourceDescription": "Mô tả nguồn: {{description}}",
+  "product.overviewTitle": "Thông tin gói",
+  "product.destinationLabel": "Điểm đến",
+  "product.networkLabel": "Mạng",
+  "product.dataLabel": "Dung lượng",
+  "product.durationLabel": "Thời hạn",
+  "product.activationLabel": "Kích hoạt",
+  "product.hotspotLabel": "Chia sẻ dữ liệu",
+  "product.phoneNumberLabel": "Số điện thoại",
+  "product.purchaseTitle": "Lựa chọn mua hàng",
+  "product.purchaseDescription":
+    "Khu vực này chỉ kiểm tra nhãn giao diện; không tạo giỏ hàng hoặc giữ tồn kho.",
+  "product.quantityLabel": "Số lượng",
+  "product.addToCart": "Thêm vào giỏ",
+  "product.buyNow": "Mua ngay",
+  "product.deliveryTitle": "Nhận eSIM nhanh chóng",
+  "product.deliveryDescription":
+    "Mã QR và hướng dẫn cài đặt sẽ được gửi sau khi thanh toán và fulfillment thành công.",
+  "product.compatibilityTitle": "Kiểm tra thiết bị",
+  "product.compatibilityDescription":
+    "Xác nhận điện thoại hỗ trợ eSIM và không bị khóa mạng trước khi mua.",
+  "product.relatedTitle": "Gói liên quan",
+  "product.relatedDescription":
+    "Các tên dưới đây là nội dung nguồn từ catalog, chưa được dịch.",
+  "product.relatedAction": "Xem gói",
+  "product.sourceNotice":
+    "Tên, mô tả và thuộc tính hiển thị trong khối này là dữ liệu nguồn chưa dịch.",
+  "product.pricePending":
+    "Chưa hiển thị giá vì chuyển đổi tiền tệ chưa được kích hoạt.",
+  "product.breadcrumbCatalog": "Danh sách eSIM",
+  "product.breadcrumbCurrent": "Sản phẩm hiện tại",
+  "product.optionCount": "{count} lựa chọn",
+  "product.optionLabel": "Lựa chọn {count}",
+  "product.standardPlan": "Gói tiêu chuẩn",
+  "product.singleConfiguration": "Sản phẩm này có một cấu hình duy nhất.",
+  "product.selectedOption": "Cặp đã chọn",
+  "product.outOfStock": "Tạm hết hàng",
+  "product.available": "Có thể mua",
+  "product.priceLabel": "Giá",
+  "product.totalLabel": "Tổng tiền",
+  "product.adding": "Đang thêm…",
+  "product.addedFeedback": "Đã thêm {selection} vào giỏ hàng.",
+  "product.unavailableFeedback": "Cấu hình này hiện không thể thêm vào giỏ.",
+  "product.addError": "Không thể thêm variation vào giỏ hàng.",
+  "product.emailDelivery": "Nhận eSIM qua email",
+  "product.qrInstallation": "Cài đặt bằng mã QR",
+  "product.galleryViewImage": "Xem ảnh {name}",
+  "product.descriptionTitle": "Mô tả",
+  "product.usageEyebrow": "Lưu ý sử dụng",
+  "product.usageTitle": "Chuẩn bị trước chuyến đi",
+  "product.usageStableWifi": "Cài đặt eSIM khi có kết nối Wi‑Fi ổn định.",
+  "product.usageKeepInstalled":
+    "Không xóa eSIM sau khi cài đặt nếu chưa được hỗ trợ xác nhận.",
+  "product.usageEnableAtDestination":
+    "Chỉ bật eSIM làm đường dữ liệu chính khi đến điểm đến.",
+  "product.usageUnlockedDevice":
+    "Kiểm tra thiết bị không bị khóa mạng trước khi mua.",
+  "destination.eyebrow": "Chi tiết điểm đến",
+  "destination.title": "Trang điểm đến",
+  "destination.sourceTitle": "Tên nguồn: {{title}}",
+  "destination.sourceDescription": "Mô tả nguồn: {{description}}",
+  "destination.overviewTitle": "Thông tin điểm đến",
+  "destination.regionLabel": "Khu vực",
+  "destination.catalogCountLabel": "{{count}} gói từ catalog",
+  "destination.plansTitle": "Các gói cho điểm đến",
+  "destination.plansDescription":
+    "Tên gói được giữ nguyên theo dữ liệu nguồn; giá chưa được hiển thị.",
+  "destination.sourceNotice":
+    "Tên và mô tả điểm đến là nội dung nguồn chưa dịch.",
+  "destination.viewPlan": "Xem gói",
+  "destination.emptyTitle": "Chưa có gói phù hợp",
+  "destination.emptyDescription":
+    "Hãy quay lại danh sách hoặc thử một điểm đến khác.",
+  "destination.breadcrumbCatalog": "Danh sách điểm đến",
+  "destination.breadcrumbCurrent": "Điểm đến hiện tại",
+  "states.loading": "Đang tải chi tiết…",
+  "states.error": "Không thể tải dữ liệu chi tiết.",
+  "states.retry": "Thử lại",
+  "states.notFound": "Không tìm thấy nội dung.",
+  "states.sourceOnly": "Dữ liệu nguồn chưa dịch",
+  "states.noPrice": "Không mô phỏng giá hoặc tỷ giá",
+  "states.noInventoryMutation": "Preview không thay đổi giỏ hàng hoặc tồn kho",
+  "labels.preview": "Preview bản địa hóa trang chi tiết",
+  "labels.tabs": "Chọn loại trang chi tiết",
+  "labels.breadcrumb": "Đường dẫn phân cấp",
+  "labels.productOverview": "Tổng quan sản phẩm",
+  "labels.productActions": "Hành động sản phẩm",
+  "labels.productMeta": "Thuộc tính sản phẩm",
+  "labels.relatedProducts": "Các sản phẩm liên quan",
+  "labels.destinationOverview": "Tổng quan điểm đến",
+  "labels.destinationProducts": "Các gói của điểm đến",
+  "labels.localeNavigation": "Chọn locale preview",
+} as const satisfies DetailMessages;

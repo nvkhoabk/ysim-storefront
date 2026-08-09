@@ -1,45 +1,57 @@
-import type {
-  Metadata,
-} from "next";
+/* YSIM_PACKAGE_24_ACTIVATION:support */
+import LegacySupportPage from "./legacy-page";
+
+import { SupportPageComposition } from "@/components/support/refactor";
+
+import { SupportRouteCandidatePage } from "@/components/support/refactor/integration";
 
 import {
-  SupportPage,
-} from "@/components/support";
+  createProductionSupportRouteAdapterFromEnvironment,
+  loadSupportRouteCandidate,
+} from "@/lib/storefront/integration/support";
 
+import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
 import {
-  AnnouncementBar,
-} from "@/components/layout/AnnouncementBar";
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+import { createSupportUiCopy } from "@/i18n/support/support.config";
+import { localizeSupportPageViewModel } from "@/lib/storefront/localization";
 
-import {
-  Header,
-} from "@/components/layout/Header";
+export async function generateMetadata() {
+  const request = await getStorefrontLocaleRequest();
+  const copy = createSupportUiCopy(request.shell.locale);
+  return withLocalizedAlternates(
+    {
+      title: copy.hero.eyebrow,
+      description: copy.hero.description,
+    },
+    request,
+  );
+}
 
-import {
-  FooterBenefits,
-} from "@/components/layout/FooterBenefits";
+export default async function SupportPage() {
+  const request = await getStorefrontLocaleRequest();
+  const mode = getProductionRouteMode("support");
 
-import {
-  Footer,
-} from "@/components/layout/footer/Footer";
+  if (mode === "legacy") {
+    return <LegacySupportPage />;
+  }
 
-export const metadata: Metadata = {
-  title: "Hỗ trợ khách hàng | YSim",
-  description:
-    "Tìm hướng dẫn, câu hỏi thường gặp và các kênh hỗ trợ khách hàng YSim 24/7.",
-};
+  const productionAdapter =
+    createProductionSupportRouteAdapterFromEnvironment();
 
-export default function SupportRoutePage() {
+  const candidate = await loadSupportRouteCandidate({
+    productionAdapter,
+  });
+
+  if (mode === "candidate") {
+    return <SupportRouteCandidatePage candidate={candidate} />;
+  }
+
   return (
-    <>
-      <AnnouncementBar />
-
-      <Header />
-
-      <SupportPage />
-
-      <FooterBenefits />
-
-      <Footer />
-    </>
+    <SupportPageComposition
+      page={localizeSupportPageViewModel(candidate.page, request.shell.locale)}
+    />
   );
 }

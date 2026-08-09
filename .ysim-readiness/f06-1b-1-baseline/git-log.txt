@@ -1,0 +1,10 @@
+﻿2ca155f (HEAD -> feature/f06-1b-webhook-hardening, tag: f06-1a-gpay-va-sandbox-e2e-accepted, origin/feature/gpay-virtual-account-checkout-f06-1a, origin/feature/f06-1b-webhook-hardening, feature/gpay-virtual-account-checkout-f06-1a) test(payment): align GPay VA routing probe merchant code
+3c439f5 fix(payment): dispatch unified GPay webhooks
+8dc1b46 fix(dev): recover F06.1A Windows runtime
+cb14818 feat(payment): add GPay virtual account checkout
+b166e89 (tag: f06-gpay-qr-sandbox-e2e-01-accepted, tag: f05.1b3-storefront-accepted, tag: f05-e2e-live-01-accepted, origin/feature/esim-action-required-alert-f05-1b3, feature/esim-action-required-alert-f05-1b3) feat(fulfillment): automate supplier action-required alerts
+0ce1c40 (tag: f05.1b2.2-storefront-accepted, origin/feature/esim-mail-terminal-hardening-f05-1b2-2, feature/esim-mail-terminal-hardening-f05-1b2-2) fix(fulfillment): harden mail orchestration test compatibility
+bc32339 (origin/feature/esim-automatic-mail-orchestration-f05-1b2, feature/esim-automatic-mail-orchestration-f05-1b2, backup/f05-1b2-commit-bc32339) feat(fulfillment): request automatic eSIM mail orchestration
+a325df5 (tag: f05.1a-sandbox-secure-delivery-snapshot-pass, origin/feature/gigago-readiness-recovery-f04-3, origin/feature/esim-delivery-snapshot-f05-1a, feature/gigago-readiness-recovery-f04-3, feature/esim-delivery-snapshot-f05-1a) feat(fulfillment): persist secure eSIM delivery snapshots
+bdb123e (tag: f04.3.3.1-sandbox-immediate-success-pass, origin/feature/gpay-immediate-success-durability-f04-3-3-1, feature/gpay-immediate-success-durability-f04-3-3-1, feature/esim-delivery-snapshot-f05-1) fix(payment): persist immediate-success fulfillment jobs
+86681df (tag: f04.3.2-sandbox-action-required-pass, origin/feature/gpay-auto-fulfillment-lifecycle-f04-3-2, feature/gpay-immediate-success-durability-f04-3-3, feature/gpay-auto-fulfillment-lifecycle-f04-3-2) fix(fulfillment): wait for Gigago delivery before success
