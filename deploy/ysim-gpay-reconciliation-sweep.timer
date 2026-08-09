@@ -1,0 +1,12 @@
+# F06.1B-1_R5_DEPLOYMENT_RUNTIME_V1
+[Unit]
+Description=Run YSim GPay durable reconciliation sweep every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=5s
+Persistent=true
+Unit=ysim-gpay-reconciliation-sweep.service
+
+[Install]
+WantedBy=timers.target

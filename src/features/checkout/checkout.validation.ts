@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { paymentProviderIdSchema } from "@/features/payments/payment.validation";
+const checkoutPaymentProviderIdSchema = z.enum([
+  "gpay_gateway_all",
+  "gpay_virtual_account",
+]);
 
 export const checkoutFormSchema = z
   .object({
@@ -21,7 +24,7 @@ export const checkoutFormSchema = z
       z.string().trim().email("Email người nhận không hợp lệ."),
     ]),
 
-    paymentMethod: paymentProviderIdSchema,
+    paymentMethod: checkoutPaymentProviderIdSchema,
 
     customerNote: z.string().trim().max(500),
 
@@ -55,4 +58,5 @@ export const checkoutFormSchema = z
     }
   });
 
-export type CheckoutFormInput = z.infer<typeof checkoutFormSchema>;
+export type CheckoutFormFields = z.input<typeof checkoutFormSchema>;
+export type CheckoutFormInput = z.output<typeof checkoutFormSchema>;

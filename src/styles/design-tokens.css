@@ -1,0 +1,97 @@
+:root {
+  color-scheme: light;
+
+  --ysim-color-brand-50: #effaf4;
+  --ysim-color-brand-100: #dcf5e7;
+  --ysim-color-brand-200: #bce9cf;
+  --ysim-color-brand-300: #8ed8ae;
+  --ysim-color-brand-400: #58bf87;
+  --ysim-color-brand-500: #2fa66a;
+  --ysim-color-brand-600: #178653;
+  --ysim-color-brand-700: #0f6b43;
+  --ysim-color-brand-800: #0d5638;
+  --ysim-color-brand-900: #0b472f;
+  --ysim-color-brand-950: #05281b;
+
+  --ysim-color-background: #ffffff;
+  --ysim-color-surface: #ffffff;
+  --ysim-color-surface-subtle: #f7faf8;
+  --ysim-color-surface-highlighted: #effaf4;
+  --ysim-color-text: #10231a;
+  --ysim-color-text-muted: #5e6f66;
+  --ysim-color-text-soft: #7b8a82;
+  --ysim-color-border: #dfe8e2;
+  --ysim-color-border-strong: #c8d7ce;
+  --ysim-color-danger: #c93636;
+  --ysim-color-danger-soft: #fff0f0;
+  --ysim-color-focus: #2fa66a;
+
+  --ysim-font-size-xs: 0.75rem;
+  --ysim-font-size-sm: 0.875rem;
+  --ysim-font-size-md: 1rem;
+  --ysim-font-size-lg: 1.125rem;
+  --ysim-font-size-xl: 1.25rem;
+  --ysim-font-size-2xl: clamp(1.5rem, 2vw, 2rem);
+  --ysim-font-size-3xl: clamp(1.875rem, 3vw, 2.75rem);
+  --ysim-font-size-display: clamp(2.25rem, 5vw, 4.5rem);
+  --ysim-line-height-tight: 1.15;
+  --ysim-line-height-normal: 1.5;
+  --ysim-line-height-relaxed: 1.7;
+
+  --ysim-space-1: 0.25rem;
+  --ysim-space-2: 0.5rem;
+  --ysim-space-3: 0.75rem;
+  --ysim-space-4: 1rem;
+  --ysim-space-5: 1.25rem;
+  --ysim-space-6: 1.5rem;
+  --ysim-space-8: 2rem;
+  --ysim-space-10: 2.5rem;
+  --ysim-space-12: 3rem;
+  --ysim-space-16: 4rem;
+  --ysim-space-20: 5rem;
+  --ysim-space-24: 6rem;
+  --ysim-section-space-sm: clamp(2.5rem, 5vw, 4rem);
+  --ysim-section-space-md: clamp(3.5rem, 7vw, 6rem);
+  --ysim-section-space-lg: clamp(4.5rem, 9vw, 7.5rem);
+
+  --ysim-radius-sm: 0.625rem;
+  --ysim-radius-md: 0.875rem;
+  --ysim-radius-lg: 1.125rem;
+  --ysim-radius-xl: 1.5rem;
+  --ysim-radius-pill: 999px;
+
+  --ysim-shadow-sm: 0 1px 2px rgb(5 40 27 / 0.05);
+  --ysim-shadow-md: 0 10px 30px rgb(5 40 27 / 0.08), 0 2px 8px rgb(5 40 27 / 0.04);
+  --ysim-shadow-card-hover: 0 18px 42px rgb(5 40 27 / 0.12), 0 4px 12px rgb(5 40 27 / 0.05);
+
+  --ysim-duration-fast: 140ms;
+  --ysim-duration-normal: 220ms;
+  --ysim-duration-slow: 360ms;
+  --ysim-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --ysim-z-sticky: 20;
+  --ysim-z-dropdown: 40;
+  --ysim-z-drawer: 60;
+  --ysim-z-modal: 80;
+  --ysim-z-toast: 100;
+
+  --ysim-container-content: 80rem;
+  --ysim-container-wide: 90rem;
+  --ysim-page-gutter: clamp(1rem, 3vw, 2.5rem);
+}
+
+::selection {
+  color: #ffffff;
+  background: var(--ysim-color-brand-700);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

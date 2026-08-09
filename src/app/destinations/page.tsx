@@ -1,46 +1,82 @@
-import type {
-  Metadata,
-} from "next";
+/* YSIM_PACKAGE_38_V3_ROUTE:destinations-query-bridge */
+
+import LegacyDestinationsPage from "./legacy-page";
+
+import { DestinationPageComposition } from "@/components/destination/refactor";
+
+import { DestinationRouteCandidatePage } from "@/components/destination/refactor/integration";
 
 import {
-  DestinationPage,
-} from "@/components/destination";
+  createProductionDestinationRouteAdapterFromEnvironment,
+  loadDestinationRouteCandidate,
+} from "@/lib/storefront/integration/destinations";
 
 import {
-  AnnouncementBar,
-} from "@/components/layout/AnnouncementBar";
+  resolveDestinationRouteSelection,
+  type DestinationSearchParams,
+} from "@/lib/storefront/navigation/destination-query";
 
+import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
 import {
-  Header,
-} from "@/components/layout/Header";
+  getStorefrontLocaleRequest,
+  withLocalizedAlternates,
+} from "@/i18n/runtime/runtime.server";
+import { createListingTranslator } from "@/i18n/listing/listing.registry";
+import { localizeDestinationPageViewModel } from "@/lib/storefront/localization";
+import { metadata as legacyMetadata } from "./legacy-page";
 
-import {
-  FooterBenefits,
-} from "@/components/layout/FooterBenefits";
+export async function generateMetadata() {
+  const request = await getStorefrontLocaleRequest();
+  const t = createListingTranslator(request.shell.locale);
+  return withLocalizedAlternates(
+    {
+      ...legacyMetadata,
+      title: `${t("destinations.title")} | YSim`,
+      description: t("destinations.description"),
+    },
+    request,
+  );
+}
 
-import {
-  Footer,
-} from "@/components/layout/footer/Footer";
+interface DestinationsPageProps {
+  searchParams?: Promise<DestinationSearchParams>;
+}
 
-export const metadata: Metadata = {
-  title:
-    "Điểm đến eSIM quốc tế | YSim",
-  description:
-    "Khám phá eSIM cho hơn 200 quốc gia và vùng lãnh thổ. Tìm kiếm, so sánh thời hạn, dung lượng và giá gói eSIM phù hợp cho chuyến đi của bạn.",
-};
+export default async function DestinationsPage(props: DestinationsPageProps) {
+  const request = await getStorefrontLocaleRequest();
+  const mode = getProductionRouteMode("destinations");
 
-export default function DestinationsPage() {
+  if (mode === "legacy" && !request.localized) {
+    return <LegacyDestinationsPage />;
+  }
+
+  const candidate = await loadDestinationRouteCandidate({
+    productionAdapter: createProductionDestinationRouteAdapterFromEnvironment(),
+  });
+
+  const selection = resolveDestinationRouteSelection(
+    await Promise.resolve(
+      (props.searchParams || {}) as DestinationSearchParams,
+    ),
+  );
+  const localizedPage = request.localized
+    ? localizeDestinationPageViewModel(candidate.page, request.shell.locale)
+    : candidate.page;
+
+  if (mode === "candidate") {
+    return (
+      <DestinationRouteCandidatePage
+        candidate={{ ...candidate, page: localizedPage }}
+        initialSelection={selection}
+      />
+    );
+  }
+
   return (
-    <>
-      <AnnouncementBar />
-
-      <Header />
-
-      <DestinationPage />
-
-      <FooterBenefits />
-
-      <Footer />
-    </>
+    <DestinationPageComposition
+      page={localizedPage}
+      cartCount={0}
+      initialSelection={selection}
+    />
   );
 }

@@ -39,7 +39,7 @@ export function Header() {
           className="flex shrink-0 items-center"
         >
           <Image
-            src="/images/brand/ysim-logo.png"
+            src="/assets/brand/ysim-logo.png"
             alt="YSim"
             width={160}
             height={52}
