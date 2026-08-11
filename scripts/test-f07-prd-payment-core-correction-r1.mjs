@@ -25,6 +25,11 @@ const productionPaymentEnvironment = {
   AGENCY_GATEWAY_TOPUP_ENABLED: "false",
   YSIM_PAYMENT_OWNER_ENABLED: "false",
   GIGAGO_ENABLED: "false",
+  ONEPAY_ENABLED: "false",
+  UMONEY_ENABLED: "false",
+  CASH_PAYMENT_ENABLED: "false",
+  GPAY_FAST_ACK_ENABLED: "false",
+  GPAY_DELAYED_RECONCILIATION_ENABLED: "false",
   YSIM_WAVE1_GPAY_VA_CANARY_MODE: "armed",
   YSIM_WAVE1_GPAY_VA_CANARY_ORDER_ID: "4100",
   YSIM_WAVE1_GPAY_VA_CANARY_AMOUNT_VND: "100000",
@@ -46,6 +51,21 @@ const checkoutGate = decideProductionExecutionGate({
 });
 assert.deepEqual(checkoutGate, { allowed: true });
 pass("PUBLIC_CHECKOUT_ALLOWED_BY_REAL_PAYMENT_SWITCH");
+
+const checkoutDisabledGate = decideProductionExecutionGate({
+  nodeEnvironment: "production",
+  pathname: "/api/checkout",
+  method: "POST",
+  environment: {
+    ...productionPaymentEnvironment,
+    PAYMENT_EXECUTION_ENABLED: "false",
+  },
+});
+assert.equal(checkoutDisabledGate.allowed, false);
+assert.deepEqual(checkoutDisabledGate.missingFlags, [
+  "PAYMENT_EXECUTION_ENABLED",
+]);
+pass("PUBLIC_CHECKOUT_FAILS_CLOSED_WHEN_PAYMENT_SWITCH_OFF");
 
 const vaRouteGate = decideProductionExecutionGate({
   nodeEnvironment: "production",
@@ -75,6 +95,41 @@ const vaDisabledGate = decidePaymentProviderExecutionGate({
 assert.equal(vaDisabledGate.allowed, false);
 assert.deepEqual(vaDisabledGate.missingFlags, ["GPAY_VA_ENABLED"]);
 pass("GPAY_VA_PROVIDER_FAILS_CLOSED_WHEN_VA_SWITCH_OFF");
+
+const gpayDisabledGate = decidePaymentProviderExecutionGate({
+  nodeEnvironment: "production",
+  providerId: "gpay_virtual_account",
+  environment: {
+    ...productionPaymentEnvironment,
+    GPAY_ENABLED: "false",
+  },
+});
+assert.equal(gpayDisabledGate.allowed, false);
+assert.deepEqual(gpayDisabledGate.missingFlags, ["GPAY_ENABLED"]);
+pass("GPAY_VA_PROVIDER_FAILS_CLOSED_WHEN_GPAY_SWITCH_OFF");
+
+const cashDisabledGate = decidePaymentProviderExecutionGate({
+  nodeEnvironment: "production",
+  providerId: "cash_agent",
+  environment: productionPaymentEnvironment,
+});
+assert.equal(cashDisabledGate.allowed, false);
+assert.deepEqual(cashDisabledGate.missingFlags, ["CASH_PAYMENT_ENABLED"]);
+pass("CASH_REMAINS_INDEPENDENTLY_DISABLED");
+
+for (const [providerId, providerFlag] of [
+  ["onepay_card", "ONEPAY_ENABLED"],
+  ["umoney_wallet", "UMONEY_ENABLED"],
+]) {
+  const deferredProviderGate = decidePaymentProviderExecutionGate({
+    nodeEnvironment: "production",
+    providerId,
+    environment: productionPaymentEnvironment,
+  });
+  assert.equal(deferredProviderGate.allowed, false);
+  assert.deepEqual(deferredProviderGate.missingFlags, [providerFlag]);
+}
+pass("ONEPAY_AND_UMONEY_REMAIN_INDEPENDENTLY_DISABLED");
 
 const fulfillmentGate = decideProductionExecutionGate({
   nodeEnvironment: "production",
@@ -271,5 +326,11 @@ assert.ok(orderIndex < amountIndex && amountIndex < automationIndex);
 assert.match(webhookSource, /ORDER_ALREADY_PAID_DIFFERENT_TRANSACTION/u);
 assert.match(webhookSource, /PAYMENT_RECEIVED_SIGNED_WEBHOOK_CONFIRMED/u);
 pass("WEBHOOK_SECURITY_ORDER_AND_DUPLICATE_REVIEW_PRESERVED");
+
+assert.doesNotMatch(
+  webhookSource,
+  /GPAY_DELAYED_RECONCILIATION_ENABLED|isGPayDelayedReconciliationEnabled/u,
+);
+pass("VA_SIGNED_WEBHOOK_DOES_NOT_REQUIRE_DELAYED_RECONCILIATION");
 
 console.log(`F07_PRD_PAYMENT_CORE_CORRECTION_SOURCE_RESULT=PASS_ALL_${passed}`);

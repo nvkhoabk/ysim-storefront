@@ -119,6 +119,10 @@ function paymentProviderFlags(providerId: string): readonly string[] {
     return ["UMONEY_ENABLED"];
   }
 
+  if (normalizedProvider === "cash_agent") {
+    return ["CASH_PAYMENT_ENABLED"];
+  }
+
   return [];
 }
 
