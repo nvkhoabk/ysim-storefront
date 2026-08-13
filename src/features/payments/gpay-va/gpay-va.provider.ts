@@ -23,6 +23,7 @@ import {
 } from "./gpay-va.client";
 import { getGPayVAConfig } from "./gpay-va.config";
 import { acquireGPayVACreateLock } from "./gpay-va.create-lock";
+import { persistGPayVAOrderBinding } from "./gpay-va.order-binding";
 import type { GPayVirtualAccountData } from "./gpay-va.types";
 
 const META = {
@@ -131,6 +132,13 @@ async function reuseExisting(
   ) {
     return null;
   }
+
+  await persistGPayVAOrderBinding({
+    accountNumber,
+    orderId: input.orderId,
+    reference,
+    equalAmount,
+  });
 
   const detail = await getGPayVirtualAccountDetail(accountNumber);
 
@@ -273,6 +281,13 @@ async function createSession(
       payment_method: "gpay_virtual_account",
       payment_method_title: "GPay Virtual Account",
       meta_data: createdMeta,
+    });
+
+    await persistGPayVAOrderBinding({
+      accountNumber: data.account_number || "",
+      orderId: order.id,
+      reference,
+      equalAmount: input.amount,
     });
 
     return sessionFromData(input, data, reference, config.bankCode);

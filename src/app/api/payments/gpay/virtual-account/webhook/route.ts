@@ -31,6 +31,10 @@ import {
   isGPayVirtualAccountEnabled,
 } from "@/features/payments/gpay-va/gpay-va.config";
 import { verifyGPayVAWebhookSignature } from "@/features/payments/gpay-va/gpay-va.crypto";
+import {
+  GPayVAOrderBindingError,
+  resolveGPayVAOrderBinding,
+} from "@/features/payments/gpay-va/gpay-va.order-binding";
 import type { GPayVAWebhookPayload } from "@/features/payments/gpay-va/gpay-va.types";
 import { reconcileVerifiedGPayVAWebhook } from "@/features/payments/gpay-va/gpay-va.reconciliation";
 
@@ -85,25 +89,6 @@ function signatureInput(payload: GPayVAWebhookPayload): string {
     `message=${payload.message || ""}`,
     `action=${payload.action}`,
   ].join("&");
-}
-
-function orderReference(message: string): {
-  orderId: number;
-  reference: string;
-} | null {
-  const match = message.match(/\b(YSIM-(\d+)-[A-Za-z0-9_-]+)\b/);
-
-  if (!match) {
-    return null;
-  }
-
-  const orderId = Number.parseInt(match[2], 10);
-
-  if (!Number.isInteger(orderId) || orderId <= 0) {
-    return null;
-  }
-
-  return { orderId, reference: match[1] };
 }
 
 function orderAmount(total: string): number {
@@ -205,13 +190,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const reference = orderReference(payload.message || "");
+    let reference;
 
-    if (!reference) {
-      return NextResponse.json(
-        { success: false, code: "ORDER_REFERENCE_NOT_FOUND" },
-        { status: 422, headers: { "Cache-Control": "no-store" } },
-      );
+    try {
+      reference = await resolveGPayVAOrderBinding(payload.account_number);
+    } catch (error) {
+      if (error instanceof GPayVAOrderBindingError) {
+        const notFound = error.code === "GPAY_VA_ORDER_BINDING_NOT_FOUND";
+
+        return NextResponse.json(
+          {
+            success: false,
+            code: error.code,
+          },
+          {
+            status: notFound ? 422 : 409,
+            headers: { "Cache-Control": "no-store" },
+          },
+        );
+      }
+
+      throw error;
     }
 
     const order = await getWooCommerceAdminOrder(reference.orderId);
@@ -231,12 +230,22 @@ export async function POST(request: Request) {
       order,
       "_ysim_payment_status",
     );
+    const expectedProvider = readWooCommerceOrderMetaString(
+      order,
+      "_ysim_payment_provider",
+    );
+    const expectedEqualAmount = Number(
+      readWooCommerceOrderMetaString(order, "_ysim_gpay_va_equal_amount"),
+    );
 
     if (
+      expectedProvider !== "gpay_virtual_account" ||
       !expectedAccount ||
       expectedAccount !== payload.account_number ||
       !expectedReference ||
-      expectedReference !== reference.reference
+      expectedReference !== reference.reference ||
+      !Number.isSafeInteger(expectedEqualAmount) ||
+      expectedEqualAmount !== reference.equalAmount
     ) {
       return NextResponse.json(
         { success: false, code: "VA_ORDER_MISMATCH" },
@@ -295,7 +304,8 @@ export async function POST(request: Request) {
 
     if (
       !Number.isInteger(payload.amount) ||
-      payload.amount !== expectedAmount
+      payload.amount !== expectedAmount ||
+      payload.amount !== reference.equalAmount
     ) {
       const mismatchMeta = upsertWooCommerceOrderMeta(order, {
         _ysim_payment_status: "AMOUNT_MISMATCH",
