@@ -6,6 +6,25 @@ interface SignedVAWebhookVerificationEvidence {
   };
 }
 
+interface PaidWooOrderEvidence {
+  status: string;
+  date_paid?: string | null;
+  date_paid_gmt?: string | null;
+}
+
+export function isGPayPaidOrderDurabilityPostcondition(
+  order: PaidWooOrderEvidence,
+): boolean {
+  const status = order.status.trim().toLowerCase();
+
+  return (
+    Boolean(order.date_paid) ||
+    Boolean(order.date_paid_gmt) ||
+    status === "processing" ||
+    status === "completed"
+  );
+}
+
 interface SignedVAWebhookReconciliationEvidence {
   mode: string;
   attempted: boolean;

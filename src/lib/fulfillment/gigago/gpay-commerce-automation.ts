@@ -25,6 +25,7 @@ import {
 import { selectGigagoFulfillmentReplayAction } from "./gigago-fulfillment-terminal";
 import { classifyGPayPaidOrderTransaction } from "./gpay-payment-idempotency";
 import { acquireGPayPaymentRecordLock } from "./gpay-payment-record-lock";
+import { isGPayPaidOrderDurabilityPostcondition } from "./gpay-va-durability";
 
 export type GPayCommerceAutomationMode = "disabled" | "record" | "fulfill";
 
@@ -185,15 +186,10 @@ function parseWooVndTotal(value: string): number | null {
 }
 
 export function isWooCommerceOrderPaid(order: WooCommerceAdminOrder): boolean {
-  return (
-    Boolean(order.date_paid) ||
-    Boolean(order.date_paid_gmt) ||
-    order.status === "processing" ||
-    order.status === "completed"
-  );
+  return isGPayPaidOrderDurabilityPostcondition(order);
 }
 
-export function assertGPayCommerceOrderEligible(
+function assertGPayCommerceOrderValueContract(
   order: WooCommerceAdminOrder,
   expectation: {
     amount: number;
@@ -201,14 +197,6 @@ export function assertGPayCommerceOrderEligible(
     requireLineItems?: boolean;
   },
 ): void {
-  const status = order.status.trim().toLowerCase();
-
-  if (!allowedOrderStatuses().has(status)) {
-    throw new Error(
-      `WooCommerce order trạng thái ${order.status} không được phép tự động ghi nhận payment.`,
-    );
-  }
-
   const currency = order.currency.trim().toUpperCase();
   const expectedCurrency = expectation.currency.trim().toUpperCase();
   const wooTotal = parseWooVndTotal(order.total);
@@ -241,6 +229,25 @@ export function assertGPayCommerceOrderEligible(
       "WooCommerce order phải có ít nhất một line item trước fulfillment.",
     );
   }
+}
+
+export function assertGPayCommerceOrderEligible(
+  order: WooCommerceAdminOrder,
+  expectation: {
+    amount: number;
+    currency: string;
+    requireLineItems?: boolean;
+  },
+): void {
+  const status = order.status.trim().toLowerCase();
+
+  if (!allowedOrderStatuses().has(status)) {
+    throw new Error(
+      `WooCommerce order trạng thái ${order.status} không được phép tự động ghi nhận payment.`,
+    );
+  }
+
+  assertGPayCommerceOrderValueContract(order, expectation);
 }
 
 export function parseGPayCommerceEmbedData(
@@ -292,7 +299,7 @@ export function parseGPayCommerceEmbedData(
   };
 }
 
-export function assertGPayCommerceOrderIdentity(
+function assertGPayCommerceOrderBinding(
   order: WooCommerceAdminOrder,
   embed: GPayEmbedData,
 ): void {
@@ -307,8 +314,34 @@ export function assertGPayCommerceOrderIdentity(
   if (!embed.paymentProvider.startsWith("gpay_")) {
     throw new Error("Payment provider trong embed_data không phải GPay.");
   }
+}
+
+export function assertGPayCommerceOrderIdentity(
+  order: WooCommerceAdminOrder,
+  embed: GPayEmbedData,
+): void {
+  assertGPayCommerceOrderBinding(order, embed);
 
   assertGPayCommerceOrderEligible(order, {
+    amount: embed.amount,
+    currency: embed.currency,
+    requireLineItems: true,
+  });
+}
+
+export function assertGPayCommercePaidOrderIdentity(
+  order: WooCommerceAdminOrder,
+  embed: GPayEmbedData,
+): void {
+  assertGPayCommerceOrderBinding(order, embed);
+
+  if (!isWooCommerceOrderPaid(order)) {
+    throw new Error(
+      "WooCommerce order chưa có paid postcondition để ghi durable fulfillment job.",
+    );
+  }
+
+  assertGPayCommerceOrderValueContract(order, {
     amount: embed.amount,
     currency: embed.currency,
     requireLineItems: true,

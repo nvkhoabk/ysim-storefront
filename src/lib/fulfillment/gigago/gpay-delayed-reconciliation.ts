@@ -20,6 +20,7 @@ import {
 
 import {
   assertGPayCommerceOrderIdentity,
+  assertGPayCommercePaidOrderIdentity,
   getGPayCommerceAutomationMode,
   parseGPayCommerceEmbedData,
   runGPayCommerceAutomation,
@@ -760,7 +761,7 @@ function expectedOrderIdentityMatches(
 ): void {
   const embed = parseGPayCommerceEmbedData(verification);
 
-  assertGPayCommerceOrderIdentity(order, embed);
+  assertGPayCommercePaidOrderIdentity(order, embed);
 }
 
 export function isGPayDelayedReconciliationCandidate(
@@ -925,7 +926,7 @@ export async function persistGPayFastAckDurability({
   const embed = parseGPayCommerceEmbedData(verification);
   const order = await getWooCommerceAdminOrder(embed.orderId);
 
-  assertGPayCommerceOrderIdentity(order, embed);
+  assertGPayCommercePaidOrderIdentity(order, embed);
 
   const existing = parseJob(order);
   if (
@@ -1032,7 +1033,7 @@ export async function persistGPayImmediateSuccessDurability({
   const embed = parseGPayCommerceEmbedData(verification);
   const order = await getWooCommerceAdminOrder(embed.orderId);
 
-  assertGPayCommerceOrderIdentity(order, embed);
+  assertGPayCommercePaidOrderIdentity(order, embed);
 
   const existing = parseJob(order);
 

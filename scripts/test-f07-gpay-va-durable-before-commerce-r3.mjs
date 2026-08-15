@@ -4,7 +4,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 import { reconcileVerifiedGPayVAWebhook } from "../src/features/payments/gpay-va/gpay-va.reconciliation.ts";
-import { isGPaySignedVAWebhookDurabilityCandidate } from "../src/lib/fulfillment/gigago/gpay-va-durability.ts";
+import {
+  isGPayPaidOrderDurabilityPostcondition,
+  isGPaySignedVAWebhookDurabilityCandidate,
+} from "../src/lib/fulfillment/gigago/gpay-va-durability.ts";
 
 const callback = {
   embedData: JSON.stringify({
@@ -69,6 +72,30 @@ expect(
   "PRODUCTION_RECONCILIATION_OBJECT_IS_DURABILITY_CANDIDATE",
 );
 
+expect(
+  isGPayPaidOrderDurabilityPostcondition({ status: "processing" }),
+  true,
+  "DURABILITY_GATE_ACCEPTS_WOO_PROCESSING_POSTCONDITION",
+);
+expect(
+  isGPayPaidOrderDurabilityPostcondition({ status: "completed" }),
+  true,
+  "DURABILITY_GATE_ACCEPTS_WOO_COMPLETED_POSTCONDITION",
+);
+expect(
+  isGPayPaidOrderDurabilityPostcondition({
+    status: "pending",
+    date_paid_gmt: "2026-08-15T17:31:00",
+  }),
+  true,
+  "DURABILITY_GATE_ACCEPTS_EXPLICIT_PAID_TIMESTAMP",
+);
+expect(
+  isGPayPaidOrderDurabilityPostcondition({ status: "pending" }),
+  false,
+  "DURABILITY_GATE_REJECTS_UNPAID_PENDING_ORDER",
+);
+
 for (const [name, input] of [
   ["PRODUCTION_RECONCILER_REJECTS_MERCHANT_MISMATCH", {
     merchantOrderIdMatches: false,
@@ -94,6 +121,61 @@ for (const [name, input] of [
     `${name}_NOT_DURABLE`,
   );
 }
+
+const commerceSource = await readFile(
+  "src/lib/fulfillment/gigago/gpay-commerce-automation.ts",
+  "utf8",
+);
+const prepaymentGateStart = commerceSource.indexOf(
+  "export function assertGPayCommerceOrderEligible",
+);
+const prepaymentGateEnd = commerceSource.indexOf(
+  "export function parseGPayCommerceEmbedData",
+  prepaymentGateStart,
+);
+const prepaymentGateSource = commerceSource.slice(
+  prepaymentGateStart,
+  prepaymentGateEnd,
+);
+expect(
+  /allowedOrderStatuses\(\)\.has\(status\)/u.test(prepaymentGateSource),
+  true,
+  "PREPAYMENT_GATE_RETAINS_CONFIGURED_STATUS_ALLOWLIST",
+);
+
+const paidIdentityStart = commerceSource.indexOf(
+  "export function assertGPayCommercePaidOrderIdentity",
+);
+const paidIdentityEnd = commerceSource.indexOf(
+  "function eligibleReconciliation",
+  paidIdentityStart,
+);
+const paidIdentitySource = commerceSource.slice(
+  paidIdentityStart,
+  paidIdentityEnd,
+);
+expect(
+  /assertGPayCommerceOrderBinding\(order, embed\)/u.test(
+    paidIdentitySource,
+  ),
+  true,
+  "PAID_DURABILITY_GATE_RETAINS_ORDER_BINDING",
+);
+expect(
+  /if \(!isWooCommerceOrderPaid\(order\)\)/u.test(paidIdentitySource),
+  true,
+  "PAID_DURABILITY_GATE_REQUIRES_PAID_POSTCONDITION",
+);
+expect(
+  /assertGPayCommerceOrderValueContract\(order/u.test(paidIdentitySource),
+  true,
+  "PAID_DURABILITY_GATE_RETAINS_AMOUNT_CURRENCY_AND_LINE_ITEMS",
+);
+expect(
+  /allowedOrderStatuses/u.test(paidIdentitySource),
+  false,
+  "PAID_DURABILITY_GATE_DOES_NOT_REUSE_PREPAYMENT_STATUS_ALLOWLIST",
+);
 
 const fastAckSource = await readFile(
   "src/lib/fulfillment/gigago/gpay-fast-ack.ts",
@@ -181,6 +263,45 @@ expect(
   ),
   true,
   "FULFILL_MODE_STARTS_FROM_DURABLE_PROVIDER_CONFIRMED_STATE",
+);
+expect(
+  /assertGPayCommercePaidOrderIdentity\(order, embed\)/u.test(
+    fastPersistSource,
+  ),
+  true,
+  "FAST_ACK_JOB_WRITE_USES_PAID_POSTCONDITION_NOT_PREPAYMENT_STATUS_GATE",
+);
+
+const immediatePersistStart = fastPersistEnd;
+const immediatePersistEnd = delayedSource.indexOf(
+  "function syntheticQuery",
+  immediatePersistStart,
+);
+const immediatePersistSource = delayedSource.slice(
+  immediatePersistStart,
+  immediatePersistEnd,
+);
+expect(
+  /assertGPayCommercePaidOrderIdentity\(order, embed\)/u.test(
+    immediatePersistSource,
+  ),
+  true,
+  "IMMEDIATE_SUCCESS_JOB_WRITE_USES_PAID_POSTCONDITION",
+);
+
+const expectedIdentityStart = delayedSource.indexOf(
+  "function expectedOrderIdentityMatches",
+);
+const expectedIdentityEnd = delayedSource.indexOf(
+  "export function isGPayDelayedReconciliationCandidate",
+  expectedIdentityStart,
+);
+expect(
+  /assertGPayCommercePaidOrderIdentity\(order, embed\)/u.test(
+    delayedSource.slice(expectedIdentityStart, expectedIdentityEnd),
+  ),
+  true,
+  "DELAYED_COMMERCE_RESUME_USES_PAID_POSTCONDITION",
 );
 
 const pollStart = delayedSource.indexOf(
