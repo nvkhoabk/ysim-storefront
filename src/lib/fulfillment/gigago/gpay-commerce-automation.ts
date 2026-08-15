@@ -376,6 +376,24 @@ function paidDatePresent(order: WooCommerceAdminOrder): boolean {
   return Boolean(order.date_paid || order.date_paid_gmt);
 }
 
+function existingPaidOrderDiagnostic(
+  order: WooCommerceAdminOrder,
+): GPayWooPaymentDiagnostic {
+  const datePaidPresent = paidDatePresent(order);
+
+  return {
+    initialStatus: order.status,
+    initialDatePaidPresent: datePaidPresent,
+    pendingBridgeApplied: false,
+    updateResponseStatus: order.status,
+    updateResponseDatePaidPresent: datePaidPresent,
+    confirmedStatus: order.status,
+    confirmedDatePaidPresent: datePaidPresent,
+    transactionIdPresent: Boolean(order.transaction_id),
+    refetchCount: 0,
+  };
+}
+
 async function confirmWooPaidPostcondition({
   orderId,
   initialOrder,
@@ -612,7 +630,10 @@ async function executeUnlocked(
     incomingTransactionId,
   });
 
-  if (transactionDisposition === "same-transaction-duplicate") {
+  if (
+    transactionDisposition === "same-transaction-duplicate" &&
+    mode === "record"
+  ) {
     return {
       mode,
       attempted: true,
@@ -648,14 +669,22 @@ async function executeUnlocked(
     };
   }
 
-  const payment = await persistPaymentSuccess({
-    order,
-    embed,
-    verification,
-    reconciliation,
-    mode,
-    source,
-  });
+  const payment =
+    transactionDisposition === "same-transaction-duplicate"
+      ? {
+          duplicate: true,
+          stateChanged: false,
+          paidOrder: order,
+          diagnostic: existingPaidOrderDiagnostic(order),
+        }
+      : await persistPaymentSuccess({
+          order,
+          embed,
+          verification,
+          reconciliation,
+          mode,
+          source,
+        });
 
   if (mode === "record") {
     return {
