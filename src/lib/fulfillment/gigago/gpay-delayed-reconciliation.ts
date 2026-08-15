@@ -38,6 +38,9 @@ import {
   shouldPollGigagoProviderForTerminal,
   type GigagoFulfillmentTerminalAssessment,
 } from "./gigago-fulfillment-terminal";
+import { isGPaySignedVAWebhookDurabilityCandidate } from "./gpay-va-durability";
+
+export { isGPaySignedVAWebhookDurabilityCandidate } from "./gpay-va-durability";
 
 export type GPayDelayedReconciliationState =
   | "pending"
@@ -1015,7 +1018,8 @@ export async function persistGPayImmediateSuccessDurability({
   }
 
   if (
-    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
+    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation) &&
+    !isGPaySignedVAWebhookDurabilityCandidate(verification, reconciliation)
   ) {
     throw new Error(
       "Callback GPay không đủ điều kiện immediate-success durability.",

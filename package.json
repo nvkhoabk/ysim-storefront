@@ -20,6 +20,7 @@
     "test:f07:payment-core": "node scripts/test-f07-prd-payment-core-correction-r1.mjs",
     "test:f07:payment-core-hardening": "node scripts/test-f07-prd-payment-core-hardening-r1.mjs",
     "test:f07:gigago-terminal": "node scripts/test-f07-gigago-fulfillment-terminal-corrective-r1.mjs",
+    "test:f07:va-durable-fulfillment": "node scripts/test-f07-gpay-va-durable-fulfillment-r2.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {

@@ -15,7 +15,7 @@ import {
   prepareGPayFastAck,
 } from "@/lib/fulfillment/gigago/gpay-fast-ack";
 import {
-  isGPayImmediateSuccessDurabilityCandidate,
+  isGPaySignedVAWebhookDurabilityCandidate,
   persistGPayImmediateSuccessDurability,
   runGPayDelayedReconciliationSchedule,
   type PersistGPayImmediateSuccessDurabilityResult,
@@ -433,7 +433,7 @@ export async function POST(request: Request) {
 
     if (
       automationMode !== "disabled" &&
-      isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
+      isGPaySignedVAWebhookDurabilityCandidate(verification, reconciliation)
     ) {
       const durabilityResult = await persistGPayImmediateSuccessDurability({
         verification,
