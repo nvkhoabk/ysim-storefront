@@ -909,9 +909,12 @@ export async function persistGPayFastAckDurability({
     );
   }
   if (
-    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
+    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation) &&
+    !isGPaySignedVAWebhookDurabilityCandidate(verification, reconciliation)
   ) {
-    throw new Error("Callback GPay không đủ điều kiện fast-ACK durability.");
+    throw new Error(
+      "Callback GPay không đủ điều kiện durable-before-commerce ACK.",
+    );
   }
   if (!paymentAutomation.paymentRecorded || !paymentAutomation.orderId) {
     throw new Error(

@@ -133,8 +133,8 @@ const fastAckSource = await readFile(
 );
 expect(
   /isGPaySignedVAWebhookDurabilityCandidate/u.test(fastAckSource),
-  false,
-  "SIGNED_VA_DOES_NOT_CHANGE_GATEWAY_FAST_ACK_BOUNDARY",
+  true,
+  "SIGNED_VA_NOW_USES_DURABLE_BEFORE_COMMERCE_FAST_ACK_BOUNDARY",
 );
 expect(
   /state = "pending-fulfillment"/u.test(persistSource),

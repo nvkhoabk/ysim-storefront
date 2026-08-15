@@ -14,6 +14,7 @@ import {
   persistGPayFastAckDurability,
   type PersistGPayFastAckDurabilityResult,
 } from "./gpay-delayed-reconciliation";
+import { isGPaySignedVAWebhookDurabilityCandidate } from "./gpay-va-durability";
 
 export const GPAY_FAST_ACK_VERSION = "f06.1b.1-v1" as const;
 
@@ -32,11 +33,17 @@ export function isGPayFastAckCandidate(
   verification: GPayGatewayCallbackVerification,
   reconciliation: GPayCallbackReconciliationResult,
 ): boolean {
-  return (
+  if (getGPayCommerceAutomationMode() === "disabled") {
+    return false;
+  }
+
+  const signedVAWebhookCandidate =
+    isGPaySignedVAWebhookDurabilityCandidate(verification, reconciliation);
+  const optionalQueryFastAckCandidate =
     isGPayFastAckEnabled() &&
-    getGPayCommerceAutomationMode() !== "disabled" &&
-    isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
-  );
+    isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation);
+
+  return signedVAWebhookCandidate || optionalQueryFastAckCandidate;
 }
 
 export async function prepareGPayFastAck({
@@ -55,13 +62,10 @@ export async function prepareGPayFastAck({
       "GPay fast ACK không chạy khi commerce automation disabled.",
     );
   }
-  if (!isGPayFastAckEnabled()) {
-    throw new Error("GPay fast ACK chưa được bật.");
-  }
-  if (
-    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
-  ) {
-    throw new Error("Callback GPay không đủ điều kiện fast ACK.");
+  if (!isGPayFastAckCandidate(verification, reconciliation)) {
+    throw new Error(
+      "Callback GPay không đủ điều kiện durable-before-commerce ACK.",
+    );
   }
 
   const paymentAutomation = await runGPayCommerceAutomation(
