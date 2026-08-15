@@ -16,11 +16,13 @@ import {
   assessGigagoSubmissionDelivery,
   type GigagoDeliveryAssessment,
 } from "./gigago-delivery-assessment";
+import { getGigagoSecureDeliveryStatus } from "./gigago-delivery-snapshot";
 import {
   submitGigagoFulfillment,
   type GigagoFulfillmentMode,
   type GigagoFulfillmentSubmission,
 } from "./gigago-fulfillment-service";
+import { selectGigagoFulfillmentReplayAction } from "./gigago-fulfillment-terminal";
 import { classifyGPayPaidOrderTransaction } from "./gpay-payment-idempotency";
 import { acquireGPayPaymentRecordLock } from "./gpay-payment-record-lock";
 
@@ -108,6 +110,12 @@ const DEFAULT_ALLOWED_ORDER_STATUSES = [
   "processing",
   "completed",
 ] as const;
+
+function fulfillmentRequestMetaKey(mode: GigagoFulfillmentMode): string {
+  return mode === "demo"
+    ? "_ysim_gigago_demo_request_id"
+    : "_ysim_gigago_request_id";
+}
 
 function configuredMode(): GPayCommerceAutomationMode {
   const value = process.env.GPAY_COMMERCE_AUTOMATION_MODE?.trim().toLowerCase();
@@ -714,6 +722,57 @@ async function executeUnlocked(
       throw new Error(
         "WooCommerce paid postcondition was lost before fulfillment.",
       );
+    }
+
+    if (transactionDisposition === "same-transaction-duplicate") {
+      const localDelivery = await getGigagoSecureDeliveryStatus(order.id);
+      const priorSubmissionEvidence = Boolean(
+        readWooCommerceOrderMetaString(
+          persistedOrder,
+          fulfillmentRequestMetaKey(selectedFulfillmentMode),
+        ) ||
+          localDelivery.requestId ||
+          localDelivery.status ||
+          localDelivery.deliveryHash,
+      );
+      const replayAction = selectGigagoFulfillmentReplayAction({
+        sameTransactionDuplicate: true,
+        mode,
+        priorSubmissionEvidence,
+        terminalState: localDelivery.deliveryTerminal.state,
+      });
+
+      if (replayAction === "local-terminal") {
+        return {
+          mode,
+          attempted: true,
+          paymentRecorded: true,
+          commerceStateChanged: false,
+          fulfillmentAttempted: true,
+          fulfillmentSucceeded: true,
+          fulfillmentState: "succeeded",
+          duplicatePaymentEvent: true,
+          orderId: order.id,
+          reason: "FULFILLMENT_ALREADY_TERMINAL",
+          paymentDiagnostic: payment.diagnostic,
+        };
+      }
+
+      if (replayAction === "status-only") {
+        return {
+          mode,
+          attempted: true,
+          paymentRecorded: true,
+          commerceStateChanged: false,
+          fulfillmentAttempted: true,
+          fulfillmentSucceeded: null,
+          fulfillmentState: "processing",
+          duplicatePaymentEvent: true,
+          orderId: order.id,
+          reason: "FULFILLMENT_REPLAY_STATUS_POLL_REQUIRED",
+          paymentDiagnostic: payment.diagnostic,
+        };
+      }
     }
 
     const fulfillment = await submitGigagoFulfillment(

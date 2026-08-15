@@ -43,3 +43,16 @@ snapshot hoặc QR/LPA; nó chỉ sử dụng trạng thái và hash binding an 
 - Không bật payment, fulfillment, scheduler hoặc customer-email flags.
 - Không thay đổi Production runtime, credential hoặc provider endpoint.
 - Không suy diễn Gigago Production contract từ Sandbox.
+
+## Independent review corrective
+
+- Same-transaction replay đọc terminal evidence cục bộ trước. Khi đã có
+  submission evidence, replay chuyển sang status-only và không đi qua
+  provider-create.
+- Pending fulfillment đọc local terminal trước khi gọi Gigago; terminal local
+  không bị hạ cấp chỉ vì provider tạm thời không truy cập được.
+- Job `fulfill/succeeded` cũ thiếu `deliveryTerminal.terminal=true` được
+  reclassify thành `pending-fulfillment`; reconciliation sweep có thể phát hiện
+  và revalidate theo cùng contract, không có ngoại lệ theo order ID.
+- Job format được nâng lên `f04.3.3.2`; các phiên bản cũ vẫn parse fail-closed
+  và được normalize trước khi xử lý.

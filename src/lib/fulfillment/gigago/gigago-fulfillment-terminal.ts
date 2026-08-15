@@ -28,6 +28,51 @@ export interface GigagoFulfillmentTerminalAssessment {
   mailRequestHashMatches: boolean;
 }
 
+export type GigagoFulfillmentReplayAction =
+  | "record-only"
+  | "local-terminal"
+  | "status-only"
+  | "submit";
+
+export function selectGigagoFulfillmentReplayAction(input: {
+  sameTransactionDuplicate: boolean;
+  mode: "record" | "fulfill";
+  priorSubmissionEvidence: boolean;
+  terminalState: GigagoFulfillmentTerminalState;
+}): GigagoFulfillmentReplayAction {
+  if (!input.sameTransactionDuplicate) {
+    return "submit";
+  }
+
+  if (input.mode === "record") {
+    return "record-only";
+  }
+
+  if (input.terminalState === "succeeded") {
+    return "local-terminal";
+  }
+
+  return input.priorSubmissionEvidence ? "status-only" : "submit";
+}
+
+export function shouldPollGigagoProviderForTerminal(
+  assessment: GigagoFulfillmentTerminalAssessment,
+): boolean {
+  return assessment.state === "pending";
+}
+
+export function requiresGPayFulfillmentTerminalRevalidation(input: {
+  automationMode: string;
+  state: string;
+  terminal: boolean;
+}): boolean {
+  return (
+    input.automationMode.trim().toLowerCase() === "fulfill" &&
+    input.state.trim().toLowerCase() === "succeeded" &&
+    input.terminal !== true
+  );
+}
+
 function normalized(value: string | null): string {
   return value?.trim().toLowerCase() ?? "";
 }

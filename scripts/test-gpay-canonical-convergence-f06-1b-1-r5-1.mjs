@@ -355,7 +355,12 @@ try {
       orders: [
         makeOrder({
           id: 8103,
-          canonical: { state: "succeeded", nextAttemptAt: null },
+          canonical: {
+            state: "succeeded",
+            nextAttemptAt: null,
+            automationMode: "fulfill",
+            result: { deliveryTerminal: { terminal: true } },
+          },
           flatState: "succeeded",
           paymentTerminal: true,
           fulfillmentTerminal: true,
@@ -372,6 +377,42 @@ try {
       assert(mock.calls.wooPut === 0, "Case C must not issue WooCommerce PUT.");
       assertNoSecrets(run.combined);
       console.log("PASS canonical succeeded is skipped");
+    },
+  );
+
+  await withMock(
+    {
+      orders: [
+        makeOrder({
+          id: 8109,
+          canonical: {
+            state: "succeeded",
+            nextAttemptAt: null,
+            automationMode: "fulfill",
+            result: { fulfillmentSucceeded: true },
+          },
+          flatState: "succeeded",
+          paymentTerminal: true,
+          fulfillmentTerminal: true,
+        }),
+      ],
+    },
+    async (mock) => {
+      const run = await runSweep(mock.origin, { dryRun: true });
+      assert(run.code === 0, `Case C2 failed:\n${run.combined}`);
+      const summary = parseFirstJson(run.stdout);
+      assert(
+        summary.candidateCount === 1,
+        "Case C2 must select legacy unbound success.",
+      );
+      assert(
+        summary.candidates[0]?.action === "revalidate-legacy-terminal",
+        "Case C2 must request legacy terminal revalidation.",
+      );
+      assert(mock.calls.operator === 0, "Case C2 dry-run must not call API.");
+      assert(mock.calls.wooPut === 0, "Case C2 must not issue WooCommerce PUT.");
+      assertNoSecrets(run.combined);
+      console.log("PASS legacy unbound success is selected for revalidation");
     },
   );
 

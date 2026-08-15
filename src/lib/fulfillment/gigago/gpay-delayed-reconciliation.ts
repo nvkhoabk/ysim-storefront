@@ -33,7 +33,11 @@ import {
   getGigagoFulfillmentStatus,
   type GigagoFulfillmentMode,
 } from "./gigago-fulfillment-service";
-import type { GigagoFulfillmentTerminalAssessment } from "./gigago-fulfillment-terminal";
+import {
+  requiresGPayFulfillmentTerminalRevalidation,
+  shouldPollGigagoProviderForTerminal,
+  type GigagoFulfillmentTerminalAssessment,
+} from "./gigago-fulfillment-terminal";
 
 export type GPayDelayedReconciliationState =
   | "pending"
@@ -65,7 +69,13 @@ interface ConfirmedQuerySnapshot {
 }
 
 interface GPayDelayedReconciliationJob {
-  version: "f04.2" | "f04.2.1" | "f04.3.2" | "f04.3.3" | "f04.3.3.1";
+  version:
+    | "f04.2"
+    | "f04.2.1"
+    | "f04.3.2"
+    | "f04.3.3"
+    | "f04.3.3.1"
+    | "f04.3.3.2";
   orderId: number;
   state: GPayDelayedReconciliationState;
   attempts: number;
@@ -560,7 +570,8 @@ function parseJob(
       parsed.version !== "f04.2.1" &&
       parsed.version !== "f04.3.2" &&
       parsed.version !== "f04.3.3" &&
-      parsed.version !== "f04.3.3.1"
+      parsed.version !== "f04.3.3.1" &&
+      parsed.version !== "f04.3.3.2"
     ) {
       return null;
     }
@@ -598,9 +609,9 @@ function parseJob(
           }
         : null);
 
-    return {
+    const normalizedJob: GPayDelayedReconciliationJob = {
       ...(parsed as GPayDelayedReconciliationJob),
-      version: "f04.3.3.1",
+      version: "f04.3.3.2",
       attempts:
         Number.isInteger(parsed.attempts) && (parsed.attempts ?? 0) >= 0
           ? (parsed.attempts ?? 0)
@@ -649,6 +660,21 @@ function parseJob(
       lockExpiresAt: null,
       result: parsed.result ?? null,
     };
+
+    if (
+      requiresGPayFulfillmentTerminalRevalidation({
+        automationMode: normalizedJob.automationMode,
+        state: normalizedJob.state,
+        terminal: normalizedJob.result?.deliveryTerminal?.terminal === true,
+      })
+    ) {
+      normalizedJob.state = "pending-fulfillment";
+      normalizedJob.fulfillmentPollAttempts = 0;
+      normalizedJob.nextAttemptAt = nowIso();
+      normalizedJob.lastError = null;
+    }
+
+    return normalizedJob;
   } catch {
     return null;
   }
@@ -803,7 +829,7 @@ export async function enqueueGPayDelayedReconciliation({
   const createdAt = nowIso();
   const delays = getGPayReconciliationRetryDelaysSeconds();
   const job: GPayDelayedReconciliationJob = {
-    version: "f04.3.3.1",
+    version: "f04.3.3.2",
     orderId: order.id,
     state: "pending",
     attempts: 0,
@@ -921,7 +947,7 @@ export async function persistGPayFastAckDurability({
   const state: GPayDelayedReconciliationState =
     automationMode === "record" ? "succeeded" : "provider-confirmed";
   const job: GPayDelayedReconciliationJob = {
-    version: "f04.3.3.1",
+    version: "f04.3.3.2",
     orderId: order.id,
     state,
     attempts: 1,
@@ -1072,7 +1098,7 @@ export async function persistGPayImmediateSuccessDurability({
   }
 
   const job: GPayDelayedReconciliationJob = {
-    version: "f04.3.3.1",
+    version: "f04.3.3.2",
     orderId: order.id,
     state,
     attempts: 1,
@@ -1258,10 +1284,14 @@ async function pollPendingFulfillment(
   orderId: number,
   job: GPayDelayedReconciliationJob,
 ): Promise<GPayDelayedReconciliationView> {
-  await getGigagoFulfillmentStatus(orderId, job.fulfillmentMode);
+  let deliveryStatus = await getGigagoSecureDeliveryStatus(orderId);
+  let terminal = deliveryStatus.deliveryTerminal;
 
-  const deliveryStatus = await getGigagoSecureDeliveryStatus(orderId);
-  const terminal = deliveryStatus.deliveryTerminal;
+  if (shouldPollGigagoProviderForTerminal(terminal)) {
+    await getGigagoFulfillmentStatus(orderId, job.fulfillmentMode);
+    deliveryStatus = await getGigagoSecureDeliveryStatus(orderId);
+    terminal = deliveryStatus.deliveryTerminal;
+  }
 
   job.fulfillmentPollAttempts += 1;
   job.updatedAt = nowIso();

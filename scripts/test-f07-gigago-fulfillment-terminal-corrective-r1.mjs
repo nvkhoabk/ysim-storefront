@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import { assessGigagoFulfillmentTerminal } from "../src/lib/fulfillment/gigago/gigago-fulfillment-terminal.ts";
+import {
+  assessGigagoFulfillmentTerminal,
+  requiresGPayFulfillmentTerminalRevalidation,
+  selectGigagoFulfillmentReplayAction,
+  shouldPollGigagoProviderForTerminal,
+} from "../src/lib/fulfillment/gigago/gigago-fulfillment-terminal.ts";
 
 const HASH = "a".repeat(64);
 let passed = 0;
@@ -31,6 +36,90 @@ assert.equal(terminal.state, "succeeded");
 assert.equal(terminal.terminal, true);
 assert.equal(terminal.reason, "FULFILLMENT_EMAIL_COMPLETED_EXACTLY_ONCE");
 pass("TERMINAL_REQUIRES_DELIVERY_EMAIL_AND_COMPLETED_ORDER");
+
+assert.equal(
+  selectGigagoFulfillmentReplayAction({
+    sameTransactionDuplicate: false,
+    mode: "fulfill",
+    priorSubmissionEvidence: false,
+    terminalState: "pending",
+  }),
+  "submit",
+);
+pass("FIRST_FULFILLMENT_CAN_SUBMIT");
+
+assert.equal(
+  selectGigagoFulfillmentReplayAction({
+    sameTransactionDuplicate: true,
+    mode: "record",
+    priorSubmissionEvidence: false,
+    terminalState: "pending",
+  }),
+  "record-only",
+);
+pass("RECORD_REPLAY_NEVER_ENTERS_FULFILLMENT");
+
+assert.equal(
+  selectGigagoFulfillmentReplayAction({
+    sameTransactionDuplicate: true,
+    mode: "fulfill",
+    priorSubmissionEvidence: true,
+    terminalState: "succeeded",
+  }),
+  "local-terminal",
+);
+pass("TERMINAL_REPLAY_STOPS_BEFORE_PROVIDER");
+
+assert.equal(
+  selectGigagoFulfillmentReplayAction({
+    sameTransactionDuplicate: true,
+    mode: "fulfill",
+    priorSubmissionEvidence: true,
+    terminalState: "pending",
+  }),
+  "status-only",
+);
+pass("SUBMITTED_REPLAY_USES_STATUS_ONLY");
+
+assert.equal(
+  selectGigagoFulfillmentReplayAction({
+    sameTransactionDuplicate: true,
+    mode: "fulfill",
+    priorSubmissionEvidence: false,
+    terminalState: "pending",
+  }),
+  "submit",
+);
+pass("UNSUBMITTED_REPLAY_CAN_RECOVER_OR_SUBMIT");
+
+assert.equal(shouldPollGigagoProviderForTerminal(terminal), false);
+assert.equal(
+  shouldPollGigagoProviderForTerminal(
+    assessGigagoFulfillmentTerminal(evidence({ orderStatus: "processing" })),
+  ),
+  true,
+);
+pass("LOCAL_TERMINAL_EVIDENCE_PRECEDES_PROVIDER_POLL");
+
+assert.equal(
+  requiresGPayFulfillmentTerminalRevalidation({
+    automationMode: "fulfill",
+    state: "succeeded",
+    terminal: false,
+  }),
+  true,
+);
+pass("LEGACY_UNBOUND_SUCCESS_REQUIRES_REVALIDATION");
+
+assert.equal(
+  requiresGPayFulfillmentTerminalRevalidation({
+    automationMode: "fulfill",
+    state: "succeeded",
+    terminal: true,
+  }),
+  false,
+);
+pass("BOUND_TERMINAL_SUCCESS_REMAINS_TERMINAL");
 
 assert.equal(
   "snapshot" in evidence(),
@@ -123,6 +212,12 @@ assert.match(
   automationSource,
   /transactionDisposition === "same-transaction-duplicate"\s*&&\s*mode === "record"/u,
 );
+assert.match(automationSource, /FULFILLMENT_ALREADY_TERMINAL/u);
+assert.match(automationSource, /FULFILLMENT_REPLAY_STATUS_POLL_REQUIRED/u);
+assert.ok(
+  automationSource.indexOf("await getGigagoSecureDeliveryStatus") <
+    automationSource.indexOf("await submitGigagoFulfillment"),
+);
 assert.match(automationSource, /await submitGigagoFulfillment/u);
 pass("SAME_PAYMENT_REPLAY_CAN_RESUME_IDEMPOTENT_FULFILLMENT");
 
@@ -136,12 +231,30 @@ assert.match(
   delayedSource,
   /if \(resumingFulfillment\) \{\s*return pollPendingFulfillment/u,
 );
+const pollSource = delayedSource.slice(
+  delayedSource.indexOf("async function pollPendingFulfillment"),
+  delayedSource.indexOf("async function applyConfirmedCommerce"),
+);
+assert.ok(
+  pollSource.indexOf("await getGigagoSecureDeliveryStatus") <
+    pollSource.indexOf("await getGigagoFulfillmentStatus"),
+);
+assert.match(delayedSource, /requiresGPayFulfillmentTerminalRevalidation/u);
+assert.match(delayedSource, /version: "f04\.3\.3\.2"/u);
 assert.match(
   delayedSource,
   /automationMode === "record"[\s\S]*state = "succeeded"[\s\S]*state = "pending-fulfillment"/u,
 );
 assert.doesNotMatch(delayedSource, /submitGigagoFulfillment/u);
 pass("PENDING_FULFILLMENT_POLLS_WITHOUT_PROVIDER_CREATE_OR_FALSE_SUCCESS");
+
+const sweepSource = await readFile(
+  "scripts/run-gpay-reconciliation-sweep-f06-1b-1.mjs",
+  "utf8",
+);
+assert.match(sweepSource, /requiresTerminalRevalidation/u);
+assert.match(sweepSource, /revalidate-legacy-terminal/u);
+pass("SWEEP_DISCOVERS_LEGACY_UNBOUND_SUCCESS");
 
 const snapshotSource = await readFile(
   "src/lib/fulfillment/gigago/gigago-delivery-snapshot.ts",
