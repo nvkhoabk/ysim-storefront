@@ -16,19 +16,25 @@ import {
 interface CachedKeyMaterial {
   privateKeyPem?: string;
   publicKeyPem?: string;
+  providerPublicKeyPem?: string;
 }
 
-const keyCache: CachedKeyMaterial = {};
+const keyCache:
+  CachedKeyMaterial = {};
 
 async function readRequiredPemFile(
   environmentName: string,
 ): Promise<string> {
   const filePath =
-    process.env[environmentName]?.trim();
+    process.env[
+      environmentName
+    ]
+      ?.trim();
 
   if (!filePath) {
     throw new GPayError({
-      code: "GPAY_CONFIG_ERROR",
+      code:
+        "GPAY_CONFIG_ERROR",
       message:
         `Thiếu biến môi trường ${environmentName}.`,
     });
@@ -39,38 +45,50 @@ async function readRequiredPemFile(
       filePath,
       "utf8",
     );
-  } catch (error) {
+  } catch (
+    error
+  ) {
     throw new GPayError({
-      code: "GPAY_CONFIG_ERROR",
+      code:
+        "GPAY_CONFIG_ERROR",
       message:
         `Không đọc được file PEM tại ${filePath}.`,
-      cause: error,
+      cause:
+        error,
     });
   }
 }
 
 export async function getGPayPrivateKeyPem():
 Promise<string> {
-  if (!keyCache.privateKeyPem) {
+  if (
+    !keyCache
+      .privateKeyPem
+  ) {
     keyCache.privateKeyPem =
       await readRequiredPemFile(
         "GPAY_PRIVATE_KEY_PATH",
       );
   }
 
-  return keyCache.privateKeyPem;
+  return keyCache
+    .privateKeyPem;
 }
 
 export async function getMerchantPublicKeyPem():
 Promise<string> {
-  if (!keyCache.publicKeyPem) {
+  if (
+    !keyCache
+      .publicKeyPem
+  ) {
     keyCache.publicKeyPem =
       await readRequiredPemFile(
         "GPAY_PUBLIC_KEY_PATH",
       );
   }
 
-  return keyCache.publicKeyPem;
+  return keyCache
+    .publicKeyPem;
 }
 
 export async function signGPayRawInput(
@@ -78,32 +96,43 @@ export async function signGPayRawInput(
 ): Promise<string> {
   if (!rawInput) {
     throw new GPayError({
-      code: "GPAY_TOKEN_RESPONSE_INVALID",
+      code:
+        "GPAY_TOKEN_RESPONSE_INVALID",
       message:
         "Chuỗi cần ký không được để trống.",
     });
   }
 
   try {
-    const privateKey = createPrivateKey(
-      await getGPayPrivateKeyPem(),
-    );
+    const privateKey =
+      createPrivateKey(
+        await getGPayPrivateKeyPem(),
+      );
 
-    const binarySignature = sign(
-      "RSA-SHA256",
-      Buffer.from(rawInput, "utf8"),
-      privateKey,
-    );
+    const binarySignature =
+      sign(
+        "RSA-SHA256",
+        Buffer.from(
+          rawInput,
+          "utf8",
+        ),
+        privateKey,
+      );
 
-    return binarySignature.toString(
-      "base64",
-    );
-  } catch (error) {
+    return binarySignature
+      .toString(
+        "base64",
+      );
+  } catch (
+    error
+  ) {
     throw new GPayError({
-      code: "GPAY_TOKEN_REQUEST_FAILED",
+      code:
+        "GPAY_TOKEN_REQUEST_FAILED",
       message:
         "Không thể tạo chữ ký RSA-SHA256.",
-      cause: error,
+      cause:
+        error,
     });
   }
 }
@@ -114,14 +143,20 @@ export async function verifyGPayRawInput(
   publicKeyPem?: string,
 ): Promise<boolean> {
   try {
-    const publicKey = createPublicKey(
-      publicKeyPem ??
-        (await getMerchantPublicKeyPem()),
-    );
+    const publicKey =
+      createPublicKey(
+        publicKeyPem ??
+          (
+            await getMerchantPublicKeyPem()
+          ),
+      );
 
     return verify(
       "RSA-SHA256",
-      Buffer.from(rawInput, "utf8"),
+      Buffer.from(
+        rawInput,
+        "utf8",
+      ),
       publicKey,
       Buffer.from(
         signatureBase64,
@@ -133,45 +168,122 @@ export async function verifyGPayRawInput(
   }
 }
 
-export function clearGPayKeyCache(): void {
-  delete keyCache.privateKeyPem;
-  delete keyCache.publicKeyPem;
+export function normalizeGPayProviderSignatureBase64(
+  value: string,
+): string | null {
+  const compact =
+    value
+      .trim()
+      .replace(
+        / /g,
+        "+",
+      )
+      .replace(
+        /[\r\n\t]/g,
+        "",
+      );
+
+  if (
+    !compact ||
+    !/^[A-Za-z0-9+/]*={0,2}$/.test(
+      compact,
+    )
+  ) {
+    return null;
+  }
+
+  const withoutPadding =
+    compact.replace(
+      /=+$/,
+      "",
+    );
+
+  if (
+    withoutPadding.length %
+      4 ===
+    1
+  ) {
+    return null;
+  }
+
+  const paddingLength =
+    (
+      4 -
+      (
+        withoutPadding
+          .length %
+        4
+      )
+    ) %
+    4;
+
+  return (
+    withoutPadding +
+    "=".repeat(
+      paddingLength,
+    )
+  );
 }
 
-let cachedProviderPublicKey:
-  | string
-  | null = null;
+export function clearGPayKeyCache():
+void {
+  delete keyCache
+    .privateKeyPem;
+
+  delete keyCache
+    .publicKeyPem;
+
+  delete keyCache
+    .providerPublicKeyPem;
+}
 
 export async function getGPayProviderPublicKeyPem():
 Promise<string> {
-  if (cachedProviderPublicKey) {
-    return cachedProviderPublicKey;
+  if (
+    keyCache
+      .providerPublicKeyPem
+  ) {
+    return keyCache
+      .providerPublicKeyPem;
   }
 
   const path =
     process.env
       .GPAY_PROVIDER_PUBLIC_KEY_PATH
+      ?.trim() ||
+    process.env
+      .GPAY_PROVIDER_CERTIFICATE_PATH
       ?.trim();
 
   if (!path) {
     throw new GPayError({
-      code: "GPAY_CONFIG_ERROR",
+      code:
+        "GPAY_CONFIG_ERROR",
       message:
         "Thiếu GPAY_PROVIDER_PUBLIC_KEY_PATH.",
     });
   }
 
   try {
-    cachedProviderPublicKey =
-      await readFile(path, "utf8");
+    keyCache
+      .providerPublicKeyPem =
+      await readFile(
+        path,
+        "utf8",
+      );
 
-    return cachedProviderPublicKey;
-  } catch (error) {
+    return keyCache
+      .providerPublicKeyPem;
+  } catch (
+    error
+  ) {
     throw new GPayError({
-      code: "GPAY_CONFIG_ERROR",
+      code:
+        "GPAY_CONFIG_ERROR",
       message:
-        "Không đọc được public key của GPay.",
-      cause: error,
+        "Không đọc được public key/certificate của GPay.",
+      cause:
+        error,
     });
   }
 }
@@ -180,9 +292,20 @@ export async function verifyGPayProviderSignature(
   rawInput: string,
   signatureBase64: string,
 ): Promise<boolean> {
+  const normalizedSignature =
+    normalizeGPayProviderSignatureBase64(
+      signatureBase64,
+    );
+
+  if (
+    !normalizedSignature
+  ) {
+    return false;
+  }
+
   return verifyGPayRawInput(
     rawInput,
-    signatureBase64,
+    normalizedSignature,
     await getGPayProviderPublicKeyPem(),
   );
 }

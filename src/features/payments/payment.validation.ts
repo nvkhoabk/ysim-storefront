@@ -5,6 +5,7 @@ export const paymentProviderIdSchema = z.enum([
   "gpay_gateway_card",
   "gpay_gateway_atm",
   "gpay_gateway_qr",
+  "gpay_virtual_account",
   "cash_agent",
 ]);
 

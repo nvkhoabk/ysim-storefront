@@ -1,6 +1,7 @@
 import type { PaymentProvider, PaymentProviderId } from "./payment.types";
 
 import { cashAgentProvider } from "./cash/cash.provider";
+import { gpayVirtualAccountProvider } from "./gpay-va/gpay-va.provider";
 import {
   gpayGatewayAllProvider,
   gpayGatewayAtmProvider,
@@ -13,6 +14,7 @@ const providerRegistry: Record<PaymentProviderId, PaymentProvider> = {
   gpay_gateway_card: gpayGatewayCardProvider,
   gpay_gateway_atm: gpayGatewayAtmProvider,
   gpay_gateway_qr: gpayGatewayQrProvider,
+  gpay_virtual_account: gpayVirtualAccountProvider,
   cash_agent: cashAgentProvider,
 };
 
