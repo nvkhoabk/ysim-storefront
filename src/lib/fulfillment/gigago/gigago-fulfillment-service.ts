@@ -299,13 +299,6 @@ export async function previewGigagoFulfillment(
 ): Promise<GigagoFulfillmentPreview> {
   const config = getGigagoConfig();
 
-  if (config.environment !== "sandbox") {
-    throw new GigagoError({
-      code: "GIGAGO_CONFIG_ERROR",
-      message: "F02 protected test workflow chỉ chạy trong Gigago sandbox.",
-    });
-  }
-
   const { preview } = await loadPreview(
     orderId,
     mode,
@@ -320,13 +313,6 @@ export async function submitGigagoFulfillment(
   mode: GigagoFulfillmentMode,
 ): Promise<GigagoFulfillmentSubmission> {
   const config = getGigagoConfig();
-
-  if (config.environment !== "sandbox") {
-    throw new GigagoError({
-      code: "GIGAGO_CONFIG_ERROR",
-      message: "F02 protected test workflow chỉ chạy trong Gigago sandbox.",
-    });
-  }
 
   const client = new GigagoClient(config);
   const { order, preview } = await loadPreview(orderId, mode, client);
@@ -412,13 +398,6 @@ export async function getGigagoFulfillmentStatus(
   snapshot: GigagoFulfillmentSnapshot;
 }> {
   const config = getGigagoConfig();
-
-  if (config.environment !== "sandbox") {
-    throw new GigagoError({
-      code: "GIGAGO_CONFIG_ERROR",
-      message: "F02 protected test workflow chỉ chạy trong Gigago sandbox.",
-    });
-  }
 
   const client = new GigagoClient(config);
   const order = await getWooCommerceAdminOrder(orderId);

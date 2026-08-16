@@ -273,9 +273,20 @@ const testRouteSource = await readFile(
   "src/app/api/fulfillment/gigago/test-order/route.ts",
   "utf8",
 );
-assert.match(serviceSource, /config\.environment !== "sandbox"/u);
+assert.doesNotMatch(
+  serviceSource,
+  /config\.environment !== "sandbox"/u,
+);
+assert.doesNotMatch(
+  serviceSource,
+  /F02 protected test workflow chỉ chạy trong Gigago sandbox\./u,
+);
+assert.match(
+  serviceSource,
+  /export type GigagoFulfillmentMode = "live" \| "demo";/u,
+);
 assert.match(testRouteSource, /config\.environment !== "sandbox"/u);
-pass("PRODUCTION_GIGAGO_EXECUTION_BOUNDARY_REMAINS_CLOSED");
+pass("GIGAGO_SERVICE_MATRIX_ALLOWED_4_OF_4_AND_TEST_ROUTE_REMAINS_SANDBOX_ONLY");
 
 assert.doesNotMatch(
   `${automationSource}\n${delayedSource}\n${snapshotSource}`,
