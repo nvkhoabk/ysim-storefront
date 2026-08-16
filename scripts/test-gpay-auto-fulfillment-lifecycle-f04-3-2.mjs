@@ -84,10 +84,20 @@ if (!Number.isInteger(orderId) || orderId <= 0) {
     } else if (
       result.state === "succeeded" &&
       result.automationMode === "fulfill" &&
-      result.result?.fulfillmentSucceeded !== true
+      !(
+        result.result?.fulfillmentSucceeded === true &&
+        result.result?.deliveryTerminal?.terminal === true &&
+        result.result?.deliveryTerminal?.orderCompleted === true &&
+        result.result?.deliveryTerminal?.deliveryReady === true &&
+        result.result?.deliveryTerminal?.emailSent === true &&
+        result.result?.deliveryTerminal?.emailAttempts === 1 &&
+        result.result?.deliveryTerminal?.emailHashMatches === true &&
+        result.result?.deliveryTerminal?.mailOrchestrationCompleted === true &&
+        result.result?.deliveryTerminal?.mailRequestHashMatches === true
+      )
     ) {
       console.error(
-        "FAIL: succeeded fulfill job lacks Delivered confirmation.",
+        "FAIL: succeeded fulfill job lacks exactly-once terminal delivery confirmation.",
       );
       process.exitCode = 1;
     } else {

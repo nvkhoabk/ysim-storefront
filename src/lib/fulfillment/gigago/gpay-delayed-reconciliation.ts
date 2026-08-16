@@ -20,6 +20,7 @@ import {
 
 import {
   assertGPayCommerceOrderIdentity,
+  assertGPayCommercePaidOrderIdentity,
   getGPayCommerceAutomationMode,
   parseGPayCommerceEmbedData,
   runGPayCommerceAutomation,
@@ -28,7 +29,19 @@ import {
   type GPayWooPaymentDiagnostic,
 } from "./gpay-commerce-automation";
 import type { GigagoDeliveryAssessment } from "./gigago-delivery-assessment";
-import type { GigagoFulfillmentMode } from "./gigago-fulfillment-service";
+import { getGigagoSecureDeliveryStatus } from "./gigago-delivery-snapshot";
+import {
+  getGigagoFulfillmentStatus,
+  type GigagoFulfillmentMode,
+} from "./gigago-fulfillment-service";
+import {
+  requiresGPayFulfillmentTerminalRevalidation,
+  shouldPollGigagoProviderForTerminal,
+  type GigagoFulfillmentTerminalAssessment,
+} from "./gigago-fulfillment-terminal";
+import { isGPaySignedVAWebhookDurabilityCandidate } from "./gpay-va-durability";
+
+export { isGPaySignedVAWebhookDurabilityCandidate } from "./gpay-va-durability";
 
 export type GPayDelayedReconciliationState =
   | "pending"
@@ -60,7 +73,13 @@ interface ConfirmedQuerySnapshot {
 }
 
 interface GPayDelayedReconciliationJob {
-  version: "f04.2" | "f04.2.1" | "f04.3.2" | "f04.3.3" | "f04.3.3.1";
+  version:
+    | "f04.2"
+    | "f04.2.1"
+    | "f04.3.2"
+    | "f04.3.3"
+    | "f04.3.3.1"
+    | "f04.3.3.2";
   orderId: number;
   state: GPayDelayedReconciliationState;
   attempts: number;
@@ -92,6 +111,7 @@ interface GPayDelayedReconciliationJob {
     fulfillmentSucceeded: boolean | null;
     fulfillmentState?: "not-started" | "processing" | "succeeded" | "failed";
     fulfillmentAssessment?: GigagoDeliveryAssessment;
+    deliveryTerminal?: GigagoFulfillmentTerminalAssessment;
     paymentDiagnostic?: GPayWooPaymentDiagnostic;
   } | null;
 }
@@ -554,7 +574,8 @@ function parseJob(
       parsed.version !== "f04.2.1" &&
       parsed.version !== "f04.3.2" &&
       parsed.version !== "f04.3.3" &&
-      parsed.version !== "f04.3.3.1"
+      parsed.version !== "f04.3.3.1" &&
+      parsed.version !== "f04.3.3.2"
     ) {
       return null;
     }
@@ -592,9 +613,9 @@ function parseJob(
           }
         : null);
 
-    return {
+    const normalizedJob: GPayDelayedReconciliationJob = {
       ...(parsed as GPayDelayedReconciliationJob),
-      version: "f04.3.3.1",
+      version: "f04.3.3.2",
       attempts:
         Number.isInteger(parsed.attempts) && (parsed.attempts ?? 0) >= 0
           ? (parsed.attempts ?? 0)
@@ -643,6 +664,21 @@ function parseJob(
       lockExpiresAt: null,
       result: parsed.result ?? null,
     };
+
+    if (
+      requiresGPayFulfillmentTerminalRevalidation({
+        automationMode: normalizedJob.automationMode,
+        state: normalizedJob.state,
+        terminal: normalizedJob.result?.deliveryTerminal?.terminal === true,
+      })
+    ) {
+      normalizedJob.state = "pending-fulfillment";
+      normalizedJob.fulfillmentPollAttempts = 0;
+      normalizedJob.nextAttemptAt = nowIso();
+      normalizedJob.lastError = null;
+    }
+
+    return normalizedJob;
   } catch {
     return null;
   }
@@ -725,7 +761,7 @@ function expectedOrderIdentityMatches(
 ): void {
   const embed = parseGPayCommerceEmbedData(verification);
 
-  assertGPayCommerceOrderIdentity(order, embed);
+  assertGPayCommercePaidOrderIdentity(order, embed);
 }
 
 export function isGPayDelayedReconciliationCandidate(
@@ -797,7 +833,7 @@ export async function enqueueGPayDelayedReconciliation({
   const createdAt = nowIso();
   const delays = getGPayReconciliationRetryDelaysSeconds();
   const job: GPayDelayedReconciliationJob = {
-    version: "f04.3.3.1",
+    version: "f04.3.3.2",
     orderId: order.id,
     state: "pending",
     attempts: 0,
@@ -874,9 +910,12 @@ export async function persistGPayFastAckDurability({
     );
   }
   if (
-    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
+    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation) &&
+    !isGPaySignedVAWebhookDurabilityCandidate(verification, reconciliation)
   ) {
-    throw new Error("Callback GPay không đủ điều kiện fast-ACK durability.");
+    throw new Error(
+      "Callback GPay không đủ điều kiện durable-before-commerce ACK.",
+    );
   }
   if (!paymentAutomation.paymentRecorded || !paymentAutomation.orderId) {
     throw new Error(
@@ -887,7 +926,7 @@ export async function persistGPayFastAckDurability({
   const embed = parseGPayCommerceEmbedData(verification);
   const order = await getWooCommerceAdminOrder(embed.orderId);
 
-  assertGPayCommerceOrderIdentity(order, embed);
+  assertGPayCommercePaidOrderIdentity(order, embed);
 
   const existing = parseJob(order);
   if (
@@ -915,7 +954,7 @@ export async function persistGPayFastAckDurability({
   const state: GPayDelayedReconciliationState =
     automationMode === "record" ? "succeeded" : "provider-confirmed";
   const job: GPayDelayedReconciliationJob = {
-    version: "f04.3.3.1",
+    version: "f04.3.3.2",
     orderId: order.id,
     state,
     attempts: 1,
@@ -983,7 +1022,8 @@ export async function persistGPayImmediateSuccessDurability({
   }
 
   if (
-    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
+    !isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation) &&
+    !isGPaySignedVAWebhookDurabilityCandidate(verification, reconciliation)
   ) {
     throw new Error(
       "Callback GPay không đủ điều kiện immediate-success durability.",
@@ -993,7 +1033,7 @@ export async function persistGPayImmediateSuccessDurability({
   const embed = parseGPayCommerceEmbedData(verification);
   const order = await getWooCommerceAdminOrder(embed.orderId);
 
-  assertGPayCommerceOrderIdentity(order, embed);
+  assertGPayCommercePaidOrderIdentity(order, embed);
 
   const existing = parseJob(order);
 
@@ -1025,12 +1065,18 @@ export async function persistGPayImmediateSuccessDurability({
   let lastError: string | null = null;
 
   if (automation.paymentRecorded && !automation.fulfillmentAttempted) {
-    state = "succeeded";
+    if (automationMode === "record") {
+      state = "succeeded";
+    } else {
+      state = "pending-fulfillment";
+      nextAttemptAt = addSeconds(createdAt, fulfillmentPollDelaysSeconds[0]);
+    }
   } else if (
     automation.paymentRecorded &&
     automation.fulfillmentSucceeded === true
   ) {
-    state = "succeeded";
+    state = "pending-fulfillment";
+    nextAttemptAt = addSeconds(createdAt, fulfillmentPollDelaysSeconds[0]);
   } else if (
     automation.paymentRecorded &&
     automation.fulfillmentAttempted &&
@@ -1060,7 +1106,7 @@ export async function persistGPayImmediateSuccessDurability({
   }
 
   const job: GPayDelayedReconciliationJob = {
-    version: "f04.3.3.1",
+    version: "f04.3.3.2",
     orderId: order.id,
     state,
     attempts: 1,
@@ -1242,6 +1288,71 @@ async function persistAndView(
   return view(job);
 }
 
+async function pollPendingFulfillment(
+  orderId: number,
+  job: GPayDelayedReconciliationJob,
+): Promise<GPayDelayedReconciliationView> {
+  let deliveryStatus = await getGigagoSecureDeliveryStatus(orderId);
+  let terminal = deliveryStatus.deliveryTerminal;
+
+  if (shouldPollGigagoProviderForTerminal(terminal)) {
+    await getGigagoFulfillmentStatus(orderId, job.fulfillmentMode);
+    deliveryStatus = await getGigagoSecureDeliveryStatus(orderId);
+    terminal = deliveryStatus.deliveryTerminal;
+  }
+
+  job.fulfillmentPollAttempts += 1;
+  job.updatedAt = nowIso();
+  job.lockToken = null;
+  job.lockExpiresAt = null;
+  job.nextAttemptAt = null;
+  job.result = {
+    reason: terminal.reason,
+    paymentRecorded: true,
+    commerceStateChanged: job.result?.commerceStateChanged ?? false,
+    fulfillmentAttempted: true,
+    fulfillmentSucceeded:
+      terminal.state === "succeeded"
+        ? true
+        : terminal.state === "action-required"
+          ? false
+          : null,
+    fulfillmentState:
+      terminal.state === "succeeded"
+        ? "succeeded"
+        : terminal.state === "action-required"
+          ? "failed"
+          : "processing",
+    fulfillmentAssessment: job.result?.fulfillmentAssessment,
+    deliveryTerminal: terminal,
+    paymentDiagnostic: job.result?.paymentDiagnostic,
+  };
+
+  if (terminal.state === "succeeded") {
+    job.state = "succeeded";
+    job.lastError = null;
+  } else if (terminal.state === "action-required") {
+    job.state = "action-required";
+    job.lastError = terminal.reason;
+  } else if (job.fulfillmentPollAttempts >= job.maxFulfillmentPollAttempts) {
+    job.state = "action-required";
+    job.lastError = `Fulfillment chưa terminal sau toàn bộ số lần polling: ${terminal.reason}.`;
+  } else {
+    const delay =
+      job.fulfillmentPollDelaysSeconds[
+        Math.min(
+          job.fulfillmentPollAttempts - 1,
+          job.fulfillmentPollDelaysSeconds.length - 1,
+        )
+      ];
+    job.state = "pending-fulfillment";
+    job.nextAttemptAt = addSeconds(nowIso(), delay);
+    job.lastError = null;
+  }
+
+  return persistAndView(orderId, job);
+}
+
 async function applyConfirmedCommerce(
   orderId: number,
   job: GPayDelayedReconciliationJob,
@@ -1261,9 +1372,11 @@ async function applyConfirmedCommerce(
   await persistJob(currentOrder, job);
 
   try {
-    if (!resumingFulfillment) {
-      job.commerceAttempts += 1;
+    if (resumingFulfillment) {
+      return pollPendingFulfillment(orderId, job);
     }
+
+    job.commerceAttempts += 1;
 
     const automation = await runGPayCommerceAutomation(
       verification,
@@ -1285,13 +1398,26 @@ async function applyConfirmedCommerce(
     job.nextAttemptAt = null;
 
     if (automation.paymentRecorded && !automation.fulfillmentAttempted) {
-      job.state = "succeeded";
-      job.lastError = null;
+      if (job.automationMode === "record") {
+        job.state = "succeeded";
+        job.lastError = null;
+      } else {
+        job.state = "pending-fulfillment";
+        job.nextAttemptAt = addSeconds(
+          nowIso(),
+          job.fulfillmentPollDelaysSeconds[0],
+        );
+        job.lastError = null;
+      }
     } else if (
       automation.paymentRecorded &&
       automation.fulfillmentSucceeded === true
     ) {
-      job.state = "succeeded";
+      job.state = "pending-fulfillment";
+      job.nextAttemptAt = addSeconds(
+        nowIso(),
+        job.fulfillmentPollDelaysSeconds[0],
+      );
       job.lastError = null;
     } else if (
       automation.paymentRecorded &&

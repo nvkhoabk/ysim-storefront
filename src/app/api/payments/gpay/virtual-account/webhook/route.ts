@@ -15,7 +15,7 @@ import {
   prepareGPayFastAck,
 } from "@/lib/fulfillment/gigago/gpay-fast-ack";
 import {
-  isGPayImmediateSuccessDurabilityCandidate,
+  isGPaySignedVAWebhookDurabilityCandidate,
   persistGPayImmediateSuccessDurability,
   runGPayDelayedReconciliationSchedule,
   type PersistGPayImmediateSuccessDurabilityResult,
@@ -253,20 +253,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (
+    const sameTransactionReplay =
       previousTransaction === payload.gpay_trans_id &&
-      paymentStatus === "SUCCESS"
-    ) {
-      return NextResponse.json(
-        {
-          success: true,
-          acknowledged: true,
-          duplicate: true,
-          orderId: order.id,
-        },
-        { headers: { "Cache-Control": "no-store" } },
-      );
-    }
+      paymentStatus === "SUCCESS";
 
     const orderAlreadyPaid =
       Boolean(order.date_paid || order.date_paid_gmt) ||
@@ -274,7 +263,7 @@ export async function POST(request: Request) {
       order.status === "completed" ||
       paymentStatus === "SUCCESS";
 
-    if (orderAlreadyPaid) {
+    if (orderAlreadyPaid && !sameTransactionReplay) {
       const reviewMeta = upsertWooCommerceOrderMeta(order, {
         _ysim_gpay_va_duplicate_payment_status: "MANUAL_REVIEW",
         _ysim_gpay_va_duplicate_payment_trans_id: payload.gpay_trans_id,
@@ -433,7 +422,7 @@ export async function POST(request: Request) {
 
     if (
       automationMode !== "disabled" &&
-      isGPayImmediateSuccessDurabilityCandidate(verification, reconciliation)
+      isGPaySignedVAWebhookDurabilityCandidate(verification, reconciliation)
     ) {
       const durabilityResult = await persistGPayImmediateSuccessDurability({
         verification,

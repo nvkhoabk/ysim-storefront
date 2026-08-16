@@ -116,6 +116,12 @@ const parseCanonicalJob = (order) => {
 
   const state = norm(parsed.state);
   if (!knownStates.has(state)) return null;
+  const automationMode = norm(parsed.automationMode);
+  const deliveryTerminal = parsed.result?.deliveryTerminal;
+  const requiresTerminalRevalidation =
+    state === "succeeded" &&
+    automationMode === "fulfill" &&
+    deliveryTerminal?.terminal !== true;
 
   const hasNextAttemptAt = Object.prototype.hasOwnProperty.call(
     parsed,
@@ -131,6 +137,7 @@ const parseCanonicalJob = (order) => {
     state,
     hasNextAttemptAt,
     nextAttemptAt,
+    requiresTerminalRevalidation,
   };
 };
 
@@ -147,6 +154,8 @@ const reconciliationView = (order) => {
         ? canonical.nextAttemptAt
         : flatNextAttemptAt,
     source: canonical ? "canonical" : "flat",
+    requiresTerminalRevalidation:
+      canonical?.requiresTerminalRevalidation === true,
   };
 };
 
@@ -174,6 +183,7 @@ const terminalEvidence = (order) =>
   terminalPayment(order) && terminalFulfillment(order);
 
 const due = (order, view) => {
+  if (view.requiresTerminalRevalidation) return true;
   if (!activeStates.has(view.state)) return false;
   if (terminalEvidence(order)) return true;
   if (!view.nextAttemptAt) return true;
@@ -272,7 +282,11 @@ for (let page = 1; page <= pages && candidates.length < limit; page += 1) {
       state: view.state,
       nextAttemptAt: view.nextAttemptAt,
       stateSource: view.source,
-      action: terminalEvidence(order) ? "process-terminal-evidence" : "process",
+      action: view.requiresTerminalRevalidation
+        ? "revalidate-legacy-terminal"
+        : terminalEvidence(order)
+          ? "process-terminal-evidence"
+          : "process",
     });
   }
 
@@ -307,7 +321,8 @@ for (const candidate of candidates) {
         state: result?.state ?? null,
         nextAttemptAt: result?.nextAttemptAt ?? null,
         terminalized:
-          candidate.action === "process-terminal-evidence" &&
+          (candidate.action === "process-terminal-evidence" ||
+            candidate.action === "revalidate-legacy-terminal") &&
           result?.state === "succeeded",
         success: true,
       }),

@@ -12,6 +12,10 @@ import {
 } from "@/lib/woocommerce/order-admin-write-api";
 
 import type { GigagoMappedOrderItem } from "./gigago-order-mapping";
+import {
+  assessGigagoFulfillmentTerminal,
+  type GigagoFulfillmentTerminalAssessment,
+} from "./gigago-fulfillment-terminal";
 import type { GigagoAgencyOrder, GigagoDeliveredEsim } from "./gigago.types";
 
 export const GIGAGO_DELIVERY_SNAPSHOT_VERSION = "f05.1a-v1";
@@ -107,6 +111,7 @@ export interface GigagoSecureDeliveryAssessment {
 
 export interface GigagoSecureDeliveryStatus {
   orderId: number;
+  orderStatus: string;
   version: string | null;
   status: string | null;
   requestId: string | null;
@@ -115,11 +120,14 @@ export interface GigagoSecureDeliveryStatus {
   deliveredCount: number;
   source: string | null;
   customerEmailStatus: string | null;
+  customerEmailAttempts: number;
+  customerEmailDeliveryHashMatches: boolean;
   adminEmailStatus: string | null;
   mailOrchestrationVersion: string | null;
   mailOrchestrationStatus: string | null;
   mailOrchestrationRequestedAt: string | null;
   mailOrchestrationRequestMatchesDeliveryHash: boolean;
+  deliveryTerminal: GigagoFulfillmentTerminalAssessment;
   items: Array<{
     planId: string;
     maskedIccid: string;
@@ -512,14 +520,59 @@ export async function getGigagoSecureDeliveryStatus(
       ? (rawSnapshot as Partial<SecureEsimDeliverySnapshot>)
       : null;
   const items = Array.isArray(snapshot?.items) ? snapshot.items : [];
+  const deliveryHash = readWooCommerceOrderMetaString(
+    order,
+    GIGAGO_DELIVERY_META.hash,
+  );
+  const customerEmailStatus = readWooCommerceOrderMetaString(
+    order,
+    GIGAGO_DELIVERY_META.customerEmailStatus,
+  );
+  const customerEmailAttempts = positiveInteger(
+    readWooCommerceOrderMeta(
+      order,
+      GIGAGO_DELIVERY_META.customerEmailAttempts,
+    ),
+  );
+  const customerEmailDeliveryHash = readWooCommerceOrderMetaString(
+    order,
+    GIGAGO_DELIVERY_META.customerEmailDeliveryHash,
+  );
+  const mailOrchestrationStatus = readWooCommerceOrderMetaString(
+    order,
+    GIGAGO_DELIVERY_META.mailOrchestrationStatus,
+  );
+  const mailOrchestrationRequestedHash = readWooCommerceOrderMetaString(
+    order,
+    GIGAGO_DELIVERY_META.mailOrchestrationRequestedHash,
+  );
+  const deliveredCount = positiveInteger(
+    readWooCommerceOrderMeta(order, GIGAGO_DELIVERY_META.count),
+  );
+  const deliveryStatus = readWooCommerceOrderMetaString(
+    order,
+    GIGAGO_DELIVERY_META.status,
+  );
+  const deliveryTerminal = assessGigagoFulfillmentTerminal({
+    orderStatus: order.status,
+    deliveryStatus,
+    deliveryHash,
+    deliveredCount,
+    customerEmailStatus,
+    customerEmailAttempts,
+    customerEmailDeliveryHash,
+    mailOrchestrationStatus,
+    mailOrchestrationRequestedHash,
+  });
 
   return {
     orderId,
+    orderStatus: order.status,
     version: readWooCommerceOrderMetaString(
       order,
       GIGAGO_DELIVERY_META.version,
     ),
-    status: readWooCommerceOrderMetaString(order, GIGAGO_DELIVERY_META.status),
+    status: deliveryStatus,
     requestId: readWooCommerceOrderMetaString(
       order,
       GIGAGO_DELIVERY_META.requestId,
@@ -528,18 +581,13 @@ export async function getGigagoSecureDeliveryStatus(
       order,
       GIGAGO_DELIVERY_META.completedAt,
     ),
-    deliveryHash: readWooCommerceOrderMetaString(
-      order,
-      GIGAGO_DELIVERY_META.hash,
-    ),
-    deliveredCount: positiveInteger(
-      readWooCommerceOrderMeta(order, GIGAGO_DELIVERY_META.count),
-    ),
+    deliveryHash,
+    deliveredCount,
     source: readWooCommerceOrderMetaString(order, GIGAGO_DELIVERY_META.source),
-    customerEmailStatus: readWooCommerceOrderMetaString(
-      order,
-      GIGAGO_DELIVERY_META.customerEmailStatus,
-    ),
+    customerEmailStatus,
+    customerEmailAttempts,
+    customerEmailDeliveryHashMatches:
+      Boolean(deliveryHash) && customerEmailDeliveryHash === deliveryHash,
     adminEmailStatus: readWooCommerceOrderMetaString(
       order,
       GIGAGO_DELIVERY_META.adminEmailStatus,
@@ -548,20 +596,15 @@ export async function getGigagoSecureDeliveryStatus(
       order,
       GIGAGO_DELIVERY_META.mailOrchestrationVersion,
     ),
-    mailOrchestrationStatus: readWooCommerceOrderMetaString(
-      order,
-      GIGAGO_DELIVERY_META.mailOrchestrationStatus,
-    ),
+    mailOrchestrationStatus,
     mailOrchestrationRequestedAt: readWooCommerceOrderMetaString(
       order,
       GIGAGO_DELIVERY_META.mailOrchestrationRequestedAt,
     ),
     mailOrchestrationRequestMatchesDeliveryHash:
-      readWooCommerceOrderMetaString(order, GIGAGO_DELIVERY_META.hash) ===
-      readWooCommerceOrderMetaString(
-        order,
-        GIGAGO_DELIVERY_META.mailOrchestrationRequestedHash,
-      ),
+      Boolean(deliveryHash) &&
+      deliveryHash === mailOrchestrationRequestedHash,
+    deliveryTerminal,
     items: items.flatMap((item) => {
       if (!item || typeof item !== "object" || Array.isArray(item)) {
         return [];

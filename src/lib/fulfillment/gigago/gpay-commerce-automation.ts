@@ -16,13 +16,16 @@ import {
   assessGigagoSubmissionDelivery,
   type GigagoDeliveryAssessment,
 } from "./gigago-delivery-assessment";
+import { getGigagoSecureDeliveryStatus } from "./gigago-delivery-snapshot";
 import {
   submitGigagoFulfillment,
   type GigagoFulfillmentMode,
   type GigagoFulfillmentSubmission,
 } from "./gigago-fulfillment-service";
+import { selectGigagoFulfillmentReplayAction } from "./gigago-fulfillment-terminal";
 import { classifyGPayPaidOrderTransaction } from "./gpay-payment-idempotency";
 import { acquireGPayPaymentRecordLock } from "./gpay-payment-record-lock";
+import { isGPayPaidOrderDurabilityPostcondition } from "./gpay-va-durability";
 
 export type GPayCommerceAutomationMode = "disabled" | "record" | "fulfill";
 
@@ -109,6 +112,12 @@ const DEFAULT_ALLOWED_ORDER_STATUSES = [
   "completed",
 ] as const;
 
+function fulfillmentRequestMetaKey(mode: GigagoFulfillmentMode): string {
+  return mode === "demo"
+    ? "_ysim_gigago_demo_request_id"
+    : "_ysim_gigago_request_id";
+}
+
 function configuredMode(): GPayCommerceAutomationMode {
   const value = process.env.GPAY_COMMERCE_AUTOMATION_MODE?.trim().toLowerCase();
 
@@ -177,15 +186,10 @@ function parseWooVndTotal(value: string): number | null {
 }
 
 export function isWooCommerceOrderPaid(order: WooCommerceAdminOrder): boolean {
-  return (
-    Boolean(order.date_paid) ||
-    Boolean(order.date_paid_gmt) ||
-    order.status === "processing" ||
-    order.status === "completed"
-  );
+  return isGPayPaidOrderDurabilityPostcondition(order);
 }
 
-export function assertGPayCommerceOrderEligible(
+function assertGPayCommerceOrderValueContract(
   order: WooCommerceAdminOrder,
   expectation: {
     amount: number;
@@ -193,14 +197,6 @@ export function assertGPayCommerceOrderEligible(
     requireLineItems?: boolean;
   },
 ): void {
-  const status = order.status.trim().toLowerCase();
-
-  if (!allowedOrderStatuses().has(status)) {
-    throw new Error(
-      `WooCommerce order trạng thái ${order.status} không được phép tự động ghi nhận payment.`,
-    );
-  }
-
   const currency = order.currency.trim().toUpperCase();
   const expectedCurrency = expectation.currency.trim().toUpperCase();
   const wooTotal = parseWooVndTotal(order.total);
@@ -233,6 +229,25 @@ export function assertGPayCommerceOrderEligible(
       "WooCommerce order phải có ít nhất một line item trước fulfillment.",
     );
   }
+}
+
+export function assertGPayCommerceOrderEligible(
+  order: WooCommerceAdminOrder,
+  expectation: {
+    amount: number;
+    currency: string;
+    requireLineItems?: boolean;
+  },
+): void {
+  const status = order.status.trim().toLowerCase();
+
+  if (!allowedOrderStatuses().has(status)) {
+    throw new Error(
+      `WooCommerce order trạng thái ${order.status} không được phép tự động ghi nhận payment.`,
+    );
+  }
+
+  assertGPayCommerceOrderValueContract(order, expectation);
 }
 
 export function parseGPayCommerceEmbedData(
@@ -284,7 +299,7 @@ export function parseGPayCommerceEmbedData(
   };
 }
 
-export function assertGPayCommerceOrderIdentity(
+function assertGPayCommerceOrderBinding(
   order: WooCommerceAdminOrder,
   embed: GPayEmbedData,
 ): void {
@@ -299,8 +314,34 @@ export function assertGPayCommerceOrderIdentity(
   if (!embed.paymentProvider.startsWith("gpay_")) {
     throw new Error("Payment provider trong embed_data không phải GPay.");
   }
+}
+
+export function assertGPayCommerceOrderIdentity(
+  order: WooCommerceAdminOrder,
+  embed: GPayEmbedData,
+): void {
+  assertGPayCommerceOrderBinding(order, embed);
 
   assertGPayCommerceOrderEligible(order, {
+    amount: embed.amount,
+    currency: embed.currency,
+    requireLineItems: true,
+  });
+}
+
+export function assertGPayCommercePaidOrderIdentity(
+  order: WooCommerceAdminOrder,
+  embed: GPayEmbedData,
+): void {
+  assertGPayCommerceOrderBinding(order, embed);
+
+  if (!isWooCommerceOrderPaid(order)) {
+    throw new Error(
+      "WooCommerce order chưa có paid postcondition để ghi durable fulfillment job.",
+    );
+  }
+
+  assertGPayCommerceOrderValueContract(order, {
     amount: embed.amount,
     currency: embed.currency,
     requireLineItems: true,
@@ -374,6 +415,24 @@ function sleep(milliseconds: number): Promise<void> {
 
 function paidDatePresent(order: WooCommerceAdminOrder): boolean {
   return Boolean(order.date_paid || order.date_paid_gmt);
+}
+
+function existingPaidOrderDiagnostic(
+  order: WooCommerceAdminOrder,
+): GPayWooPaymentDiagnostic {
+  const datePaidPresent = paidDatePresent(order);
+
+  return {
+    initialStatus: order.status,
+    initialDatePaidPresent: datePaidPresent,
+    pendingBridgeApplied: false,
+    updateResponseStatus: order.status,
+    updateResponseDatePaidPresent: datePaidPresent,
+    confirmedStatus: order.status,
+    confirmedDatePaidPresent: datePaidPresent,
+    transactionIdPresent: Boolean(order.transaction_id),
+    refetchCount: 0,
+  };
 }
 
 async function confirmWooPaidPostcondition({
@@ -599,12 +658,17 @@ async function executeUnlocked(
 
   const embed = parseGPayCommerceEmbedData(verification);
   const order = await getWooCommerceAdminOrder(embed.orderId);
+  const paidBeforeAutomation = isWooCommerceOrderPaid(order);
 
-  assertGPayCommerceOrderIdentity(order, embed);
+  if (paidBeforeAutomation) {
+    assertGPayCommercePaidOrderIdentity(order, embed);
+  } else {
+    assertGPayCommerceOrderIdentity(order, embed);
+  }
 
   const incomingTransactionId = transactionId(verification, reconciliation);
   const transactionDisposition = classifyGPayPaidOrderTransaction({
-    orderPaid: isWooCommerceOrderPaid(order),
+    orderPaid: paidBeforeAutomation,
     existingTransactionId: readWooCommerceOrderMetaString(
       order,
       PAYMENT_META.providerTransactionId,
@@ -612,7 +676,10 @@ async function executeUnlocked(
     incomingTransactionId,
   });
 
-  if (transactionDisposition === "same-transaction-duplicate") {
+  if (
+    transactionDisposition === "same-transaction-duplicate" &&
+    mode === "record"
+  ) {
     return {
       mode,
       attempted: true,
@@ -648,14 +715,22 @@ async function executeUnlocked(
     };
   }
 
-  const payment = await persistPaymentSuccess({
-    order,
-    embed,
-    verification,
-    reconciliation,
-    mode,
-    source,
-  });
+  const payment =
+    transactionDisposition === "same-transaction-duplicate"
+      ? {
+          duplicate: true,
+          stateChanged: false,
+          paidOrder: order,
+          diagnostic: existingPaidOrderDiagnostic(order),
+        }
+      : await persistPaymentSuccess({
+          order,
+          embed,
+          verification,
+          reconciliation,
+          mode,
+          source,
+        });
 
   if (mode === "record") {
     return {
@@ -685,6 +760,57 @@ async function executeUnlocked(
       throw new Error(
         "WooCommerce paid postcondition was lost before fulfillment.",
       );
+    }
+
+    if (transactionDisposition === "same-transaction-duplicate") {
+      const localDelivery = await getGigagoSecureDeliveryStatus(order.id);
+      const priorSubmissionEvidence = Boolean(
+        readWooCommerceOrderMetaString(
+          persistedOrder,
+          fulfillmentRequestMetaKey(selectedFulfillmentMode),
+        ) ||
+          localDelivery.requestId ||
+          localDelivery.status ||
+          localDelivery.deliveryHash,
+      );
+      const replayAction = selectGigagoFulfillmentReplayAction({
+        sameTransactionDuplicate: true,
+        mode,
+        priorSubmissionEvidence,
+        terminalState: localDelivery.deliveryTerminal.state,
+      });
+
+      if (replayAction === "local-terminal") {
+        return {
+          mode,
+          attempted: true,
+          paymentRecorded: true,
+          commerceStateChanged: false,
+          fulfillmentAttempted: true,
+          fulfillmentSucceeded: true,
+          fulfillmentState: "succeeded",
+          duplicatePaymentEvent: true,
+          orderId: order.id,
+          reason: "FULFILLMENT_ALREADY_TERMINAL",
+          paymentDiagnostic: payment.diagnostic,
+        };
+      }
+
+      if (replayAction === "status-only") {
+        return {
+          mode,
+          attempted: true,
+          paymentRecorded: true,
+          commerceStateChanged: false,
+          fulfillmentAttempted: true,
+          fulfillmentSucceeded: null,
+          fulfillmentState: "processing",
+          duplicatePaymentEvent: true,
+          orderId: order.id,
+          reason: "FULFILLMENT_REPLAY_STATUS_POLL_REQUIRED",
+          paymentDiagnostic: payment.diagnostic,
+        };
+      }
     }
 
     const fulfillment = await submitGigagoFulfillment(
