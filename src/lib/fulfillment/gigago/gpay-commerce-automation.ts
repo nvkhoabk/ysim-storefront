@@ -658,12 +658,17 @@ async function executeUnlocked(
 
   const embed = parseGPayCommerceEmbedData(verification);
   const order = await getWooCommerceAdminOrder(embed.orderId);
+  const paidBeforeAutomation = isWooCommerceOrderPaid(order);
 
-  assertGPayCommerceOrderIdentity(order, embed);
+  if (paidBeforeAutomation) {
+    assertGPayCommercePaidOrderIdentity(order, embed);
+  } else {
+    assertGPayCommerceOrderIdentity(order, embed);
+  }
 
   const incomingTransactionId = transactionId(verification, reconciliation);
   const transactionDisposition = classifyGPayPaidOrderTransaction({
-    orderPaid: isWooCommerceOrderPaid(order),
+    orderPaid: paidBeforeAutomation,
     existingTransactionId: readWooCommerceOrderMetaString(
       order,
       PAYMENT_META.providerTransactionId,

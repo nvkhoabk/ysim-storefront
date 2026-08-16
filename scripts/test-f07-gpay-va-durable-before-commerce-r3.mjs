@@ -345,5 +345,64 @@ expect(
   "DURABLE_SIGNED_VA_BRANCH_RETURNS_BEFORE_SYNCHRONOUS_PROVIDER_CREATE",
 );
 
+const executeUnlockedStart = commerceSource.indexOf(
+  "async function executeUnlocked",
+);
+const executeUnlockedEnd = commerceSource.indexOf(
+  "export async function runGPayCommerceAutomation",
+  executeUnlockedStart,
+);
+const executeUnlockedSource = commerceSource.slice(
+  executeUnlockedStart,
+  executeUnlockedEnd,
+);
+expect(
+  /const paidBeforeAutomation = isWooCommerceOrderPaid\(order\)/u.test(
+    executeUnlockedSource,
+  ),
+  true,
+  "COMMERCE_RESUME_CLASSIFIES_PAID_STATE_ONCE",
+);
+expect(
+  /if \(paidBeforeAutomation\) \{[\s\S]*assertGPayCommercePaidOrderIdentity\(order, embed\)/u.test(
+    executeUnlockedSource,
+  ),
+  true,
+  "PAID_DURABLE_COMMERCE_RESUME_USES_PAID_IDENTITY_GATE",
+);
+expect(
+  /else \{[\s\S]*assertGPayCommerceOrderIdentity\(order, embed\)/u.test(
+    executeUnlockedSource,
+  ),
+  true,
+  "UNPAID_FIRST_PAYMENT_RETAINS_PREPAYMENT_STATUS_GATE",
+);
+
+const duplicateReplayStart = webhookSource.indexOf(
+  "const sameTransactionReplay =",
+);
+const duplicateReplayEnd = webhookSource.indexOf(
+  "const orderAlreadyPaid",
+  duplicateReplayStart,
+);
+expect(
+  duplicateReplayStart >= 0 &&
+    !/return NextResponse\.json/u.test(
+      webhookSource.slice(duplicateReplayStart, duplicateReplayEnd),
+    ),
+  true,
+  "SAME_TRANSACTION_REPLAY_DOES_NOT_ACK_BEFORE_DURABILITY_CHECK",
+);
+expect(
+  /if \(orderAlreadyPaid && !sameTransactionReplay\)/u.test(webhookSource),
+  true,
+  "DIFFERENT_PAID_TRANSACTION_RETAINS_MANUAL_REVIEW",
+);
+expect(
+  duplicateReplayStart < fastCandidateIndex,
+  true,
+  "SAME_TRANSACTION_REPLAY_REACHES_DURABLE_FAST_ACK_PATH",
+);
+
 console.log(`OFFLINE_REGRESSION_ASSERTIONS=${assertions}`);
 console.log("F07_GPAY_VA_DURABLE_BEFORE_COMMERCE_R3_RESULT=PASS");
