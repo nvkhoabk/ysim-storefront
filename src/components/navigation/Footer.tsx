@@ -232,7 +232,10 @@ export function Footer({ config, labels: labelsProp, homeHref }: FooterProps) {
                 className="flex flex-wrap gap-x-5 gap-y-2"
               >
                 {effectiveConfig.legalLinks.map((link) => (
-                  <FooterNavLink key={link.href} link={link} />
+                  <FooterNavLink
+                    key={`${link.href}-${link.label}`}
+                    link={link}
+                  />
                 ))}
               </nav>
             </div>
