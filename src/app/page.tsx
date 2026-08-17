@@ -22,7 +22,9 @@ export default async function HomePage() {
     return <LegacyHomePage />;
   }
 
-  const productionAdapter = createProductionHomeRouteAdapterFromEnvironment();
+  const productionAdapter = createProductionHomeRouteAdapterFromEnvironment(
+    request.shell.locale,
+  );
 
   const candidate = await loadHomeRouteCandidate({
     productionAdapter,

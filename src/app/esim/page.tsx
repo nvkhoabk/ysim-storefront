@@ -45,8 +45,9 @@ export default async function Page({
 }: {
   searchParams: Promise<EsimQuickFilterSearchParams>;
 }) {
+  const request = await getStorefrontLocaleRequest();
   const [catalog, resolvedSearchParams] = await Promise.all([
-    loadCatalog(),
+    loadCatalog(request.shell.locale),
     searchParams,
   ]);
 

@@ -14,18 +14,56 @@ import {
 } from "@/lib/storefront/integration/product-detail";
 
 import { getProductionRouteMode } from "@/lib/storefront/integration/route-flags";
+import { getProductBySlug } from "@/lib/woocommerce/products";
 import {
   getStorefrontLocaleRequest,
-  withLocalizedAlternates,
 } from "@/i18n/runtime/runtime.server";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+import type { ShellLocale } from "@/i18n/shell/shell.types";
 import { generateMetadata as generateLegacyMetadata } from "./legacy-page";
 
+const PRODUCT_LOCALES: readonly ShellLocale[] = ["vi", "en", "lo"];
+
 export async function generateMetadata(props: ProductDetailPageProps) {
-  const [metadata, request] = await Promise.all([
+  const [{ slug }, metadata, request] = await Promise.all([
+    props.params,
     generateLegacyMetadata(props),
     getStorefrontLocaleRequest(),
   ]);
-  return withLocalizedAlternates(metadata, request);
+
+  if (!request.localized) {
+    return metadata;
+  }
+
+  const resolvedProducts = await Promise.all(
+    PRODUCT_LOCALES.map((locale) => getProductBySlug(slug, locale)),
+  );
+  const localizedHref = (locale: ShellLocale, productSlug: string) =>
+    localizeShellHref(`/esim/${productSlug}`, locale);
+  const fallbackSlug =
+    resolvedProducts.find(Boolean)?.slug || slug;
+  const localizedSlugs = Object.fromEntries(
+    PRODUCT_LOCALES.map((locale, index) => [
+      locale,
+      resolvedProducts[index]?.slug || fallbackSlug,
+    ]),
+  ) as Record<ShellLocale, string>;
+
+  return {
+    ...metadata,
+    alternates: {
+      canonical: localizedHref(
+        request.shell.locale,
+        localizedSlugs[request.shell.locale],
+      ),
+      languages: {
+        vi: localizedHref("vi", localizedSlugs.vi),
+        en: localizedHref("en", localizedSlugs.en),
+        lo: localizedHref("lo", localizedSlugs.lo),
+        "x-default": localizedHref("vi", localizedSlugs.vi),
+      },
+    },
+  };
 }
 
 interface ProductDetailPageProps {

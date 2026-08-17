@@ -12,6 +12,7 @@ export interface HomeWooCommerceGatewayOptions {
   baseUrl: string;
   fetcher?:
     typeof fetch;
+  productLoader?: () => Promise<readonly WooCommerceProduct[]>;
   productFetchLimit?: number;
   categoryFetchLimit?: number;
   revalidateSeconds?: number;
@@ -74,6 +75,7 @@ export function createHomeWooCommerceGateway({
   baseUrl,
   fetcher =
     fetch,
+  productLoader,
   productFetchLimit,
   categoryFetchLimit,
   revalidateSeconds =
@@ -140,14 +142,12 @@ export function createHomeWooCommerceGateway({
           100,
         );
 
-      const [
-        productsResponse,
-        categoriesResponse,
-      ] =
-        await Promise.all([
-          request(
-            `/products?per_page=${productLimit}&catalog_visibility=visible`,
-          ),
+      const [productsResponse, categoriesResponse] = await Promise.all([
+          productLoader
+            ? productLoader()
+            : request(
+                `/products?per_page=${productLimit}&catalog_visibility=visible`,
+              ),
 
           request(
             `/products/categories?per_page=${categoryLimit}`,

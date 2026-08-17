@@ -17,6 +17,11 @@ import {
   getStoreApiVariationReferenceIds,
   hydrateStoreApiVariations,
 } from "./store-api-variation-adapter";
+import {
+  dedupeProductFamilies,
+  productCatalogAttemptOrder,
+  resolveProductCatalogSource,
+} from "./product-catalog-policy";
 import type {
   WooCommerceImage,
   WooCommercePrice,
@@ -36,15 +41,10 @@ interface GetProductsOptions {
   featured?: boolean;
 }
 
-type CatalogSource = "woocommerce" | "localization" | "hybrid";
-
-function catalogSource(): CatalogSource {
-  const configured =
-    process.env.YSIM_PRODUCT_CATALOG_SOURCE?.trim().toLowerCase();
-  if (configured === "localization" || configured === "hybrid") {
-    return configured;
-  }
-  return "woocommerce";
+function catalogSource() {
+  return resolveProductCatalogSource(
+    process.env.YSIM_PRODUCT_CATALOG_SOURCE,
+  );
 }
 
 function normalizePositiveInteger(
@@ -241,6 +241,14 @@ function adaptLocalizedProduct(
       maximum: 99,
       multiple_of: 1,
     },
+    catalog_identity: {
+      familyId: resolved.familyId,
+      familyCode: resolved.familyCode,
+      requestedLocale: resolved.requestedLocale,
+      resolvedLocale: resolved.resolvedLocale,
+      authoritativeProductId: product.id,
+      source: "product-family",
+    },
   };
 }
 
@@ -313,7 +321,7 @@ async function fetchLocalizedCatalog(
     destination: options.destination,
     featured: options.featured,
   });
-  return response.items.map(adaptLocalizedProduct);
+  return dedupeProductFamilies(response.items).map(adaptLocalizedProduct);
 }
 
 function paginate(
@@ -330,27 +338,32 @@ function paginate(
 /**
  * Product listing.
  *
- * Default source is WooCommerce Store API because Woo categories are the
- * canonical destination taxonomy. Set YSIM_PRODUCT_CATALOG_SOURCE=localization
- * only when the localization endpoint has complete product-family coverage.
+ * Product Family is the default read model so one commercial package is
+ * returned once in the requested locale. In hybrid mode WooCommerce remains
+ * a fail-safe fallback, preserving an environment-only rollback path without
+ * deleting any legacy Woo products.
  */
 export async function getProducts(
   options: GetProductsOptions = {},
 ): Promise<WooCommerceProduct[]> {
   const source = catalogSource();
-  if (source === "localization") {
-    return fetchLocalizedCatalog(options);
+  const attempts = productCatalogAttemptOrder(source);
+  let primaryError: unknown;
+
+  for (const attempt of attempts) {
+    try {
+      if (attempt === "localization") {
+        return await fetchLocalizedCatalog(options);
+      }
+
+      const products = await fetchWooCatalog(options);
+      return paginate(products, options.page, options.perPage);
+    } catch (error) {
+      primaryError ??= error;
+    }
   }
 
-  try {
-    const products = await fetchWooCatalog(options);
-    return paginate(products, options.page, options.perPage);
-  } catch (error) {
-    if (source !== "hybrid") {
-      throw error;
-    }
-    return fetchLocalizedCatalog(options);
-  }
+  throw primaryError ?? new Error("PRODUCT_CATALOG_SOURCE_UNAVAILABLE");
 }
 
 function chunkValues<T>(values: readonly T[], size: number): T[][] {
@@ -620,6 +633,10 @@ export async function getProductBySlug(
 ): Promise<WooCommerceProduct | null> {
   const source = catalogSource();
   if (source === "localization") {
+    return fetchLocalizedProductBySlugSafe(slug, locale);
+  }
+
+  if (source === "hybrid") {
     const localized = await fetchLocalizedProductBySlugSafe(slug, locale);
     return localized || fetchWooProductBySlug(slug);
   }

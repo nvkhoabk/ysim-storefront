@@ -56,7 +56,11 @@ export async function generateMetadata({
 export default async function DestinationDetailPage({
   params,
 }: DestinationDetailPageProps) {
-  const [{ slug }, catalog] = await Promise.all([params, loadCatalog()]);
+  const request = await getStorefrontLocaleRequest();
+  const [{ slug }, catalog] = await Promise.all([
+    params,
+    loadCatalog(request.shell.locale),
+  ]);
   const selection = resolveDestinationSelection(slug);
   const matchingProductCount = catalog.products.filter((product) =>
     productMatchesEsimQuickFilter(product, selection),

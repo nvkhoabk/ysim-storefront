@@ -74,11 +74,11 @@ function mapProduct(
   };
 }
 
-export async function loadCatalog() {
+export async function loadCatalog(locale = secondaryLocale) {
   const products = await getProducts({
     page: 1,
     perPage: secondaryProductLimit,
-    locale: secondaryLocale,
+    locale,
   });
 
   const mapped = products
@@ -101,8 +101,8 @@ export async function loadCatalog() {
   return { products: mapped, diagnostics };
 }
 
-export async function loadOffers() {
-  const catalog = await loadCatalog();
+export async function loadOffers(locale = secondaryLocale) {
+  const catalog = await loadCatalog(locale);
 
   return {
     products: catalog.products

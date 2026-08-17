@@ -54,6 +54,15 @@ export interface WooCommerceProductVariation {
   attributes: WooCommerceVariationAttribute[];
 }
 
+export interface WooCommerceCatalogIdentity {
+  familyId: number;
+  familyCode: string;
+  requestedLocale: string;
+  resolvedLocale: string;
+  authoritativeProductId: number;
+  source: "product-family" | "woocommerce";
+}
+
 export interface WooCommerceProduct {
   id: number;
   name: string;
@@ -87,6 +96,7 @@ export interface WooCommerceProduct {
     maximum: number;
     multiple_of: number;
   };
+  catalog_identity?: WooCommerceCatalogIdentity;
 }
 
 export interface WooCommerceProductCategory {

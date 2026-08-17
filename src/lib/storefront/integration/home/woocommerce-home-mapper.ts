@@ -136,7 +136,11 @@ function productRegularAmount(product: WooCommerceProduct): number | undefined {
 }
 
 function familyCode(product: WooCommerceProduct): string {
-  return product.sku?.trim() || `WC-${product.id}`;
+  return (
+    product.catalog_identity?.familyCode?.trim() ||
+    product.sku?.trim() ||
+    `WC-${product.id}`
+  );
 }
 
 function createGenericProductPresentation(

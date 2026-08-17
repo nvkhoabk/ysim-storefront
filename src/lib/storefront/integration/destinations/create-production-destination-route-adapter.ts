@@ -9,6 +9,7 @@ import type {
 import {
   createProductionDestinationRouteAdapter,
 } from "./production-destination-route-adapter";
+import { getProducts } from "@/lib/woocommerce/products";
 
 function positiveInteger(
   value:
@@ -41,7 +42,9 @@ function positiveInteger(
   );
 }
 
-export function createProductionDestinationRouteAdapterFromEnvironment():
+export function createProductionDestinationRouteAdapterFromEnvironment(
+  productLocale = "vi",
+):
   DestinationRouteDataAdapter | undefined {
   const baseUrl =
     process.env
@@ -74,6 +77,12 @@ export function createProductionDestinationRouteAdapterFromEnvironment():
         baseUrl,
         productFetchLimit,
         categoryFetchLimit,
+        productLoader: () =>
+          getProducts({
+            page: 1,
+            perPage: productFetchLimit,
+            locale: productLocale,
+          }),
         revalidateSeconds:
           60,
       }),

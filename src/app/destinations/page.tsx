@@ -54,7 +54,9 @@ export default async function DestinationsPage(props: DestinationsPageProps) {
   }
 
   const candidate = await loadDestinationRouteCandidate({
-    productionAdapter: createProductionDestinationRouteAdapterFromEnvironment(),
+    productionAdapter: createProductionDestinationRouteAdapterFromEnvironment(
+      request.shell.locale,
+    ),
   });
 
   const selection = localizeDestinationRouteSelection(
