@@ -9,7 +9,9 @@ import {
   productCatalogAttemptOrder,
   resolveProductCatalogSource,
   selectSkuFamilyMembers,
+  selectWooCatalogFamilyMembers,
   skuFamilyIdentity,
+  wooCatalogFamilyIdentity,
 } from "../src/lib/woocommerce/product-catalog-policy.ts";
 
 const root = resolve(import.meta.dirname, "..");
@@ -69,6 +71,96 @@ assert.deepEqual(enProducts.map((item) => item.id), [12, 21, 31, 32]);
 assert.deepEqual(loProducts.map((item) => item.id), [11, 21, 31, 32]);
 assert.equal(enProducts[0]?.sku, "JP-5GBD-7D-EN");
 pass("ONE_WOO_RECORD_PER_SKU_FAMILY_AND_REQUESTED_LOCALE_WINS");
+
+const liveJapanCopies = [
+  {
+    id: 100,
+    sku: "GIGA-JP-D3GB-15",
+    slug: "esim-nhat-ban",
+    name: "eSIM Nhật Bản",
+  },
+  {
+    id: 2834,
+    sku: "GIGA-JP-D3GB-31",
+    slug: "esim-japan-la",
+    name: "Lao copy",
+  },
+  {
+    id: 4722,
+    sku: "GIGA-JP-D3GB-36",
+    slug: "japan-esim-en",
+    name: "Japan eSIM",
+  },
+];
+assert.deepEqual(wooCatalogFamilyIdentity(liveJapanCopies[2]), {
+  familyCode: "GIGA-JP-D3GB",
+  locale: "en",
+  suffix: "",
+  derivation: "numeric-copy",
+});
+assert.deepEqual(
+  selectWooCatalogFamilyMembers(liveJapanCopies, "en").map(
+    (item) => item.id,
+  ),
+  [4722],
+);
+assert.deepEqual(
+  selectWooCatalogFamilyMembers(liveJapanCopies, "lo").map(
+    (item) => item.id,
+  ),
+  [2834],
+);
+assert.deepEqual(
+  selectWooCatalogFamilyMembers(liveJapanCopies, "vi").map(
+    (item) => item.id,
+  ),
+  [100],
+);
+pass("LIVE_NUMERIC_COPY_SKUS_COLLAPSE_TO_REQUESTED_LOCALE");
+
+const emptyParentSkuCopies = [
+  {
+    id: 545,
+    sku: "",
+    slug: "esim-australia",
+    catalog_family_anchor_sku: "GIGA-AU-T30GB-03",
+  },
+  {
+    id: 3022,
+    sku: "",
+    slug: "esim-australia-la",
+    catalog_family_anchor_sku: "GIGA-AU-T30GB-31",
+  },
+  {
+    id: 4913,
+    sku: "",
+    slug: "australia-esim-en",
+    catalog_family_anchor_sku: "GIGA-AU-T30GB-37",
+  },
+];
+assert.deepEqual(
+  selectWooCatalogFamilyMembers(emptyParentSkuCopies, "en").map(
+    (item) => item.id,
+  ),
+  [4913],
+);
+assert.equal(
+  wooCatalogFamilyIdentity(emptyParentSkuCopies[0])?.familyCode,
+  "GIGA-AU-T30GB",
+);
+pass("EMPTY_PARENT_SKU_USES_FIRST_VARIATION_ANCHOR");
+
+const sameLocaleNumericProducts = [
+  { id: 801, sku: "PRIVATE-FAMILY-01", slug: "goi-rieng-a" },
+  { id: 802, sku: "PRIVATE-FAMILY-02", slug: "goi-rieng-b" },
+];
+assert.deepEqual(
+  selectWooCatalogFamilyMembers(sameLocaleNumericProducts, "vi").map(
+    (item) => item.id,
+  ),
+  [801, 802],
+);
+pass("NUMERIC_STEM_REQUIRES_MULTIPLE_LOCALE_COHORTS");
 
 const skuVariations = [
   { id: 101, sku: "JP-5GBD-7D-V1" },
@@ -134,18 +226,25 @@ const productSource = readFileSync(
 );
 assert.match(productSource, /dedupeProductFamilies\(response\.items\)/);
 assert.match(productSource, /selectWooSkuFamilyProducts/);
+assert.match(productSource, /attachWooCatalogFamilyAnchors/);
+assert.match(productSource, /selectWooCatalogFamilyMembers/);
 assert.match(productSource, /selectSkuFamilyMembers\(product\.variations/);
 assert.match(productSource, /fetchWooSkuFamilyProductBySlug/);
 assert.match(productSource, /catalog_identity:/);
 assert.match(productSource, /authoritativeProductId: product\.id/);
-assert.doesNotMatch(
-  readFileSync(
-    resolve(root, "src/lib/woocommerce/product-catalog-policy.ts"),
-    "utf8",
-  ),
-  /item\.(?:name|slug)/,
-);
 pass("CATALOG_AND_DETAIL_PRESERVE_AUTHORITATIVE_COMMERCE_ID");
+
+const catalogPolicySource = readFileSync(
+  resolve(root, "src/lib/woocommerce/product-catalog-policy.ts"),
+  "utf8",
+);
+assert.doesNotMatch(catalogPolicySource, /item\.name/);
+assert.match(
+  catalogPolicySource,
+  /slug token is used solely to classify the localized/,
+);
+assert.match(productSource, /const perPage = 25/);
+pass("FAMILY_CODE_EXCLUDES_TRANSLATED_TEXT_AND_LARGE_PAGE_CACHE_OVERFLOW");
 
 const listingRoute = readFileSync(resolve(root, "src/app/esim/page.tsx"), "utf8");
 const destinationRoute = readFileSync(

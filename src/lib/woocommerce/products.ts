@@ -23,7 +23,8 @@ import {
   productCatalogAttemptOrder,
   resolveProductCatalogSource,
   selectSkuFamilyMembers,
-  skuFamilyIdentity,
+  selectWooCatalogFamilyMembers,
+  wooCatalogFamilyIdentity,
 } from "./product-catalog-policy";
 import type {
   WooCommerceImage,
@@ -258,7 +259,10 @@ function adaptLocalizedProduct(
 async function fetchStoreApiPages<T>(endpoint: string): Promise<T[]> {
   const separator = endpoint.includes("?") ? "&" : "?";
   const results: T[] = [];
-  const perPage = 100;
+  // The public Woo catalog currently exceeds Next.js' 2 MB cache-item limit
+  // at 100 products. Smaller pages remain cacheable and remove the noisy
+  // failed-to-set-cache path without changing the complete result set.
+  const perPage = 25;
 
   for (let page = 1; page <= maxCatalogPages(); page += 1) {
     const response = await storeApiFetch<unknown>(
@@ -296,8 +300,10 @@ async function fetchWooCatalog(
     query.set("featured", "true");
   }
 
-  const products = await fetchStoreApiPages<WooCommerceProduct>(
-    `/products?${query.toString()}`,
+  const products = await attachWooCatalogFamilyAnchors(
+    await fetchStoreApiPages<WooCommerceProduct>(
+      `/products?${query.toString()}`,
+    ),
   );
   if (!options.destination?.trim() && !options.category?.trim()) {
     return products;
@@ -332,8 +338,8 @@ function selectWooSkuFamilyProducts(
   localeValue: string | undefined,
 ): WooCommerceProduct[] {
   const requestedLocale = normalizeStorefrontProductLocale(localeValue);
-  return selectSkuFamilyMembers(products, requestedLocale).map((product) => {
-    const identity = skuFamilyIdentity(product.sku);
+  return selectWooCatalogFamilyMembers(products, requestedLocale).map((product) => {
+    const identity = wooCatalogFamilyIdentity(product);
     const variations = product.variations
       ? selectSkuFamilyMembers(product.variations, requestedLocale)
       : product.variations;
@@ -373,9 +379,9 @@ function paginate(
 /**
  * Product listing.
  *
- * WooCommerce is the complete default read model. Its terminal SKU locale
- * suffix provides an explicit family boundary so each commercial package is
- * returned once in the requested locale without grouping by translated text.
+ * WooCommerce is the complete default read model. Explicit locale suffixes
+ * and the confirmed legacy numeric-copy SKU stem provide the family boundary
+ * so each commercial package is returned once in the requested locale.
  * The Product Family API remains available as strict mode or hybrid fallback.
  */
 export async function getProducts(
@@ -410,6 +416,59 @@ function chunkValues<T>(values: readonly T[], size: number): T[][] {
     chunks.push(values.slice(index, index + size));
   }
   return chunks;
+}
+
+async function attachWooCatalogFamilyAnchors(
+  products: readonly WooCommerceProduct[],
+): Promise<WooCommerceProduct[]> {
+  const referenceByProductId = new Map<number, number>();
+
+  for (const product of products) {
+    if (product.sku?.trim()) {
+      continue;
+    }
+    const firstReferenceId = getStoreApiVariationReferenceIds(
+      product.variations,
+    )[0];
+    if (firstReferenceId) {
+      referenceByProductId.set(product.id, firstReferenceId);
+    }
+  }
+
+  if (referenceByProductId.size === 0) {
+    return [...products];
+  }
+
+  const fetchedById = new Map<number, WooCommerceProduct>();
+  const referenceIds = Array.from(referenceByProductId.values());
+  for (const ids of chunkValues(referenceIds, 100)) {
+    const query = new URLSearchParams({
+      type: "variation",
+      include: ids.join(","),
+      catalog_visibility: "any",
+      orderby: "include",
+      per_page: String(ids.length),
+    });
+    const fetched = await fetchStoreApiArray<WooCommerceProduct>(
+      `/products?${query.toString()}`,
+    );
+    for (const variation of fetched) {
+      fetchedById.set(variation.id, variation);
+    }
+  }
+
+  return products.map((product) => {
+    if (product.sku?.trim()) {
+      return product;
+    }
+    const referenceId = referenceByProductId.get(product.id);
+    const anchorSku = referenceId
+      ? fetchedById.get(referenceId)?.sku?.trim()
+      : "";
+    return anchorSku
+      ? { ...product, catalog_family_anchor_sku: anchorSku }
+      : product;
+  });
 }
 
 async function fetchStoreApiArray<T>(endpoint: string): Promise<T[]> {
@@ -612,7 +671,13 @@ async function fetchWooProductBySlug(
     parentProduct: product,
     variationProducts,
   });
-  return { ...product, variations };
+  const resolvedProduct = {
+    ...product,
+    variations,
+    catalog_family_anchor_sku:
+      product.sku?.trim() || variations[0]?.sku?.trim() || undefined,
+  };
+  return resolvedProduct;
 }
 
 async function fetchWooSkuFamilyProductBySlug(
@@ -624,16 +689,23 @@ async function fetchWooSkuFamilyProductBySlug(
     return null;
   }
 
-  const seedIdentity = skuFamilyIdentity(seed.sku);
+  const seedIdentity = wooCatalogFamilyIdentity(seed);
   if (!seedIdentity) {
     return selectWooSkuFamilyProducts([seed], localeValue)[0] || seed;
   }
 
   const familyMembers = (await fetchWooCatalog({})).filter((candidate) => {
-    const identity = skuFamilyIdentity(candidate.sku);
+    const identity = wooCatalogFamilyIdentity(candidate);
     return identity?.familyCode === seedIdentity.familyCode;
   });
-  const selected = selectSkuFamilyMembers(familyMembers, localeValue)[0];
+  const selectedFamilyMembers = selectWooCatalogFamilyMembers(
+    familyMembers,
+    localeValue,
+  );
+  const selected =
+    selectedFamilyMembers.length < familyMembers.length
+      ? selectedFamilyMembers[0]
+      : seed;
   const resolved =
     selected && selected.id !== seed.id
       ? await fetchWooProductBySlug(selected.slug)
