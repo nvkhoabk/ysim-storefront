@@ -8,7 +8,7 @@ import { AlertCircle, LoaderCircle, RefreshCcw, ShieldX } from "lucide-react";
 
 import { Container, PageShell, Section } from "@/components/layout";
 
-import { lookupSecureOrderCandidate } from "@/features/orders/candidate/order-candidate-client";
+import { lookupSecureOrder } from "@/features/orders/order.actions";
 
 import type { CheckoutOrderHandoff } from "@/types/view-models/checkout-route-candidate";
 
@@ -70,7 +70,7 @@ export function OrderCandidateClient({
       setError(null);
 
       try {
-        const response = await lookupSecureOrderCandidate({
+        const response = await lookupSecureOrder({
           orderId: proof.orderId,
           orderKey: proof.orderKey,
         });

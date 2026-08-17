@@ -41,14 +41,14 @@ export function parseContentLocale(
     : "vi";
 }
 
-function previewGuideHref(
+function localizedGuideHref(
   slug: string,
   requestedLocale: ContentLocale,
 ): string {
-  return `/ui-preview/guide-integration/${slug}?locale=${requestedLocale}`;
+  return `/${requestedLocale}/guides/${encodeURIComponent(slug)}`;
 }
 
-function toPreviewCard(
+function toGuideCard(
   source: WordPressContentSource,
   requestedLocale: ContentLocale,
 ): ArticleCardViewModel {
@@ -57,17 +57,15 @@ function toPreviewCard(
   return {
     ...card,
 
-    href: previewGuideHref(source.slug, requestedLocale),
+    href: localizedGuideHref(source.slug, requestedLocale),
   };
 }
 
-function previewCategories(
+function localizedCategories(
   locale: ContentLocale,
 ): readonly ContentCategoryViewModel[] {
   return guideCategories.map((category) => {
     const params = new URLSearchParams();
-
-    params.set("locale", locale);
 
     if (category.id !== "all") {
       params.set("category", category.id);
@@ -76,7 +74,10 @@ function previewCategories(
     return {
       ...category,
 
-      href: `/ui-preview/guide-integration?${params.toString()}`,
+      href:
+        category.id === "all"
+          ? `/${locale}/guides`
+          : `/${locale}/guides?${params.toString()}`,
     };
   });
 }
@@ -175,7 +176,7 @@ export async function loadGuideLanding({
     page: {
       hero: guideLandingHero,
 
-      categories: previewCategories(locale),
+      categories: localizedCategories(locale),
 
       activeCategoryId: category || "all",
 
@@ -187,7 +188,7 @@ export async function loadGuideLanding({
         description: `Nguồn dữ liệu hiện tại: ${sourceLabel}.`,
       },
 
-      articles: sources.map((source) => toPreviewCard(source, locale)),
+      articles: sources.map((source) => toGuideCard(source, locale)),
 
       callout: {
         title:
@@ -230,7 +231,7 @@ export async function loadGuideArticle({
       (item) => item.contentFamilyCode !== detail.source.contentFamilyCode,
     )
     .slice(0, 3)
-    .map((source) => toPreviewCard(source, locale));
+    .map((source) => toGuideCard(source, locale));
 
   return {
     sourceMode: runtime.mode,
@@ -245,7 +246,7 @@ export async function loadGuideArticle({
       article: {
         ...article,
 
-        href: previewGuideHref(detail.source.slug, locale),
+        href: localizedGuideHref(detail.source.slug, locale),
       },
 
       relatedTitle: "Tiếp tục tìm hiểu về eSIM",

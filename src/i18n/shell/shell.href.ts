@@ -2,7 +2,7 @@
 
 import type { ShellLocale } from "./shell.types";
 
-const EXCLUDED_PREFIXES = ["/api", "/_next", "/ui-preview"] as const;
+const EXCLUDED_PREFIXES = ["/api", "/_next"] as const;
 
 export function localizeShellHref(href: string, locale: ShellLocale): string {
   if (!href.startsWith("/") || href.startsWith("//")) return href;

@@ -22,6 +22,7 @@
     "test:f07:gigago-terminal": "node scripts/test-f07-gigago-fulfillment-terminal-corrective-r1.mjs",
     "test:f07:va-durable-fulfillment": "node scripts/test-f07-gpay-va-durable-fulfillment-r2.mjs",
     "test:f07:va-durable-before-commerce": "node scripts/test-f07-gpay-va-durable-before-commerce-r3.mjs",
+    "test:f08:ui-preview-removal": "node scripts/test-f08-ui-preview-removal.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {

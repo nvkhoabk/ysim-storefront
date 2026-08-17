@@ -142,9 +142,7 @@ export function PaymentCandidateClient({
 
     try {
       const response = await createVerifiedPaymentCandidate({
-        provider: handoff.provider,
-        orderId: handoff.orderId,
-        orderKey: handoff.orderKey,
+        handoff,
       });
 
       const nextStored: PaymentCandidateStoredSession = {
@@ -239,6 +237,7 @@ export function PaymentCandidateClient({
     const resultPage = presentPaymentCandidateResult({
       session: stored.session,
       handoff: stored.handoff,
+      locale,
     });
 
     return (
