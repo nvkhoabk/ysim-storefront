@@ -7,6 +7,8 @@ const checkoutPaymentProviderIdSchema = z.enum([
 
 export const checkoutFormSchema = z
   .object({
+    locale: z.enum(["vi", "en", "lo"]),
+
     fullName: z.string().trim().min(2, "Vui lòng nhập họ và tên.").max(100),
 
     email: z.string().trim().email("Email không hợp lệ."),

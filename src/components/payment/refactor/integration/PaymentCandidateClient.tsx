@@ -143,6 +143,7 @@ export function PaymentCandidateClient({
     try {
       const response = await createVerifiedPaymentCandidate({
         handoff,
+        locale,
       });
 
       const nextStored: PaymentCandidateStoredSession = {

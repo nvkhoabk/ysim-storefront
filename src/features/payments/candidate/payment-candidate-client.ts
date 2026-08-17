@@ -1,4 +1,5 @@
 import type { PaymentSession } from "@/features/payments/payment.types";
+import type { ShellLocale } from "@/i18n/shell/shell.types";
 
 import type { CheckoutOrderHandoff } from "@/types/view-models/checkout-route-candidate";
 
@@ -10,8 +11,10 @@ interface ApiErrorBody {
 
 export async function createVerifiedPaymentCandidate({
   handoff,
+  locale,
 }: {
   handoff: CheckoutOrderHandoff;
+  locale: ShellLocale;
 }): Promise<VerifiedPaymentCreateResponse> {
   const response = await fetch("/api/payments/create", {
     method: "POST",
@@ -20,6 +23,7 @@ export async function createVerifiedPaymentCandidate({
     },
     body: JSON.stringify({
       provider: handoff.provider,
+      locale,
       orderId: handoff.orderId,
       orderNumber: handoff.orderNumber,
       orderKey: handoff.orderKey,

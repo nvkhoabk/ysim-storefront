@@ -1,31 +1,24 @@
 import { NextResponse } from "next/server";
 
 import { createPaymentSession } from "@/features/payments/payment.service";
+import {
+  getPaymentMethodForLocale,
+  isPaymentProviderAllowedForLocale,
+  PAYMENT_LOCALE_POLICY_VERSION,
+} from "@/features/payments/payment-locale-policy";
 import { GPayVACreateLockError } from "@/features/payments/gpay-va/gpay-va.create-lock";
 import { decidePaymentProviderExecutionGate } from "@/lib/runtime/production-execution-gate";
 import { createPaymentSchema } from "@/features/payments/payment.validation";
-import type { PaymentProviderId } from "@/features/payments/payment.types";
 import { GigagoReadinessError } from "@/lib/fulfillment/gigago/gigago-readiness-gate";
 import { getWooCommerceAdminOrder } from "@/lib/woocommerce/order-admin-api";
 import {
+  readWooCommerceOrderMetaString,
   updateWooCommerceAdminOrder,
   upsertWooCommerceOrderMeta,
 } from "@/lib/woocommerce/order-admin-write-api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function providerTitle(provider: PaymentProviderId): string {
-  if (provider === "gpay_virtual_account") {
-    return "GPay Virtual Account";
-  }
-
-  if (provider.startsWith("gpay_gateway_")) {
-    return "GPay";
-  }
-
-  return provider;
-}
 
 function canonicalAmount(total: string): number {
   const value = Number(total);
@@ -53,6 +46,20 @@ export async function POST(request: Request) {
     }
 
     const values = parsed.data;
+    if (!isPaymentProviderAllowedForLocale(values.locale, values.provider)) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "PAYMENT_PROVIDER_NOT_ALLOWED_FOR_LOCALE",
+          message: "Phương thức thanh toán không hợp lệ với ngôn ngữ hiện tại.",
+        },
+        {
+          status: 400,
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
+    }
+
     const executionGate = decidePaymentProviderExecutionGate({
       nodeEnvironment: process.env.NODE_ENV,
       providerId: values.provider,
@@ -87,6 +94,38 @@ export async function POST(request: Request) {
       );
     }
 
+    if (order.payment_method !== values.provider) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "ORDER_PAYMENT_PROVIDER_MISMATCH",
+          message: "Phương thức thanh toán không khớp với đơn hàng.",
+        },
+        {
+          status: 409,
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
+    }
+
+    const storedLocale = readWooCommerceOrderMetaString(
+      order,
+      "_ysim_checkout_locale",
+    );
+    if (storedLocale && storedLocale !== values.locale) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "PAYMENT_LOCALE_ORDER_MISMATCH",
+          message: "Ngôn ngữ thanh toán không khớp với đơn hàng.",
+        },
+        {
+          status: 409,
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
+    }
+
     const currency = order.currency.trim().toUpperCase();
     const amount = canonicalAmount(order.total);
 
@@ -100,13 +139,17 @@ export async function POST(request: Request) {
       .trim();
 
     const providerMeta = upsertWooCommerceOrderMeta(order, {
+      _ysim_checkout_locale: values.locale,
+      _ysim_payment_locale_policy_version: PAYMENT_LOCALE_POLICY_VERSION,
       _ysim_payment_provider: values.provider,
       _ysim_payment_status: "PENDING",
     });
 
     await updateWooCommerceAdminOrder(order.id, {
       payment_method: values.provider,
-      payment_method_title: providerTitle(values.provider),
+      payment_method_title:
+        getPaymentMethodForLocale(values.locale, values.provider)?.title ??
+        values.provider,
       meta_data: providerMeta,
     });
 
