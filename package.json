@@ -7,7 +7,7 @@
     "#storefront-search-core": "./src/lib/storefront/search/rank-storefront-suggestions.ts"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
