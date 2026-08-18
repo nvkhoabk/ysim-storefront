@@ -372,6 +372,7 @@ export function CheckoutCandidateClient({
       const result =
         await submitCheckoutCandidate(
           form,
+          locale,
         );
 
       const {

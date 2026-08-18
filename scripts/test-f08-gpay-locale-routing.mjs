@@ -142,6 +142,10 @@ assert.match(
   checkoutCandidateApiClient,
   /api\/checkout\?locale=\$\{encodeURIComponent\(locale\)\}/,
 );
+assert.match(
+  checkoutCandidateApiClient,
+  /\.\.\.form,\s*locale,/,
+);
 const checkoutCandidateIntegration = readFileSync(
   resolve(
     root,
@@ -153,7 +157,11 @@ assert.match(
   checkoutCandidateIntegration,
   /await loadCheckoutCandidate\(\s*locale,\s*\)/,
 );
-pass("CHECKOUT_CANDIDATE_LOAD_PROPAGATES_LOCALE");
+assert.match(
+  checkoutCandidateIntegration,
+  /await submitCheckoutCandidate\(\s*form,\s*locale,\s*\)/,
+);
+pass("CHECKOUT_CANDIDATE_REQUESTS_PROPAGATE_LOCALE");
 
 const paymentReturnPage = readFileSync(
   resolve(root, "src/app/payment/return/page.tsx"),

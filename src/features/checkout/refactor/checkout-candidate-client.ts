@@ -68,6 +68,8 @@ export async function loadCheckoutCandidate(
 export async function submitCheckoutCandidate(
   form:
     CheckoutCandidateFormState,
+  locale:
+    ShellLocale,
 ): Promise<
   CheckoutCandidateSubmitResponse
 > {
@@ -83,7 +85,10 @@ export async function submitCheckoutCandidate(
         },
         body:
           JSON.stringify(
-            form,
+            {
+              ...form,
+              locale,
+            },
           ),
       },
     ),
