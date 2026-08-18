@@ -53,6 +53,7 @@ export const shellMessagesVi = {
     placeholder: "Bạn sẽ đi đâu?",
     label: "Tìm điểm đến, sản phẩm hoặc cẩm nang",
     results: "Kết quả tìm kiếm",
+    flagLabel: "Cờ {name}",
     emptyTitle: "Không tìm thấy kết quả",
     emptyDescription:
       "Thử tìm theo tên quốc gia, dung lượng hoặc chủ đề cẩm nang.",

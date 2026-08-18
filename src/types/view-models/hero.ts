@@ -1,31 +1,15 @@
-export type HeroVariant =
-  | "brand"
-  | "subtle"
-  | "dark"
-  | "plain";
+export type HeroVariant = "brand" | "subtle" | "dark" | "plain";
 
-export type HeroAlignment =
-  | "left"
-  | "center";
+export type HeroAlignment = "left" | "center";
 
-export type HeroBenefitIcon =
-  | "global"
-  | "instant"
-  | "secure"
-  | "support";
+export type HeroBenefitIcon = "global" | "instant" | "secure" | "support";
 
-export type HeroSearchItemType =
-  | "destination"
-  | "product"
-  | "guide";
+export type HeroSearchItemType = "destination" | "product" | "guide";
 
 export interface HeroActionViewModel {
   label: string;
   href: string;
-  variant?:
-    | "primary"
-    | "outline"
-    | "ghost";
+  variant?: "primary" | "outline" | "ghost";
 }
 
 export interface HeroBenefitViewModel {
@@ -55,6 +39,7 @@ export interface HeroViewModel {
 
 export interface HeroSearchItemViewModel {
   id: string;
+  canonicalId?: string;
   type: HeroSearchItemType;
   label: string;
   description?: string;

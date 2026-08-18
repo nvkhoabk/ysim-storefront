@@ -9,14 +9,14 @@ import type { EsimQuickFilterSelection } from "@/types/view-models/esim-quick-fi
 
 import { createListingTranslator } from "./listing.registry";
 
-type LocalizedName = Readonly<Record<ShellLocale, string>>;
+export type LocalizedDestinationName = Readonly<Record<ShellLocale, string>>;
 
 const destinationAliases: Readonly<Record<string, string>> = {
   korea: "south-korea",
   usa: "united-states",
 };
 
-const destinationNames = {
+export const destinationLocalizedNames = {
   japan: { vi: "Nhật Bản", en: "Japan", lo: "ຍີ່ປຸ່ນ" },
   "south-korea": { vi: "Hàn Quốc", en: "South Korea", lo: "ເກົາຫຼີໃຕ້" },
   singapore: { vi: "Singapore", en: "Singapore", lo: "ສິງກະໂປ" },
@@ -79,7 +79,7 @@ const destinationNames = {
   cruise: { vi: "Tàu biển", en: "Cruise", lo: "ເຮືອສຳລານ" },
   global: { vi: "eSIM Toàn cầu", en: "Global eSIM", lo: "eSIM ທົ່ວໂລກ" },
   europe: { vi: "Châu Âu", en: "Europe", lo: "ເອີຣົບ" },
-} as const satisfies Readonly<Record<string, LocalizedName>>;
+} as const satisfies Readonly<Record<string, LocalizedDestinationName>>;
 
 const continentNames = {
   asia: { vi: "Châu Á", en: "Asia", lo: "ອາຊີ" },
@@ -102,7 +102,7 @@ const continentNames = {
     lo: "ຈຸດໝາຍພິເສດ",
   },
   global: { vi: "Đa quốc gia", en: "Multi-country", lo: "ຫຼາຍປະເທດ" },
-} as const satisfies Readonly<Record<string, LocalizedName>>;
+} as const satisfies Readonly<Record<string, LocalizedDestinationName>>;
 
 const regionCopy = {
   "southeast-asia": {
@@ -168,18 +168,25 @@ const regionCopy = {
 } as const satisfies Readonly<
   Record<
     string,
-    { readonly label: LocalizedName; readonly description: LocalizedName }
+    {
+      readonly label: LocalizedDestinationName;
+      readonly description: LocalizedDestinationName;
+    }
   >
 >;
 
-const destinationNameCatalog: Readonly<Record<string, LocalizedName>> =
-  destinationNames;
-const continentNameCatalog: Readonly<Record<string, LocalizedName>> =
+const destinationNameCatalog: Readonly<
+  Record<string, LocalizedDestinationName>
+> = destinationLocalizedNames;
+const continentNameCatalog: Readonly<Record<string, LocalizedDestinationName>> =
   continentNames;
 const regionCopyCatalog: Readonly<
   Record<
     string,
-    { readonly label: LocalizedName; readonly description: LocalizedName }
+    {
+      readonly label: LocalizedDestinationName;
+      readonly description: LocalizedDestinationName;
+    }
   >
 > = regionCopy;
 
