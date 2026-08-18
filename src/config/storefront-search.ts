@@ -27,6 +27,7 @@ const prioritySlugs: Readonly<Record<ShellLocale, readonly string[]>> = {
     "japan",
     "south-korea",
     "thailand",
+    "laos",
     "singapore",
     "china",
     "united-states",
@@ -39,6 +40,7 @@ const prioritySlugs: Readonly<Record<ShellLocale, readonly string[]>> = {
     "japan",
     "south-korea",
     "thailand",
+    "laos",
     "singapore",
     "united-states",
     "china",
@@ -48,6 +50,7 @@ const prioritySlugs: Readonly<Record<ShellLocale, readonly string[]>> = {
   lo: [
     "thailand",
     "vietnam",
+    "laos",
     "china",
     "japan",
     "south-korea",
@@ -70,6 +73,11 @@ const aliasOverrides: Readonly<
     vi: ["Hàn", "Han Quoc"],
     en: ["Korea", "Republic of Korea"],
     lo: ["ເກົາຫຼີ", "ເກົາຫຼີໃຕ້"],
+  },
+  laos: {
+    vi: ["Lao", "Nước Lào", "Nuoc Lao"],
+    en: ["Lao", "Lao PDR"],
+    lo: ["ປະເທດລາວ", "ສປປ ລາວ"],
   },
   vietnam: {
     vi: ["Việt Nam", "Viet Nam"],
@@ -121,6 +129,11 @@ const keywordOverrides: Readonly<
     en: ["Bangkok", "Phuket", "Thailand travel"],
     lo: ["ບາງກອກ", "ພູເກັດ", "ທ່ອງທ່ຽວໄທ"],
   },
+  laos: {
+    vi: ["Viêng Chăn", "Vientiane", "Luang Prabang", "du lịch Lào"],
+    en: ["Vientiane", "Luang Prabang", "Pakse", "Laos travel"],
+    lo: ["ວຽງຈັນ", "ຫຼວງພະບາງ", "ປາກເຊ", "ທ່ອງທ່ຽວລາວ"],
+  },
   singapore: {
     vi: ["đảo quốc", "du lịch Singapore"],
     en: ["Singapore travel", "Lion City"],
@@ -143,6 +156,7 @@ const internalFlagUrls: Readonly<Record<string, string>> = {
   eu: "/assets/storefront/flags/eu.svg",
   jp: "/assets/storefront/flags/jp.svg",
   kr: "/assets/storefront/flags/kr.svg",
+  la: "/assets/storefront/flags/la.svg",
   sg: "/assets/storefront/flags/sg.svg",
   th: "/assets/storefront/flags/th.svg",
   us: "/assets/storefront/flags/us.svg",

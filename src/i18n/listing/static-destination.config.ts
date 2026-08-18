@@ -21,6 +21,7 @@ export const destinationLocalizedNames = {
   "south-korea": { vi: "Hàn Quốc", en: "South Korea", lo: "ເກົາຫຼີໃຕ້" },
   singapore: { vi: "Singapore", en: "Singapore", lo: "ສິງກະໂປ" },
   thailand: { vi: "Thái Lan", en: "Thailand", lo: "ໄທ" },
+  laos: { vi: "Lào", en: "Laos", lo: "ລາວ" },
   taiwan: { vi: "Đài Loan", en: "Taiwan", lo: "ໄຕ້ຫວັນ" },
   vietnam: { vi: "Việt Nam", en: "Vietnam", lo: "ຫວຽດນາມ" },
   china: { vi: "Trung Quốc", en: "China", lo: "ຈີນ" },

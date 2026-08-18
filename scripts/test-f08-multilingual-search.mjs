@@ -45,7 +45,7 @@ const items = [
     vi: "Việt Nam",
     en: "Vietnam",
     lo: "ຫວຽດນາມ",
-    priority: { vi: 6, en: 0, lo: 1 },
+    priority: { vi: 7, en: 0, lo: 1 },
     aliases: { vi: ["Viet Nam"], en: ["Viet Nam"] },
     keywords: ["Hanoi", "Ha Noi", "Saigon"],
   }),
@@ -54,7 +54,7 @@ const items = [
     vi: "Nhật Bản",
     en: "Japan",
     lo: "ຍີ່ປຸ່ນ",
-    priority: { vi: 0, en: 1, lo: 3 },
+    priority: { vi: 0, en: 1, lo: 4 },
     aliases: { vi: ["Nhat Ban"], en: ["Nippon"] },
     keywords: ["Tokyo", "Osaka"],
   }),
@@ -63,7 +63,7 @@ const items = [
     vi: "Hàn Quốc",
     en: "South Korea",
     lo: "ເກົາຫຼີໃຕ້",
-    priority: { vi: 1, en: 2, lo: 4 },
+    priority: { vi: 1, en: 2, lo: 5 },
     aliases: { vi: ["Han Quoc"], en: ["Korea"] },
     keywords: ["Seoul", "Busan"],
   }),
@@ -76,18 +76,27 @@ const items = [
     keywords: ["Bangkok", "Phuket"],
   }),
   destination({
+    slug: "laos",
+    vi: "Lào",
+    en: "Laos",
+    lo: "ລາວ",
+    priority: { vi: 3, en: 4, lo: 2 },
+    aliases: { vi: ["Lao", "Nước Lào"], en: ["Lao", "Lao PDR"] },
+    keywords: ["Vientiane", "Luang Prabang", "Viêng Chăn"],
+  }),
+  destination({
     slug: "singapore",
     vi: "Singapore",
     en: "Singapore",
     lo: "ສິງກະໂປ",
-    priority: { vi: 3, en: 4, lo: 5 },
+    priority: { vi: 4, en: 5, lo: 6 },
   }),
   destination({
     slug: "china",
     vi: "Trung Quốc",
     en: "China",
     lo: "ຈີນ",
-    priority: { vi: 4, en: 5, lo: 2 },
+    priority: { vi: 5, en: 7, lo: 3 },
     keywords: ["Beijing", "Shanghai"],
   }),
   destination({
@@ -95,7 +104,7 @@ const items = [
     vi: "Hoa Kỳ",
     en: "United States",
     lo: "ສະຫະລັດອາເມລິກາ",
-    priority: { vi: 5, en: 6, lo: 6 },
+    priority: { vi: 6, en: 6, lo: 7 },
     aliases: { vi: ["My", "Hoa Ky"], en: ["USA", "America"] },
   }),
 ];
@@ -132,6 +141,18 @@ assert.equal(
 );
 pass("EXACT_PREFIX_AND_LAO_MATCHES_RANK_FIRST");
 
+for (const [locale, query] of [
+  ["vi", "Lào"],
+  ["en", "Laos"],
+  ["lo", "ລາວ"],
+]) {
+  assert.equal(
+    rankStorefrontSuggestions(items, locale, query)[0]?.canonicalKey,
+    "destination:laos",
+  );
+}
+pass("LAOS_MATCHES_FIRST_IN_VI_EN_AND_LO");
+
 assert.equal(
   rankStorefrontSuggestions(items, "en", "Tokyo")[0]?.canonicalKey,
   "destination:japan",
@@ -159,6 +180,29 @@ assert.equal(
 );
 assert.equal(filled[0]?.canonicalKey, "destination:japan");
 pass("MATCHES_FILL_TO_FIVE_WITHOUT_DUPLICATE_CANONICAL_DESTINATIONS");
+
+const laos = items.find((item) => item.canonicalKey === "destination:laos");
+assert.ok(laos);
+const routeMergedItems = [
+  ...items,
+  {
+    ...laos,
+    id: "destination-live-laos",
+    label: "Lào",
+  },
+];
+const mergedLaosResults = rankStorefrontSuggestions(
+  routeMergedItems,
+  "vi",
+  "Lào",
+);
+assert.equal(mergedLaosResults[0]?.canonicalKey, "destination:laos");
+assert.equal(
+  mergedLaosResults.filter((item) => item.canonicalKey === "destination:laos")
+    .length,
+  1,
+);
+pass("STATIC_HOME_AND_LIVE_DESTINATION_LAOS_DEDUPLICATE_CANONICALLY");
 
 const productFamilyItems = [
   {
@@ -216,6 +260,18 @@ const searchConfigSource = readFileSync(
   resolve(root, "src/config/storefront-search.ts"),
   "utf8",
 );
+const staticDestinationSource = readFileSync(
+  resolve(root, "src/i18n/listing/static-destination.config.ts"),
+  "utf8",
+);
+const destinationExplorerSource = readFileSync(
+  resolve(root, "src/config/esim-destination-explorer.ts"),
+  "utf8",
+);
+const laosFlagSource = readFileSync(
+  resolve(root, "public/assets/storefront/flags/la.svg"),
+  "utf8",
+);
 
 assert.match(heroSearchSource, /StorefrontSearchCombobox/);
 assert.match(productSearchSource, /StorefrontSearchCombobox/);
@@ -225,6 +281,20 @@ assert.match(comboboxSource, /aria-activedescendant/);
 assert.match(searchConfigSource, /en:\s*\[\s*"vietnam"/u);
 assert.match(searchConfigSource, /\/assets\/storefront\/flags\/vn\.svg/u);
 assert.match(searchConfigSource, /\/assets\/storefront\/flags\/cn\.svg/u);
+assert.match(searchConfigSource, /\/assets\/storefront\/flags\/la\.svg/u);
 pass("SHARED_ACCESSIBLE_COMBOBOX_AND_INTERNAL_PRIORITY_FLAGS_ARE_WIRED");
+
+assert.match(
+  staticDestinationSource,
+  /laos:\s*\{\s*vi:\s*"Lào",\s*en:\s*"Laos",\s*lo:\s*"ລາວ"/u,
+);
+assert.match(
+  destinationExplorerSource,
+  /slug:\s*"laos",\s*countryCode:\s*"la"/u,
+);
+assert.match(searchConfigSource, /laos:\s*\{[\s\S]*?"Lao PDR"/u);
+assert.match(laosFlagSource, /#ce1126/u);
+assert.match(laosFlagSource, /#002868/u);
+pass("LAOS_STATIC_REGISTRY_COUNTRY_CODE_ALIASES_AND_FLAG_ARE_COMPLETE");
 
 console.log(`F08_MULTILINGUAL_SEARCH_TESTS_PASSED=${passed}`);
