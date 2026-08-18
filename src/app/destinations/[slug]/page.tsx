@@ -13,6 +13,8 @@ import {
   withLocalizedAlternates,
 } from "@/i18n/runtime/runtime.server";
 import { createListingTranslator } from "@/i18n/listing/listing.registry";
+import { localizeEsimQuickFilterSelection } from "@/i18n/listing/static-destination.config";
+import { resolveStorefrontDestinationHero } from "@/config/storefront-destination-heroes";
 
 export const dynamic = "force-dynamic";
 
@@ -36,9 +38,12 @@ export async function generateMetadata({
   params,
 }: DestinationDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const selection = resolveDestinationSelection(slug);
-  const title = destinationPageTitle(selection.label);
   const request = await getStorefrontLocaleRequest();
+  const selection = localizeEsimQuickFilterSelection(
+    resolveDestinationSelection(slug),
+    request.shell.locale,
+  );
+  const title = destinationPageTitle(selection.label);
   const t = createListingTranslator(request.shell.locale);
 
   return withLocalizedAlternates(
@@ -61,10 +66,14 @@ export default async function DestinationDetailPage({
     params,
     loadCatalog(request.shell.locale),
   ]);
-  const selection = resolveDestinationSelection(slug);
+  const selection = localizeEsimQuickFilterSelection(
+    resolveDestinationSelection(slug),
+    request.shell.locale,
+  );
   const matchingProductCount = catalog.products.filter((product) =>
     productMatchesEsimQuickFilter(product, selection),
   ).length;
+  const heroAsset = resolveStorefrontDestinationHero(selection.id);
 
   return (
     <PageShell>
@@ -72,6 +81,7 @@ export default async function DestinationDetailPage({
         products={catalog.products}
         selection={selection}
         matchingProductCount={matchingProductCount}
+        heroAsset={heroAsset}
       />
     </PageShell>
   );

@@ -27,6 +27,7 @@
     "test:f08:gpay-locale-routing": "node scripts/test-f08-gpay-locale-routing.mjs",
     "test:f08:canonical-product-family": "node scripts/test-f08-canonical-product-family.mjs",
     "test:f08:multilingual-search": "node scripts/test-f08-multilingual-search.mjs",
+    "test:f08:destination-country-heroes": "node scripts/test-f08-destination-country-heroes.mjs",
     "test:f08:footer-legal-link-keys": "node scripts/test-f08-footer-legal-link-keys.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run build"
   },
