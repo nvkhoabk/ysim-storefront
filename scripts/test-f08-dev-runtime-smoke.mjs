@@ -7,11 +7,14 @@ import path from "node:path";
 const host = "127.0.0.1";
 const routes = [
   "/vi",
+  "/vi/esim?destination=korea",
   "/vi/esim",
   "/vi/support",
   "/vi/destinations",
   "/vi/destinations/japan",
+  "/vi/destinations/united-states",
   "/vi/destinations/singapore",
+  "/vi/destinations/korea",
   "/vi/destinations?continent=europe",
 ];
 const timeoutMilliseconds = 180_000;
@@ -105,6 +108,11 @@ try {
       body,
       /this page could not be found/i,
       `${route} rendered a soft not-found page.`,
+    );
+    assert.doesNotMatch(
+      body,
+      /STOREFRONT_LOCALE_PROVIDER_REQUIRED|Switched to client rendering because the server rendering errored/i,
+      `${route} rendered a locale-provider server error.`,
     );
     console.log(
       `DEV_RUNTIME_ROUTE_${route.replace(/[^a-z0-9]+/gi, "_").toUpperCase()}=PASS_200`,

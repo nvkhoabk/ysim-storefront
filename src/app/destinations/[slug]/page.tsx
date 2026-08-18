@@ -14,6 +14,7 @@ import {
 } from "@/i18n/runtime/runtime.server";
 import { createListingTranslator } from "@/i18n/listing/listing.registry";
 import { localizeEsimQuickFilterSelection } from "@/i18n/listing/static-destination.config";
+import { StorefrontLocaleProvider } from "@/i18n/runtime";
 import { resolveStorefrontDestinationHero } from "@/config/storefront-destination-heroes";
 
 export const dynamic = "force-dynamic";
@@ -76,13 +77,15 @@ export default async function DestinationDetailPage({
   const heroAsset = resolveStorefrontDestinationHero(selection.id);
 
   return (
-    <PageShell>
-      <DestinationProductsFallbackPage
-        products={catalog.products}
-        selection={selection}
-        matchingProductCount={matchingProductCount}
-        heroAsset={heroAsset}
-      />
-    </PageShell>
+    <StorefrontLocaleProvider shell={request.shell}>
+      <PageShell>
+        <DestinationProductsFallbackPage
+          products={catalog.products}
+          selection={selection}
+          matchingProductCount={matchingProductCount}
+          heroAsset={heroAsset}
+        />
+      </PageShell>
+    </StorefrontLocaleProvider>
   );
 }
