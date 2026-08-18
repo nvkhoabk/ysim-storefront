@@ -19,6 +19,7 @@ export default function PaymentResultPage() {
   return (
     <PaymentCandidateClient
       config={createPaymentCandidateConfigViewModel()}
+      resultOnly
       showDiagnostics={mode === "candidate"}
     />
   );

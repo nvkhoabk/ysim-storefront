@@ -130,4 +130,36 @@ assert.match(paymentCandidateClient, /locale: ShellLocale/);
 assert.match(paymentCandidateClient, /locale,/);
 pass("CHECKOUT_CLIENTS_PROPAGATE_LOCALE_TO_PAYMENT_APIS");
 
+const checkoutCandidateApiClient = readFileSync(
+  resolve(
+    root,
+    "src/features/checkout/refactor/checkout-candidate-client.ts",
+  ),
+  "utf8",
+);
+assert.match(checkoutCandidateApiClient, /locale:\s*ShellLocale/);
+assert.match(
+  checkoutCandidateApiClient,
+  /api\/checkout\?locale=\$\{encodeURIComponent\(locale\)\}/,
+);
+const checkoutCandidateIntegration = readFileSync(
+  resolve(
+    root,
+    "src/components/checkout/refactor/integration/CheckoutCandidateClient.tsx",
+  ),
+  "utf8",
+);
+assert.match(
+  checkoutCandidateIntegration,
+  /await loadCheckoutCandidate\(\s*locale,\s*\)/,
+);
+pass("CHECKOUT_CANDIDATE_LOAD_PROPAGATES_LOCALE");
+
+const paymentReturnPage = readFileSync(
+  resolve(root, "src/app/payment/return/page.tsx"),
+  "utf8",
+);
+assert.match(paymentReturnPage, /<PaymentCandidateClient[\s\S]*resultOnly/);
+pass("PAYMENT_RETURN_IS_RESULT_ONLY");
+
 console.log(`F08_GPAY_LOCALE_ROUTING_TESTS_PASSED=${passed}`);
