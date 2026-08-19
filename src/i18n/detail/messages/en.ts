@@ -72,6 +72,8 @@ export const detailMessagesEn = {
   "product.qrInstallation": "Install with a QR code",
   "product.galleryViewImage": "View image {name}",
   "product.descriptionTitle": "Description",
+  "product.descriptionReadMore": "Read more",
+  "product.descriptionReadLess": "Show less",
   "product.usageEyebrow": "Usage notes",
   "product.usageTitle": "Prepare before the trip",
   "product.usageStableWifi": "Install the eSIM over a stable Wi‑Fi connection.",

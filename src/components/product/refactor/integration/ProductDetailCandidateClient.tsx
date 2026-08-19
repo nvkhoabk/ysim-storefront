@@ -7,7 +7,9 @@ import Link from "next/link";
 
 import {
   Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   CircleAlert,
   Database,
   Globe2,
@@ -83,6 +85,10 @@ export function ProductDetailCandidateClient({
   const [quantity, setQuantity] = useState(1);
 
   const [feedback, setFeedback] = useState<string | undefined>();
+
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+
+  const hasExpandableDescription = product.description.length > 280;
 
   const selected = useMemo(
     () =>
@@ -459,9 +465,36 @@ export function ProductDetailCandidateClient({
                 {t("product.descriptionTitle")}
               </h2>
 
-              <p className="mt-3 text-sm leading-7 whitespace-pre-line text-[var(--ysim-color-text-muted)]">
+              <p
+                id="product-description-content"
+                className={cn(
+                  "mt-3 text-sm leading-7 whitespace-pre-line text-[var(--ysim-color-text-muted)]",
+                  hasExpandableDescription && !descriptionExpanded
+                    ? "line-clamp-4"
+                    : "",
+                )}
+              >
                 {product.description}
               </p>
+
+              {hasExpandableDescription ? (
+                <button
+                  type="button"
+                  aria-controls="product-description-content"
+                  aria-expanded={descriptionExpanded}
+                  onClick={() => setDescriptionExpanded((current) => !current)}
+                  className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-[var(--ysim-radius-md)] px-1 text-sm font-bold text-[var(--ysim-color-brand-700)] hover:text-[var(--ysim-color-brand-900)]"
+                >
+                  {descriptionExpanded ? (
+                    <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {descriptionExpanded
+                    ? t("product.descriptionReadLess")
+                    : t("product.descriptionReadMore")}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </Container>

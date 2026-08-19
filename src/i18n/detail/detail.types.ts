@@ -64,6 +64,8 @@ export const DETAIL_MESSAGE_KEYS = [
   "product.qrInstallation",
   "product.galleryViewImage",
   "product.descriptionTitle",
+  "product.descriptionReadMore",
+  "product.descriptionReadLess",
   "product.usageEyebrow",
   "product.usageTitle",
   "product.usageStableWifi",
