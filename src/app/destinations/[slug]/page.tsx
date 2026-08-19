@@ -26,6 +26,21 @@ interface DestinationDetailPageProps {
 }
 
 function resolveDestinationSelection(slug: string): EsimQuickFilterSelection {
+  if (slug === "global") {
+    return resolveEsimQuickFilterFromSearchParams({ type: "global" });
+  }
+
+  const continentSelection = resolveEsimQuickFilterFromSearchParams({
+    continent: slug,
+  });
+  if (continentSelection.kind === "continent") return continentSelection;
+
+  const regionSelection = resolveEsimQuickFilterFromSearchParams({
+    type: "region",
+    region: slug,
+  });
+  if (regionSelection.kind === "region") return regionSelection;
+
   return resolveEsimQuickFilterFromSearchParams({
     destination: slug,
   });

@@ -88,17 +88,17 @@ export function createLocalizedShellBundle(
               localizedLink(
                 locale,
                 t("navigation.europe"),
-                "/destinations?continent=europe",
+                "/destinations/europe",
               ),
               localizedLink(
                 locale,
                 t("navigation.northAmerica"),
-                "/destinations?continent=north-america",
+                "/destinations/north-america",
               ),
               localizedLink(
                 locale,
                 t("navigation.global"),
-                "/esim?category=global",
+                "/destinations/global",
               ),
               localizedLink(
                 locale,
@@ -208,11 +208,7 @@ export function createLocalizedShellBundle(
           t("navigation.usa"),
           "/destinations/united-states",
         ),
-        localizedLink(
-          locale,
-          t("navigation.europe"),
-          "/destinations?continent=europe",
-        ),
+        localizedLink(locale, t("navigation.europe"), "/destinations/europe"),
       ],
     },
   };
