@@ -1,17 +1,31 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { popularDestinations, type DestinationItem } from "@/data/destinations";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+import type { ShellLocale } from "@/i18n/shell/shell.types";
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat("vi-VN").format(price);
 }
 
-function DestinationCard({ destination }: { destination: DestinationItem }) {
+function DestinationCard({
+  destination,
+  locale,
+}: {
+  destination: DestinationItem;
+  locale: ShellLocale;
+}) {
   return (
     <Link
-      href={`/esim?destination=${encodeURIComponent(destination.slug)}`}
+      href={localizeShellHref(
+        `/destinations/${encodeURIComponent(destination.slug)}`,
+        locale,
+      )}
       aria-label={`Xem các gói eSIM ${destination.name}`}
       className="group relative block h-[146px] w-[164px] shrink-0 snap-start overflow-hidden rounded-lg bg-slate-100 shadow-sm ring-1 ring-slate-200/80 transition duration-300 hover:-translate-y-1 hover:shadow-md focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 focus-visible:outline-none lg:h-[146px] lg:w-auto lg:min-w-0 lg:shrink"
     >
@@ -57,6 +71,8 @@ function DestinationCard({ destination }: { destination: DestinationItem }) {
 }
 
 export function PopularDestinations() {
+  const { locale } = useStorefrontLocale();
+
   return (
     <section className="bg-white px-5 pt-6 pb-4 sm:px-6 lg:px-8">
       <div className="max-w-7lg mx-auto">
@@ -66,7 +82,7 @@ export function PopularDestinations() {
           </h2>
 
           <Link
-            href="/destinations"
+            href={localizeShellHref("/destinations", locale)}
             className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-slate-700 transition hover:text-green-700 sm:text-xs"
           >
             Xem tất cả
@@ -77,7 +93,11 @@ export function PopularDestinations() {
         <div className="-mx-5 mt-3 [scrollbar-width:none] overflow-x-auto px-5 pb-3 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
           <div className="flex snap-x snap-mandatory gap-3 lg:grid lg:grid-cols-8 lg:gap-3">
             {popularDestinations.map((destination) => (
-              <DestinationCard key={destination.id} destination={destination} />
+              <DestinationCard
+                key={destination.id}
+                destination={destination}
+                locale={locale}
+              />
             ))}
           </div>
         </div>

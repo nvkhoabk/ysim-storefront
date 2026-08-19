@@ -70,6 +70,8 @@ export const detailMessagesLo = {
   "product.qrInstallation": "ຕິດຕັ້ງດ້ວຍ QR code",
   "product.galleryViewImage": "ເບິ່ງຮູບ {name}",
   "product.descriptionTitle": "ລາຍລະອຽດ",
+  "product.descriptionReadMore": "ອ່ານເພີ່ມ",
+  "product.descriptionReadLess": "ຫຍໍ້ລົງ",
   "product.usageEyebrow": "ຂໍ້ຄວນຮູ້",
   "product.usageTitle": "ກຽມຕົວກ່ອນເດີນທາງ",
   "product.usageStableWifi":

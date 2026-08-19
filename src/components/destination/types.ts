@@ -18,7 +18,7 @@ export interface DestinationContinent {
 
   /**
    * Dùng để đồng bộ URL:
-   * /destinations?continent=asia
+   * /destinations/asia
    */
   slug?: string;
 

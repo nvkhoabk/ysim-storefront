@@ -14,6 +14,10 @@ import type {
 } from "@/types/view-models/product-detail-route-candidate";
 import { createDetailTranslator } from "@/i18n/detail/detail.registry";
 import { localizeDestinationName } from "@/i18n/listing/static-destination.config";
+import {
+  normalizeProductDescriptionHtml,
+  normalizeProductDescriptionText,
+} from "@/lib/storefront/content/product-description";
 
 type DetailTranslator = ReturnType<typeof createDetailTranslator>;
 
@@ -38,19 +42,6 @@ function httpsImage(value: string | undefined): string {
   }
 
   return value.replace("http://shop.ysim.vn/", "https://shop.ysim.vn/");
-}
-
-function plainText(value: string | undefined): string {
-  return (value || "")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#039;/gi, "'")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function displayAttributeValue(attribute: WooCommerceProductAttribute): string {
@@ -170,7 +161,7 @@ function variationViewModel(
     id: variation.id,
     sku: variation.sku,
     label: variationLabel(variation, index, t),
-    description: plainText(variation.description),
+    description: normalizeProductDescriptionText(variation.description),
     price,
     regularPrice: regularPrice > price ? regularPrice : undefined,
     purchasable: Boolean(variation.is_purchasable),
@@ -194,7 +185,7 @@ function simpleVariation(
     id: product.id,
     sku: product.sku,
     label: t("product.standardPlan"),
-    description: plainText(product.short_description),
+    description: normalizeProductDescriptionText(product.short_description),
     price,
     regularPrice: regularPrice > price ? regularPrice : undefined,
     purchasable: Boolean(product.is_purchasable),
@@ -308,8 +299,11 @@ export function mapProductDetailRouteProduct(
           product.categories[0].name,
         )
       : undefined,
-    shortDescription: plainText(product.short_description),
-    description: plainText(product.description),
+    shortDescription: normalizeProductDescriptionText(
+      product.short_description,
+    ),
+    description: normalizeProductDescriptionHtml(product.description),
+    descriptionPreview: normalizeProductDescriptionText(product.description),
     gallery: gallery(product),
     features: features(product, t),
     variations,

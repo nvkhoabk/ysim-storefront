@@ -86,15 +86,15 @@ export const storefrontNavigation: StorefrontNavigationConfig = {
           links: [
             {
               label: "Châu Âu",
-              href: "/destinations?continent=europe",
+              href: "/destinations/europe",
             },
             {
               label: "Bắc Mỹ",
-              href: "/destinations?continent=north-america",
+              href: "/destinations/north-america",
             },
             {
               label: "Toàn cầu",
-              href: "/esim?category=global",
+              href: "/destinations/global",
             },
             {
               label: "Xem tất cả điểm đến",
@@ -230,7 +230,7 @@ export const storefrontNavigation: StorefrontNavigationConfig = {
       },
       {
         label: "Châu Âu",
-        href: "/destinations?continent=europe",
+        href: "/destinations/europe",
       },
     ],
   },

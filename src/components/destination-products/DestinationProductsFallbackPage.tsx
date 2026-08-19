@@ -8,6 +8,10 @@ import { EsimQuickProductCatalog } from "@/components/catalog/EsimQuickProductCa
 import type { StorefrontDestinationHeroAsset } from "@/config/storefront-destination-heroes";
 import type { EsimQuickFilterSelection } from "@/types/view-models/esim-quick-filter";
 import type { SecondaryProductViewModel } from "@/types/view-models/secondary-routes";
+import {
+  createEsimQuickFilterUrl,
+  esimQuickFilterSelectionKey,
+} from "@/lib/storefront/catalog/esim-quick-filter";
 import { useStorefrontLocale } from "@/i18n/runtime";
 import { createListingTranslator } from "@/i18n/listing/listing.registry";
 import { localizeShellHref } from "@/i18n/shell/shell.href";
@@ -31,7 +35,7 @@ export function DestinationProductsFallbackPage({
   const { locale } = useStorefrontLocale();
   const t = createListingTranslator(locale);
   const fullCatalogHref = localizeShellHref(
-    `/esim?destination=${encodeURIComponent(selection.id)}`,
+    createEsimQuickFilterUrl(selection),
     locale,
   );
   const destinationsHref = localizeShellHref("/destinations", locale);
@@ -121,6 +125,7 @@ export function DestinationProductsFallbackPage({
       <EsimQuickProductCatalog
         products={products}
         selection={selection}
+        prefilteredSelectionKey={esimQuickFilterSelectionKey(selection)}
         onClearSelection={() => router.push(destinationsHref)}
       />
     </>

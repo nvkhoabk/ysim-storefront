@@ -19,6 +19,9 @@ import {
 import {
   esimDestinationExplorer,
 } from "@/config/esim-destination-explorer";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+import type { ShellLocale } from "@/i18n/shell/shell.types";
 
 import type {
   EsimContinentViewModel,
@@ -41,9 +44,11 @@ function countryFlagSource(
 
 function ContinentGroup({
   group,
+  locale,
 }: {
   group:
     EsimContinentViewModel;
+  locale: ShellLocale;
 }) {
   return (
     <section
@@ -77,7 +82,10 @@ function ContinentGroup({
                 }
               >
                 <Link
-                  href={`/destinations?destination=${encodeURIComponent(destination.slug)}`}
+                  href={localizeShellHref(
+                    `/destinations/${encodeURIComponent(destination.slug)}`,
+                    locale,
+                  )}
                   className={
                     styles.destinationLink
                   }
@@ -165,7 +173,10 @@ function ContinentGroup({
       </ul>
 
       <Link
-        href={`/destinations?continent=${encodeURIComponent(group.id)}`}
+        href={localizeShellHref(
+          `/destinations/${encodeURIComponent(group.id)}`,
+          locale,
+        )}
         className={
           styles.viewAll
         }
@@ -183,7 +194,7 @@ function ContinentGroup({
   );
 }
 
-function CountryPanel() {
+function CountryPanel({ locale }: { locale: ShellLocale }) {
   return (
     <>
       <h2
@@ -213,6 +224,7 @@ function CountryPanel() {
                   group={
                     group
                   }
+                  locale={locale}
                 />
               ),
             )
@@ -238,6 +250,7 @@ function CountryPanel() {
                   group={
                     group
                   }
+                  locale={locale}
                 />
               ),
             )
@@ -247,7 +260,7 @@ function CountryPanel() {
   );
 }
 
-function RegionPanel() {
+function RegionPanel({ locale }: { locale: ShellLocale }) {
   return (
     <>
       <h2
@@ -274,7 +287,10 @@ function RegionPanel() {
                   key={
                     region.id
                   }
-                  href={`/destinations?type=region&region=${encodeURIComponent(region.id)}`}
+                  href={localizeShellHref(
+                    `/destinations/${encodeURIComponent(region.id)}`,
+                    locale,
+                  )}
                   className={
                     styles.regionCard
                   }
@@ -330,7 +346,7 @@ function RegionPanel() {
   );
 }
 
-function GlobalPanel() {
+function GlobalPanel({ locale }: { locale: ShellLocale }) {
   return (
     <div
       className={
@@ -404,7 +420,7 @@ function GlobalPanel() {
         </div>
 
         <Link
-          href="/destinations?type=global"
+          href={localizeShellHref("/destinations/global", locale)}
           className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 text-sm font-extrabold text-white no-underline hover:bg-emerald-800"
         >
           Xem eSIM Toàn cầu
@@ -429,6 +445,7 @@ const typeIcons = {
 } as const;
 
 export function EsimTypeExplorer() {
+  const { locale } = useStorefrontLocale();
   const [
     activeType,
     setActiveType,
@@ -588,7 +605,7 @@ export function EsimTypeExplorer() {
           activeType ===
           "country"
             ? (
-                <CountryPanel />
+                <CountryPanel locale={locale} />
               )
             : null
         }
@@ -597,7 +614,7 @@ export function EsimTypeExplorer() {
           activeType ===
           "region"
             ? (
-                <RegionPanel />
+                <RegionPanel locale={locale} />
               )
             : null
         }
@@ -606,7 +623,7 @@ export function EsimTypeExplorer() {
           activeType ===
           "global"
             ? (
-                <GlobalPanel />
+                <GlobalPanel locale={locale} />
               )
             : null
         }

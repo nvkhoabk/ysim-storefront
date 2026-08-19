@@ -481,6 +481,46 @@ function productCategorySlugs(
   return result;
 }
 
+function requestedContinent(
+  value: string | undefined,
+): Exclude<DestinationContinent, "global"> | undefined {
+  const slug = slugify(value);
+  if (slug === "europe-region") {
+    return "europe";
+  }
+  if (
+    slug === "asia" ||
+    slug === "europe" ||
+    slug === "north-america" ||
+    slug === "south-america" ||
+    slug === "africa" ||
+    slug === "oceania"
+  ) {
+    return slug;
+  }
+  return undefined;
+}
+
+function productMatchesContinent(
+  product: WooCommerceProduct,
+  continent: Exclude<DestinationContinent, "global">,
+  taxonomy: WooCategoryTaxonomy,
+): boolean {
+  const destinationContinents = new Set(
+    productDestinationDescriptors(product, taxonomy)
+      .map((descriptor) => descriptor.continent)
+      .filter((value) => value !== "global"),
+  );
+
+  if (destinationContinents.size === 1) {
+    return destinationContinents.has(continent);
+  }
+
+  return (product.categories || []).some(
+    (category) => requestedContinent(category.slug) === continent,
+  );
+}
+
 export function productMatchesDestination(
   product: WooCommerceProduct,
   destination: string | undefined,
@@ -521,6 +561,10 @@ export function productMatchesCategory(
   }
   if (/^\d+$/.test(category.trim())) {
     return (product.categories || []).some((item) => item.id === Number(category));
+  }
+  const continent = requestedContinent(category);
+  if (continent) {
+    return productMatchesContinent(product, continent, taxonomy);
   }
   return productMatchesDestination(product, category, taxonomy);
 }

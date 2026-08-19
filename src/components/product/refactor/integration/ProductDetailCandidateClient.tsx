@@ -7,7 +7,9 @@ import Link from "next/link";
 
 import {
   Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   CircleAlert,
   Database,
   Globe2,
@@ -83,6 +85,10 @@ export function ProductDetailCandidateClient({
   const [quantity, setQuantity] = useState(1);
 
   const [feedback, setFeedback] = useState<string | undefined>();
+
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+
+  const hasExpandableDescription = product.descriptionPreview.length > 280;
 
   const selected = useMemo(
     () =>
@@ -459,9 +465,67 @@ export function ProductDetailCandidateClient({
                 {t("product.descriptionTitle")}
               </h2>
 
-              <p className="mt-3 text-sm leading-7 whitespace-pre-line text-[var(--ysim-color-text-muted)]">
-                {product.description}
-              </p>
+              {hasExpandableDescription && !descriptionExpanded ? (
+                <p
+                  id="product-description-content"
+                  className="mt-3 line-clamp-4 text-sm leading-7 whitespace-pre-line text-[var(--ysim-color-text-muted)]"
+                >
+                  {product.descriptionPreview}
+                </p>
+              ) : (
+                <div
+                  id="product-description-content"
+                  className={cn(
+                    "mt-3 text-sm leading-7 text-[var(--ysim-color-text-muted)]",
+                    "[&_a]:font-semibold [&_a]:text-[var(--ysim-color-brand-700)] [&_a]:underline",
+                    "[&_b]:font-bold [&_b]:text-[var(--ysim-color-text)]",
+                    "[&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--ysim-color-brand-500)] [&_blockquote]:pl-4",
+                    "[&_em]:italic [&_i]:italic",
+                    "[&_figcaption]:mt-2 [&_figcaption]:text-center [&_figcaption]:text-xs",
+                    "[&_figure]:my-5",
+                    "[&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:leading-tight [&_h1]:font-bold [&_h1]:text-[var(--ysim-color-text)]",
+                    "[&_h2]:mt-6 [&_h2]:text-xl [&_h2]:leading-tight [&_h2]:font-bold [&_h2]:text-[var(--ysim-color-text)]",
+                    "[&_h3]:mt-5 [&_h3]:text-lg [&_h3]:leading-tight [&_h3]:font-bold [&_h3]:text-[var(--ysim-color-text)]",
+                    "[&_h4]:mt-4 [&_h4]:font-bold [&_h4]:text-[var(--ysim-color-text)]",
+                    "[&_h5]:mt-4 [&_h5]:font-bold [&_h5]:text-[var(--ysim-color-text)]",
+                    "[&_h6]:mt-4 [&_h6]:font-bold [&_h6]:text-[var(--ysim-color-text)]",
+                    "[&_hr]:my-5 [&_hr]:border-[var(--ysim-color-border)]",
+                    "[&_img]:my-5 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-[var(--ysim-radius-lg)]",
+                    "[&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6",
+                    "[&_p]:mt-3 [&_p:first-child]:mt-0",
+                    "[&_strong]:font-bold [&_strong]:text-[var(--ysim-color-text)]",
+                    "[&_table]:my-5 [&_table]:w-full [&_table]:border-collapse",
+                    "[&_td]:border [&_td]:border-[var(--ysim-color-border)] [&_td]:p-2",
+                    "[&_th]:border [&_th]:border-[var(--ysim-color-border)] [&_th]:p-2 [&_th]:text-left [&_th]:font-bold",
+                    "[&_u]:underline",
+                    "[&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6",
+                    "[&_.aligncenter]:mx-auto [&_.aligncenter]:block",
+                    "[&_.alignleft]:float-left [&_.alignleft]:mr-4",
+                    "[&_.alignright]:float-right [&_.alignright]:ml-4",
+                    "[&_.has-text-align-center]:text-center [&_.has-text-align-right]:text-right",
+                  )}
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                />
+              )}
+
+              {hasExpandableDescription ? (
+                <button
+                  type="button"
+                  aria-controls="product-description-content"
+                  aria-expanded={descriptionExpanded}
+                  onClick={() => setDescriptionExpanded((current) => !current)}
+                  className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-[var(--ysim-radius-md)] px-1 text-sm font-bold text-[var(--ysim-color-brand-700)] hover:text-[var(--ysim-color-brand-900)]"
+                >
+                  {descriptionExpanded ? (
+                    <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {descriptionExpanded
+                    ? t("product.descriptionReadLess")
+                    : t("product.descriptionReadMore")}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </Container>

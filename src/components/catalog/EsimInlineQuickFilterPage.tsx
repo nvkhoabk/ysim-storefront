@@ -11,6 +11,9 @@ import type {
 import type {
   SecondaryProductViewModel,
 } from "@/types/view-models/secondary-routes";
+import {
+  esimQuickFilterSelectionKey,
+} from "@/lib/storefront/catalog/esim-quick-filter";
 
 import {
   EsimInlineQuickCatalogExperience,
@@ -41,11 +44,17 @@ export function EsimInlineQuickFilterPage({
         >
           <Container>
             <EsimInlineQuickCatalogExperience
+              key={`${initialSelection.kind}:${initialSelection.id}`}
               products={
                 products
               }
               initialSelection={
                 initialSelection
+              }
+              prefilteredSelectionKey={
+                esimQuickFilterSelectionKey(
+                  initialSelection,
+                )
               }
             />
           </Container>

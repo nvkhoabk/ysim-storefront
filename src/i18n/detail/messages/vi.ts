@@ -71,6 +71,8 @@ export const detailMessagesVi = {
   "product.qrInstallation": "Cài đặt bằng mã QR",
   "product.galleryViewImage": "Xem ảnh {name}",
   "product.descriptionTitle": "Mô tả",
+  "product.descriptionReadMore": "Đọc thêm",
+  "product.descriptionReadLess": "Thu gọn",
   "product.usageEyebrow": "Lưu ý sử dụng",
   "product.usageTitle": "Chuẩn bị trước chuyến đi",
   "product.usageStableWifi": "Cài đặt eSIM khi có kết nối Wi‑Fi ổn định.",

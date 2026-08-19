@@ -251,8 +251,14 @@ const destinationRoute = readFileSync(
   resolve(root, "src/app/destinations/[slug]/page.tsx"),
   "utf8",
 );
-assert.match(listingRoute, /loadCatalog\(request\.shell\.locale\)/);
-assert.match(destinationRoute, /loadCatalog\(request\.shell\.locale\)/);
+assert.match(
+  listingRoute,
+  /loadCatalog\(request\.shell\.locale,\s*initialSelection\)/,
+);
+assert.match(
+  destinationRoute,
+  /loadCatalog\(request\.shell\.locale,\s*resolvedSelection\)/,
+);
 pass("LISTINGS_REQUEST_CURRENT_LOCALE");
 
 const detailRoute = readFileSync(

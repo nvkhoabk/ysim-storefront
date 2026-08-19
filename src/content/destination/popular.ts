@@ -89,7 +89,7 @@ export const popularDestinations: PopularDestination[] = [
     id: "global",
     name: "Toàn cầu",
     slug: "global",
-    href: "/esim?category=global",
+    href: "/destinations/global",
     continent: "all",
     imageSrc: "/images/destinations/global.jpg",
     imageAlt:

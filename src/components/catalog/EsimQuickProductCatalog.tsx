@@ -10,7 +10,10 @@ import { ArrowUpDown, PackageSearch, X } from "lucide-react";
 import { StorefrontSearchCombobox } from "@/components/search";
 import { Price } from "@/components/ui";
 
-import { productMatchesEsimQuickFilter } from "@/lib/storefront/catalog/esim-quick-filter";
+import {
+  esimQuickFilterSelectionKey,
+  productMatchesEsimQuickFilter,
+} from "@/lib/storefront/catalog/esim-quick-filter";
 import {
   createProductStorefrontSuggestions,
   normalizeStorefrontSearchText,
@@ -77,10 +80,12 @@ function sortedProducts(
 export function EsimQuickProductCatalog({
   products,
   selection,
+  prefilteredSelectionKey,
   onClearSelection,
 }: {
   products: readonly SecondaryProductViewModel[];
   selection: EsimQuickFilterSelection;
+  prefilteredSelectionKey?: string;
   onClearSelection: () => void;
 }) {
   const { locale } = useStorefrontLocale();
@@ -96,6 +101,9 @@ export function EsimQuickProductCatalog({
 
   const [sort, setSort] = useState<EsimCatalogSort>("recommended");
 
+  const selectionKey = esimQuickFilterSelectionKey(selection);
+  const selectionPrefiltered = prefilteredSelectionKey === selectionKey;
+
   const searchSuggestions = useMemo(
     () => createProductStorefrontSuggestions(products, locale),
     [locale, products],
@@ -103,10 +111,12 @@ export function EsimQuickProductCatalog({
 
   const filteredBySelection = useMemo(
     () =>
-      products.filter((product) =>
-        productMatchesEsimQuickFilter(product, selection),
-      ),
-    [products, selection],
+      selectionPrefiltered
+        ? products
+        : products.filter((product) =>
+            productMatchesEsimQuickFilter(product, selection),
+          ),
+    [products, selection, selectionPrefiltered],
   );
 
   const visibleProducts = useMemo(
@@ -124,8 +134,12 @@ export function EsimQuickProductCatalog({
   return (
     <section
       id="esim-quick-catalog"
-      data-ysim-quick-filter={`${selection.kind}:${selection.id}`}
-      data-ysim-filter-index="taxonomy-attribute-v2"
+      data-ysim-quick-filter={selectionKey}
+      data-ysim-filter-index={
+        selectionPrefiltered
+          ? "taxonomy-authoritative-v3"
+          : "taxonomy-attribute-v2"
+      }
       data-ysim-product-count={visibleProducts.length}
       className={styles.catalog}
     >
