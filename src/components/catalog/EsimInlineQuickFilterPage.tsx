@@ -19,11 +19,13 @@ import {
 export function EsimInlineQuickFilterPage({
   products,
   initialSelection,
+  selectionApplied = false,
 }: {
   products:
     readonly SecondaryProductViewModel[];
   initialSelection:
     EsimQuickFilterSelection;
+  selectionApplied?: boolean;
 }) {
   return (
     <PageShell
@@ -41,12 +43,14 @@ export function EsimInlineQuickFilterPage({
         >
           <Container>
             <EsimInlineQuickCatalogExperience
+              key={`${initialSelection.kind}:${initialSelection.id}`}
               products={
                 products
               }
               initialSelection={
                 initialSelection
               }
+              selectionApplied={selectionApplied}
             />
           </Container>
         </Section>

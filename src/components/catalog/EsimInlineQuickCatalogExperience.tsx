@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   createAllEsimQuickFilterSelection,
@@ -20,21 +21,6 @@ import { useStorefrontLocale } from "@/i18n/runtime";
 import { localizeShellHref } from "@/i18n/shell/shell.href";
 import { localizeEsimQuickFilterSelection } from "@/i18n/listing/static-destination.config";
 
-function updateBrowserUrl(
-  selection: EsimQuickFilterSelection,
-  locale: "vi" | "en" | "lo",
-): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.history.replaceState(
-    window.history.state,
-    "",
-    localizeShellHref(createEsimQuickFilterUrl(selection), locale),
-  );
-}
-
 function scrollToCatalog(): void {
   if (typeof document === "undefined") {
     return;
@@ -51,11 +37,14 @@ function scrollToCatalog(): void {
 export function EsimInlineQuickCatalogExperience({
   products,
   initialSelection,
+  selectionApplied = false,
 }: {
   products: readonly SecondaryProductViewModel[];
   initialSelection: EsimQuickFilterSelection;
+  selectionApplied?: boolean;
 }) {
   const { locale } = useStorefrontLocale();
+  const router = useRouter();
   const [selection, setSelection] = useState<EsimQuickFilterSelection>(() =>
     localizeEsimQuickFilterSelection(initialSelection, locale),
   );
@@ -65,11 +54,13 @@ export function EsimInlineQuickCatalogExperience({
       const localized = localizeEsimQuickFilterSelection(next, locale);
       setSelection(localized);
 
-      updateBrowserUrl(localized, locale);
+      router.push(
+        localizeShellHref(createEsimQuickFilterUrl(localized), locale),
+      );
 
       scrollToCatalog();
     },
-    [locale],
+    [locale, router],
   );
 
   const clearSelection = useCallback(() => {
@@ -83,6 +74,7 @@ export function EsimInlineQuickCatalogExperience({
       <EsimQuickProductCatalog
         products={products}
         selection={selection}
+        selectionApplied={selectionApplied}
         onClearSelection={clearSelection}
       />
 

@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { PageShell } from "@/components/layout";
 import { DestinationProductsFallbackPage } from "@/components/destination-products/DestinationProductsFallbackPage";
 import {
-  productMatchesEsimQuickFilter,
   resolveEsimQuickFilterFromSearchParams,
 } from "@/lib/storefront/catalog/esim-quick-filter";
 import { loadCatalog } from "@/lib/storefront/integration/secondary-routes/service";
@@ -78,17 +77,14 @@ export default async function DestinationDetailPage({
   params,
 }: DestinationDetailPageProps) {
   const request = await getStorefrontLocaleRequest();
-  const [{ slug }, catalog] = await Promise.all([
-    params,
-    loadCatalog(request.shell.locale),
-  ]);
+  const { slug } = await params;
+  const resolvedSelection = resolveDestinationSelection(slug);
+  const catalog = await loadCatalog(request.shell.locale, resolvedSelection);
   const selection = localizeEsimQuickFilterSelection(
-    resolveDestinationSelection(slug),
+    resolvedSelection,
     request.shell.locale,
   );
-  const matchingProductCount = catalog.products.filter((product) =>
-    productMatchesEsimQuickFilter(product, selection),
-  ).length;
+  const matchingProductCount = catalog.products.length;
   const heroAsset = resolveStorefrontDestinationHero(selection.id);
 
   return (
@@ -99,6 +95,7 @@ export default async function DestinationDetailPage({
           selection={selection}
           matchingProductCount={matchingProductCount}
           heroAsset={heroAsset}
+          selectionApplied
         />
       </PageShell>
     </StorefrontLocaleProvider>

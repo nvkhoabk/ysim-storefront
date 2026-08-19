@@ -46,18 +46,16 @@ export default async function Page({
   searchParams: Promise<EsimQuickFilterSearchParams>;
 }) {
   const request = await getStorefrontLocaleRequest();
-  const [catalog, resolvedSearchParams] = await Promise.all([
-    loadCatalog(request.shell.locale),
-    searchParams,
-  ]);
-
+  const resolvedSearchParams = await searchParams;
   const initialSelection =
     resolveEsimQuickFilterFromSearchParams(resolvedSearchParams);
+  const catalog = await loadCatalog(request.shell.locale, initialSelection);
 
   return (
     <EsimInlineQuickFilterPage
       products={catalog.products}
       initialSelection={initialSelection}
+      selectionApplied={initialSelection.kind !== "all"}
     />
   );
 }

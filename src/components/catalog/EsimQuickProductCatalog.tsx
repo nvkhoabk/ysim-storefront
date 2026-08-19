@@ -77,10 +77,12 @@ function sortedProducts(
 export function EsimQuickProductCatalog({
   products,
   selection,
+  selectionApplied = false,
   onClearSelection,
 }: {
   products: readonly SecondaryProductViewModel[];
   selection: EsimQuickFilterSelection;
+  selectionApplied?: boolean;
   onClearSelection: () => void;
 }) {
   const { locale } = useStorefrontLocale();
@@ -103,10 +105,12 @@ export function EsimQuickProductCatalog({
 
   const filteredBySelection = useMemo(
     () =>
-      products.filter((product) =>
-        productMatchesEsimQuickFilter(product, selection),
-      ),
-    [products, selection],
+      selectionApplied
+        ? products
+        : products.filter((product) =>
+            productMatchesEsimQuickFilter(product, selection),
+          ),
+    [products, selection, selectionApplied],
   );
 
   const visibleProducts = useMemo(
@@ -125,7 +129,9 @@ export function EsimQuickProductCatalog({
     <section
       id="esim-quick-catalog"
       data-ysim-quick-filter={`${selection.kind}:${selection.id}`}
-      data-ysim-filter-index="taxonomy-attribute-v2"
+      data-ysim-filter-index={
+        selectionApplied ? "taxonomy-authoritative-v3" : "taxonomy-attribute-v2"
+      }
       data-ysim-product-count={visibleProducts.length}
       className={styles.catalog}
     >

@@ -22,7 +22,73 @@ const routes = [
   "/vi/destinations/africa",
   "/vi/destinations/oceania",
   "/vi/destinations/global",
+  "/vi/esim?continent=asia",
+  "/vi/esim?continent=europe",
+  "/vi/esim?continent=north-america",
+  "/vi/esim?continent=south-america",
+  "/vi/esim?continent=africa",
+  "/vi/esim?continent=oceania",
+  "/vi/esim?type=global",
 ];
+const collectionContracts = new Map([
+  [
+    "/vi/destinations/asia",
+    {
+      filter: "continent:asia",
+      forbidden: [/eSIM Châu Âu/iu, /eSIM Nga/iu],
+    },
+  ],
+  [
+    "/vi/destinations/europe",
+    {
+      filter: "continent:europe",
+      forbidden: [/eSIM Châu Á/iu, /eSIM Nam Mỹ/iu],
+    },
+  ],
+  [
+    "/vi/destinations/north-america",
+    {
+      filter: "continent:north-america",
+      forbidden: [/eSIM Châu Á/iu, /eSIM Nam Mỹ/iu],
+    },
+  ],
+  [
+    "/vi/destinations/south-america",
+    {
+      filter: "continent:south-america",
+      forbidden: [/eSIM Châu Á/iu, /eSIM Bắc Mỹ/iu],
+    },
+  ],
+  [
+    "/vi/destinations/africa",
+    {
+      filter: "continent:africa",
+      forbidden: [/eSIM Châu Á/iu, /eSIM Châu Âu/iu, /eSIM Bắc Mỹ/iu],
+    },
+  ],
+  [
+    "/vi/destinations/oceania",
+    {
+      filter: "continent:oceania",
+      forbidden: [/eSIM Châu Á/iu, /eSIM Châu Âu/iu, /eSIM Nam Mỹ/iu],
+    },
+  ],
+  [
+    "/vi/destinations/global",
+    {
+      filter: "global:global",
+      forbidden: [],
+    },
+  ],
+]);
+
+for (const [route, contract] of [...collectionContracts]) {
+  const slug = route.split("/").at(-1);
+  const queryRoute =
+    slug === "global" ? "/vi/esim?type=global" : `/vi/esim?continent=${slug}`;
+  collectionContracts.set(queryRoute, contract);
+}
+
 const timeoutMilliseconds = 180_000;
 
 async function availablePort() {
@@ -120,6 +186,41 @@ try {
       /STOREFRONT_LOCALE_PROVIDER_REQUIRED|Switched to client rendering because the server rendering errored/i,
       `${route} rendered a locale-provider server error.`,
     );
+    const collectionContract = collectionContracts.get(route);
+    if (collectionContract) {
+      const catalogStart = body.indexOf('<section id="esim-quick-catalog"');
+      const catalogEnd = body.indexOf("</section>", catalogStart);
+      assert.ok(
+        catalogStart >= 0 && catalogEnd > catalogStart,
+        `${route} did not render a bounded product catalog section.`,
+      );
+      const catalogBody = body.slice(catalogStart, catalogEnd);
+
+      assert.ok(
+        catalogBody.includes(
+          `data-ysim-quick-filter="${collectionContract.filter}"`,
+        ),
+        `${route} rendered the wrong semantic selection.`,
+      );
+      assert.ok(
+        catalogBody.includes(
+          'data-ysim-filter-index="taxonomy-authoritative-v3"',
+        ),
+        `${route} did not use taxonomy-authoritative filtering.`,
+      );
+      for (const forbidden of collectionContract.forbidden) {
+        assert.doesNotMatch(
+          catalogBody,
+          forbidden,
+          `${route} contains a cross-collection product matching ${forbidden}.`,
+        );
+      }
+      console.log(
+        `DEV_RUNTIME_COLLECTION_${collectionContract.filter
+          .replace(/[^a-z0-9]+/gi, "_")
+          .toUpperCase()}=PASS_SEMANTIC`,
+      );
+    }
     console.log(
       `DEV_RUNTIME_ROUTE_${route.replace(/[^a-z0-9]+/gi, "_").toUpperCase()}=PASS_200`,
     );
@@ -127,6 +228,9 @@ try {
 
   console.log(
     `F08_DEV_RUNTIME_SMOKE=PASS_${routes.length}_OF_${routes.length}`,
+  );
+  console.log(
+    `F08_COLLECTION_SEMANTIC_RUNTIME=PASS_${collectionContracts.size}_OF_${collectionContracts.size}`,
   );
 } finally {
   if (child.exitCode === null) child.kill("SIGTERM");

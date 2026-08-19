@@ -6,6 +6,8 @@ import {
   createSecondaryProductCatalogIdentity,
 } from "@/lib/storefront/catalog/secondary-product-taxonomy";
 
+import type { EsimQuickFilterSelection } from "@/types/view-models/esim-quick-filter";
+
 import type {
   WooCommercePrice,
   WooCommerceProduct,
@@ -74,11 +76,38 @@ function mapProduct(
   };
 }
 
-export async function loadCatalog(locale = secondaryLocale) {
+export interface SecondaryCatalogSelectionQuery {
+  readonly destination?: string;
+  readonly category?: string;
+}
+
+export function createSecondaryCatalogSelectionQuery(
+  selection: EsimQuickFilterSelection | undefined,
+): SecondaryCatalogSelectionQuery {
+  if (!selection || selection.kind === "all") {
+    return {};
+  }
+
+  if (selection.kind === "destination") {
+    return {
+      destination: selection.id,
+    };
+  }
+
+  return {
+    category: selection.id,
+  };
+}
+
+export async function loadCatalog(
+  locale = secondaryLocale,
+  selection?: EsimQuickFilterSelection,
+) {
   const products = await getProducts({
     page: 1,
     perPage: secondaryProductLimit,
     locale,
+    ...createSecondaryCatalogSelectionQuery(selection),
   });
 
   const mapped = products
