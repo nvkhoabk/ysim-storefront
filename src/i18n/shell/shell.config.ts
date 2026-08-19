@@ -59,25 +59,25 @@ export function createLocalizedShellBundle(
               localizedLink(
                 locale,
                 t("navigation.japan"),
-                "/destinations#japan",
+                "/destinations/japan",
                 t("navigation.japanDescription"),
               ),
               localizedLink(
                 locale,
                 t("navigation.korea"),
-                "/destinations#korea",
+                "/destinations/south-korea",
                 t("navigation.koreaDescription"),
               ),
               localizedLink(
                 locale,
                 t("navigation.thailand"),
-                "/destinations#thailand",
+                "/destinations/thailand",
                 t("navigation.thailandDescription"),
               ),
               localizedLink(
                 locale,
                 t("navigation.singapore"),
-                "/destinations#singapore",
+                "/destinations/singapore",
                 t("navigation.singaporeDescription"),
               ),
             ],
@@ -88,17 +88,17 @@ export function createLocalizedShellBundle(
               localizedLink(
                 locale,
                 t("navigation.europe"),
-                "/destinations#europe",
+                "/destinations?continent=europe",
               ),
               localizedLink(
                 locale,
                 t("navigation.northAmerica"),
-                "/destinations#north-america",
+                "/destinations?continent=north-america",
               ),
               localizedLink(
                 locale,
                 t("navigation.global"),
-                "/destinations#global",
+                "/esim?category=global",
               ),
               localizedLink(
                 locale,
@@ -170,7 +170,7 @@ export function createLocalizedShellBundle(
               localizedLink(
                 locale,
                 t("navigation.technicalSupport"),
-                "/support#technical-support",
+                "/support#contact",
               ),
               localizedLink(locale, t("navigation.faq"), "/support#faq"),
             ],
@@ -187,20 +187,32 @@ export function createLocalizedShellBundle(
     quickAccess: {
       enabled: true,
       items: [
-        localizedLink(locale, t("navigation.japan"), "/destinations#japan"),
-        localizedLink(locale, t("navigation.korea"), "/destinations#korea"),
+        localizedLink(locale, t("navigation.japan"), "/destinations/japan"),
+        localizedLink(
+          locale,
+          t("navigation.korea"),
+          "/destinations/south-korea",
+        ),
         localizedLink(
           locale,
           t("navigation.thailand"),
-          "/destinations#thailand",
+          "/destinations/thailand",
         ),
         localizedLink(
           locale,
           t("navigation.singapore"),
-          "/destinations#singapore",
+          "/destinations/singapore",
         ),
-        localizedLink(locale, t("navigation.usa"), "/destinations#usa"),
-        localizedLink(locale, t("navigation.europe"), "/destinations#europe"),
+        localizedLink(
+          locale,
+          t("navigation.usa"),
+          "/destinations/united-states",
+        ),
+        localizedLink(
+          locale,
+          t("navigation.europe"),
+          "/destinations?continent=europe",
+        ),
       ],
     },
   };

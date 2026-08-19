@@ -1,6 +1,4 @@
-import {
-  destinationPresentation,
-} from "@/config/storefront-destinations";
+import { destinationPresentation } from "@/config/storefront-destinations";
 
 import {
   genericProductDataAttributeKeys,
@@ -8,13 +6,9 @@ import {
   resolveDestinationDefinition,
 } from "@/config/storefront-production-home";
 
-import {
-  createDestinationCardViewModel,
-} from "@/features/destination/destination-presenter";
+import { createDestinationCardViewModel } from "@/features/destination/destination-presenter";
 
-import {
-  createProductCardViewModel,
-} from "@/features/catalog/product-card-presenter";
+import { createProductCardViewModel } from "@/features/catalog/product-card-presenter";
 
 import type {
   WooCommerceProduct,
@@ -38,116 +32,59 @@ import type {
   ProductSource,
 } from "@/types/view-models/product-card";
 
-function normalizeKey(
-  value: string,
-): string {
+function normalizeKey(value: string): string {
   return value
     .normalize("NFD")
-    .replace(
-      /[\u0300-\u036f]/g,
-      "",
-    )
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(
-      /[^a-z0-9]+/g,
-      "-",
-    )
-    .replace(
-      /^-+|-+$/g,
-      "",
-    );
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-function normalizeMediaUrl(
-  value:
-    | string
-    | undefined,
-): string | undefined {
+function normalizeMediaUrl(value: string | undefined): string | undefined {
   if (!value) {
     return undefined;
   }
 
-  if (
-    value.startsWith(
-      "http://shop.ysim.vn/",
-    )
-  ) {
-    return value.replace(
-      "http://shop.ysim.vn/",
-      "https://shop.ysim.vn/",
-    );
+  if (value.startsWith("http://shop.ysim.vn/")) {
+    return value.replace("http://shop.ysim.vn/", "https://shop.ysim.vn/");
   }
 
   return value;
 }
 
 function moneyAmount(
-  raw:
-    | string
-    | undefined,
-  minorUnit:
-    | number
-    | undefined,
+  raw: string | undefined,
+  minorUnit: number | undefined,
 ): number {
-  const numeric =
-    Number(raw);
+  const numeric = Number(raw);
 
-  if (
-    !Number.isFinite(
-      numeric,
-    )
-  ) {
+  if (!Number.isFinite(numeric)) {
     return 0;
   }
 
-  return (
-    numeric /
-    Math.pow(
-      10,
-      minorUnit ||
-      0,
-    )
-  );
+  return numeric / Math.pow(10, minorUnit || 0);
 }
 
 function attributeRecord(
-  attributes:
-    readonly WooCommerceProductAttribute[] | undefined,
-):
-  Readonly<
-    Record<string, string>
-  > {
-  const record:
-    Record<string, string> = {};
+  attributes: readonly WooCommerceProductAttribute[] | undefined,
+): Readonly<Record<string, string>> {
+  const record: Record<string, string> = {};
 
-  for (
-    const attribute
-    of attributes ||
-    []
-  ) {
-    const value =
-      attribute.terms
-        ?.map(
-          (term) =>
-            term.name,
-        )
-        .filter(Boolean)
-        .join(" / ");
+  for (const attribute of attributes || []) {
+    const value = attribute.terms
+      ?.map((term) => term.name)
+      .filter(Boolean)
+      .join(" / ");
 
     if (!value) {
       continue;
     }
 
-    record[
-      attribute.name
-    ] = value;
+    record[attribute.name] = value;
 
-    if (
-      attribute.taxonomy
-    ) {
-      record[
-        attribute.taxonomy
-      ] = value;
+    if (attribute.taxonomy) {
+      record[attribute.taxonomy] = value;
     }
   }
 
@@ -155,115 +92,53 @@ function attributeRecord(
 }
 
 function findAttributeValues(
-  attributes:
-    readonly WooCommerceProductAttribute[] | undefined,
-  aliases:
-    readonly string[],
+  attributes: readonly WooCommerceProductAttribute[] | undefined,
+  aliases: readonly string[],
 ): readonly string[] {
-  const aliasSet =
-    new Set(
-      aliases.map(
-        normalizeKey,
-      ),
-    );
+  const aliasSet = new Set(aliases.map(normalizeKey));
 
-  return (
-    attributes ||
-    []
-  )
+  return (attributes || [])
     .filter(
       (attribute) =>
-        aliasSet.has(
-          normalizeKey(
-            attribute.name,
-          ),
-        ) ||
-        (
-          attribute.taxonomy
-            ? aliasSet.has(
-                normalizeKey(
-                  attribute.taxonomy,
-                ),
-              )
-            : false
-        ),
+        aliasSet.has(normalizeKey(attribute.name)) ||
+        (attribute.taxonomy
+          ? aliasSet.has(normalizeKey(attribute.taxonomy))
+          : false),
     )
-    .flatMap(
-      (attribute) =>
-        attribute.terms
-          ?.map(
-            (term) =>
-              term.name,
-          ) ||
-        [],
-    )
+    .flatMap((attribute) => attribute.terms?.map((term) => term.name) || [])
     .filter(Boolean);
 }
 
-function parseDurationDays(
-  values:
-    readonly string[],
-): readonly number[] {
+function parseDurationDays(values: readonly string[]): readonly number[] {
   return values
-    .map(
-      (value) => {
-        const match =
-          value.match(
-            /\d+/,
-          );
+    .map((value) => {
+      const match = value.match(/\d+/);
 
-        return match
-          ? Number(
-              match[0],
-            )
-          : Number.NaN;
-      },
-    )
-    .filter(
-      (value) =>
-        Number.isFinite(
-          value,
-        ) &&
-        value > 0,
-    );
+      return match ? Number(match[0]) : Number.NaN;
+    })
+    .filter((value) => Number.isFinite(value) && value > 0);
 }
 
-function productAmount(
-  product:
-    WooCommerceProduct,
-): number {
+function productAmount(product: WooCommerceProduct): number {
   return moneyAmount(
-    product.prices
-      ?.price,
-    product.prices
-      ?.currency_minor_unit,
+    product.prices?.price,
+    product.prices?.currency_minor_unit,
   );
 }
 
-function productRegularAmount(
-  product:
-    WooCommerceProduct,
-): number | undefined {
-  const value =
-    moneyAmount(
-      product.prices
-        ?.regular_price,
-      product.prices
-        ?.currency_minor_unit,
-    );
+function productRegularAmount(product: WooCommerceProduct): number | undefined {
+  const value = moneyAmount(
+    product.prices?.regular_price,
+    product.prices?.currency_minor_unit,
+  );
 
-  return value > 0
-    ? value
-    : undefined;
+  return value > 0 ? value : undefined;
 }
 
-function familyCode(
-  product:
-    WooCommerceProduct,
-): string {
+function familyCode(product: WooCommerceProduct): string {
   return (
-    product.sku
-      ?.trim() ||
+    product.catalog_identity?.familyCode?.trim() ||
+    product.sku?.trim() ||
     `WC-${product.id}`
   );
 }
@@ -272,92 +147,55 @@ function createGenericProductPresentation(
   code: string,
 ): ProductCardPresentationConfig {
   return {
-    familyCode:
-      code,
+    familyCode: code,
 
-    featured:
-      true,
+    featured: true,
 
-    dataAttributeKeys:
-      genericProductDataAttributeKeys,
+    dataAttributeKeys: genericProductDataAttributeKeys,
 
-    durationAttributeKeys:
-      genericProductDurationAttributeKeys,
+    durationAttributeKeys: genericProductDurationAttributeKeys,
   };
 }
 
-function toProductSource(
-  product:
-    WooCommerceProduct,
-): ProductSource {
-  const attributes =
-    attributeRecord(
-      product.attributes,
-    );
+function toProductSource(product: WooCommerceProduct): ProductSource {
+  const attributes = attributeRecord(product.attributes);
 
-  const image =
-    product.images?.[0];
+  const image = product.images?.[0];
 
-  const code =
-    familyCode(
-      product,
-    );
+  const code = familyCode(product);
 
   return {
-    id:
-      product.id,
+    id: product.id,
 
-    familyCode:
-      code,
+    familyCode: code,
 
-    slug:
-      product.slug,
+    slug: product.slug,
 
-    name:
-      product.name,
+    name: product.name,
 
-    description:
-      product.short_description,
+    description: product.short_description,
 
     imageUrl:
-      normalizeMediaUrl(
-        image?.src,
-      ) ||
-      "/ui-preview/products/global-esim.svg",
+      normalizeMediaUrl(image?.src) ||
+      "/assets/storefront/products/global-esim.svg",
 
-    imageAlt:
-      image?.alt ||
-      product.name,
+    imageAlt: image?.alt || product.name,
 
     attributes,
 
     variations: [
       {
-        id:
-          product.id,
+        id: product.id,
 
-        sku:
-          product.sku,
+        sku: product.sku,
 
-        price:
-          productAmount(
-            product,
-          ),
+        price: productAmount(product),
 
-        regularPrice:
-          productRegularAmount(
-            product,
-          ),
+        regularPrice: productRegularAmount(product),
 
-        purchasable:
-          Boolean(
-            product.is_purchasable,
-          ),
+        purchasable: Boolean(product.is_purchasable),
 
-        inStock:
-          Boolean(
-            product.is_in_stock,
-          ),
+        inStock: Boolean(product.is_in_stock),
 
         attributes,
       },
@@ -366,73 +204,31 @@ function toProductSource(
 }
 
 function canonicalProductCategorySlugs(
-  product:
-    WooCommerceProduct,
+  product: WooCommerceProduct,
 ): readonly string[] {
-  return (
-    product.categories ||
-    []
-  )
+  return (product.categories || [])
     .map(
-      (category) =>
-        resolveDestinationDefinition(
-          category.slug,
-        )?.canonicalSlug,
+      (category) => resolveDestinationDefinition(category.slug)?.canonicalSlug,
     )
-    .filter(
-      (
-        slug,
-      ): slug is string =>
-        Boolean(slug),
-    );
+    .filter((slug): slug is string => Boolean(slug));
 }
 
 function chooseCategories(
-  categories:
-    readonly WooCommerceStoreCategorySource[],
-):
-  ReadonlyMap<
-    string,
-    WooCommerceStoreCategorySource
-  > {
-  const byCanonical =
-    new Map<
-      string,
-      WooCommerceStoreCategorySource
-    >();
+  categories: readonly WooCommerceStoreCategorySource[],
+): ReadonlyMap<string, WooCommerceStoreCategorySource> {
+  const byCanonical = new Map<string, WooCommerceStoreCategorySource>();
 
-  for (
-    const category
-    of categories
-  ) {
-    const definition =
-      resolveDestinationDefinition(
-        category.slug,
-      );
+  for (const category of categories) {
+    const definition = resolveDestinationDefinition(category.slug);
 
-    if (
-      !definition ||
-      !destinationPresentation[
-        definition.canonicalSlug
-      ]
-    ) {
+    if (!definition || !destinationPresentation[definition.canonicalSlug]) {
       continue;
     }
 
-    const current =
-      byCanonical.get(
-        definition.canonicalSlug,
-      );
+    const current = byCanonical.get(definition.canonicalSlug);
 
-    if (
-      !current ||
-      category.count >
-        current.count
-    ) {
-      byCanonical.set(
-        definition.canonicalSlug,
-        category,
-      );
+    if (!current || category.count > current.count) {
+      byCanonical.set(definition.canonicalSlug, category);
     }
   }
 
@@ -440,8 +236,7 @@ function chooseCategories(
 }
 
 export function mapWooCommerceHomeProducts(
-  snapshot:
-    HomeCommerceSnapshot,
+  snapshot: HomeCommerceSnapshot,
   limit: number,
 ): readonly ProductCardViewModel[] {
   return snapshot.products
@@ -449,181 +244,99 @@ export function mapWooCommerceHomeProducts(
       (product) =>
         product.is_purchasable &&
         product.is_in_stock &&
-        productAmount(
-          product,
-        ) > 0,
+        productAmount(product) > 0,
     )
-    .slice(
-      0,
-      limit,
-    )
-    .map(
-      (product) => {
-        const source =
-          toProductSource(
-            product,
-          );
+    .slice(0, limit)
+    .map((product) => {
+      const source = toProductSource(product);
 
-        return createProductCardViewModel(
-          source,
-          createGenericProductPresentation(
-            source.familyCode,
-          ),
-        );
-      },
-    );
+      return createProductCardViewModel(
+        source,
+        createGenericProductPresentation(source.familyCode),
+      );
+    });
 }
 
 export function mapWooCommerceHomeDestinations(
-  snapshot:
-    HomeCommerceSnapshot,
+  snapshot: HomeCommerceSnapshot,
   limit: number,
 ): readonly DestinationCardViewModel[] {
-  const categories =
-    chooseCategories(
-      snapshot.categories,
+  const categories = chooseCategories(snapshot.categories);
+
+  const destinations: DestinationCardViewModel[] = [];
+
+  for (const [canonicalSlug, category] of categories.entries()) {
+    const presentation = destinationPresentation[canonicalSlug];
+
+    const definition = resolveDestinationDefinition(category.slug);
+
+    if (!presentation || !definition) {
+      continue;
+    }
+
+    const matchingProducts = snapshot.products.filter(
+      (product) =>
+        product.is_purchasable &&
+        product.is_in_stock &&
+        canonicalProductCategorySlugs(product).includes(canonicalSlug) &&
+        productAmount(product) > 0,
     );
 
-  const destinations:
-    DestinationCardViewModel[] = [];
-
-  for (
-    const [
-      canonicalSlug,
-      category,
-    ] of categories.entries()
-  ) {
-    const presentation =
-      destinationPresentation[
-        canonicalSlug
-      ];
-
-    const definition =
-      resolveDestinationDefinition(
-        category.slug,
-      );
-
-    if (
-      !presentation ||
-      !definition
-    ) {
+    if (matchingProducts.length === 0) {
       continue;
     }
 
-    const matchingProducts =
-      snapshot.products.filter(
-        (product) =>
-          product.is_purchasable &&
-          product.is_in_stock &&
-          canonicalProductCategorySlugs(
-            product,
-          ).includes(
-            canonicalSlug,
-          ) &&
-          productAmount(
-            product,
-          ) > 0,
-      );
+    const prices = matchingProducts.map(productAmount);
 
-    if (
-      matchingProducts.length ===
-      0
-    ) {
-      continue;
-    }
+    const durationDays = matchingProducts.flatMap((product) =>
+      parseDurationDays(
+        findAttributeValues(
+          product.attributes,
+          genericProductDurationAttributeKeys,
+        ),
+      ),
+    );
 
-    const prices =
-      matchingProducts.map(
-        productAmount,
-      );
+    const categorySource: DestinationCategorySource = {
+      id: category.id,
 
-    const durationDays =
-      matchingProducts.flatMap(
-        (product) =>
-          parseDurationDays(
-            findAttributeValues(
-              product.attributes,
-              genericProductDurationAttributeKeys,
-            ),
-          ),
-      );
+      slug: canonicalSlug,
 
-    const categorySource:
-      DestinationCategorySource = {
-        id:
-          category.id,
+      name: category.name,
 
-        slug:
-          canonicalSlug,
+      description: category.description,
 
-        name:
-          category.name,
+      parentName: definition.regionLabel,
 
-        description:
-          category.description,
+      productCount: matchingProducts.length,
+    };
 
-        parentName:
-          definition.regionLabel,
+    const commerce: DestinationCommerceSummary = {
+      destinationSlug: canonicalSlug,
 
-        productCount:
-          matchingProducts.length,
-      };
+      minPurchasablePrice: Math.min(...prices),
 
-    const commerce:
-      DestinationCommerceSummary = {
-        destinationSlug:
-          canonicalSlug,
+      minDurationDays: durationDays.length
+        ? Math.min(...durationDays)
+        : undefined,
 
-        minPurchasablePrice:
-          Math.min(
-            ...prices,
-          ),
+      maxDurationDays: durationDays.length
+        ? Math.max(...durationDays)
+        : undefined,
 
-        minDurationDays:
-          durationDays.length
-            ? Math.min(
-                ...durationDays,
-              )
-            : undefined,
-
-        maxDurationDays:
-          durationDays.length
-            ? Math.max(
-                ...durationDays,
-              )
-            : undefined,
-
-        purchasableProductCount:
-          matchingProducts.length,
-      };
+      purchasableProductCount: matchingProducts.length,
+    };
 
     destinations.push(
-      createDestinationCardViewModel(
-        categorySource,
-        commerce,
-        presentation,
-      ),
+      createDestinationCardViewModel(categorySource, commerce, presentation),
     );
   }
 
   return destinations
     .sort(
       (left, right) =>
-        (
-          destinationPresentation[
-            left.slug
-          ]?.order ||
-          999
-        ) -
-        (
-          destinationPresentation[
-            right.slug
-          ]?.order ||
-          999
-        ),
+        (destinationPresentation[left.slug]?.order || 999) -
+        (destinationPresentation[right.slug]?.order || 999),
     )
-    .slice(
-      0,
-      limit,
-    );
+    .slice(0, limit);
 }

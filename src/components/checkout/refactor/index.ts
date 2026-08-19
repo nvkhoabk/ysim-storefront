@@ -1,7 +1,6 @@
 export * from "./CheckoutField";
 export * from "./CheckoutOrderSummary";
 export * from "./CheckoutPageComposition";
-export * from "./CheckoutPagePreview";
 export * from "./CheckoutSection";
 export * from "./CheckoutSuccessState";
 export * from "./CustomerInformationForm";

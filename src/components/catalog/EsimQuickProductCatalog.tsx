@@ -5,14 +5,16 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { ArrowUpDown, PackageSearch, Search, X } from "lucide-react";
+import { ArrowUpDown, PackageSearch, X } from "lucide-react";
 
+import { StorefrontSearchCombobox } from "@/components/search";
 import { Price } from "@/components/ui";
 
+import { productMatchesEsimQuickFilter } from "@/lib/storefront/catalog/esim-quick-filter";
 import {
-  normalizeEsimCatalogToken,
-  productMatchesEsimQuickFilter,
-} from "@/lib/storefront/catalog/esim-quick-filter";
+  createProductStorefrontSuggestions,
+  normalizeStorefrontSearchText,
+} from "@/lib/storefront/search/storefront-search";
 
 import type { EsimQuickFilterSelection } from "@/types/view-models/esim-quick-filter";
 
@@ -21,6 +23,7 @@ import type { SecondaryProductViewModel } from "@/types/view-models/secondary-ro
 import styles from "./EsimInlineQuickFilter.module.css";
 import { useStorefrontLocale } from "@/i18n/runtime";
 import { createListingTranslator } from "@/i18n/listing/listing.registry";
+import { createShellTranslator } from "@/i18n/shell/shell.registry";
 import { localizeShellHref } from "@/i18n/shell/shell.href";
 
 type EsimCatalogSort = "recommended" | "price-asc" | "price-desc" | "name-asc";
@@ -29,14 +32,19 @@ function productMatchesSearch(
   product: SecondaryProductViewModel,
   query: string,
 ): boolean {
-  const normalizedQuery = normalizeEsimCatalogToken(query);
+  const normalizedQuery = normalizeStorefrontSearchText(query);
 
   if (!normalizedQuery) {
     return true;
   }
 
-  const haystack = normalizeEsimCatalogToken(
-    [product.name, product.slug, product.destination || ""].join(" "),
+  const haystack = normalizeStorefrontSearchText(
+    [
+      product.name,
+      product.slug,
+      product.destination || "",
+      ...(product.filterTerms || []),
+    ].join(" "),
   );
 
   return normalizedQuery.split(" ").every((token) => haystack.includes(token));
@@ -77,6 +85,7 @@ export function EsimQuickProductCatalog({
 }) {
   const { locale } = useStorefrontLocale();
   const t = createListingTranslator(locale);
+  const shell = createShellTranslator(locale);
   const sortLabels: Readonly<Record<EsimCatalogSort, string>> = {
     recommended: t("esim.sortRecommended"),
     "price-asc": t("ordinary.sortPriceAsc"),
@@ -86,6 +95,11 @@ export function EsimQuickProductCatalog({
   const [query, setQuery] = useState("");
 
   const [sort, setSort] = useState<EsimCatalogSort>("recommended");
+
+  const searchSuggestions = useMemo(
+    () => createProductStorefrontSuggestions(products, locale),
+    [locale, products],
+  );
 
   const filteredBySelection = useMemo(
     () =>
@@ -145,19 +159,25 @@ export function EsimQuickProductCatalog({
       </header>
 
       <div className={styles.catalogControls}>
-        <label className={styles.searchControl}>
-          <span className="sr-only">{t("esim.searchLabel")}</span>
-
-          <Search aria-hidden="true" className={styles.searchIcon} />
-
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("esim.searchPlaceholder")}
-            className={styles.searchInput}
-          />
-        </label>
+        <StorefrontSearchCombobox
+          items={searchSuggestions}
+          locale={locale}
+          value={query}
+          onChange={setQuery}
+          label={t("esim.searchLabel")}
+          placeholder={t("esim.searchPlaceholder")}
+          resultsLabel={shell("search.results")}
+          typeLabels={{
+            destination: shell("search.destination"),
+            product: shell("search.product"),
+            guide: shell("search.guide"),
+          }}
+          flagLabel={(name) => shell("search.flagLabel", { name })}
+          minResults={5}
+          maxResults={10}
+          className={styles.searchControl}
+          inputClassName={styles.searchInput}
+        />
 
         <label className={styles.sortControl}>
           <span className="sr-only">{t("esim.sortLabel")}</span>

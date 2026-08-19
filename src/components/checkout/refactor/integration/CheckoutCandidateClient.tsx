@@ -53,6 +53,10 @@ import {
 } from "@/features/payments/candidate/payment-provider-presentation";
 
 import type {
+  ShellLocale,
+} from "@/i18n/shell/shell.types";
+
+import type {
   CheckoutCandidateApiResponse,
   CheckoutCandidateFormErrors,
   CheckoutCandidateFormState,
@@ -155,9 +159,12 @@ function paymentMethodExists(
 export function CheckoutCandidateClient({
   showDiagnostics = true,
   candidate,
+  locale,
 }: {
   candidate:
     CheckoutRouteCandidateViewModel;
+  locale:
+    ShellLocale;
   showDiagnostics?: boolean;
 }) {
   const [
@@ -245,7 +252,9 @@ export function CheckoutCandidateClient({
 
     try {
       const nextData =
-        await loadCheckoutCandidate();
+        await loadCheckoutCandidate(
+          locale,
+        );
 
       setData(
         nextData,
@@ -286,7 +295,9 @@ export function CheckoutCandidateClient({
       );
     }
       },
-      [],
+      [
+        locale,
+      ],
     );
 
   useEffect(
@@ -361,6 +372,7 @@ export function CheckoutCandidateClient({
       const result =
         await submitCheckoutCandidate(
           form,
+          locale,
         );
 
       const {

@@ -17,6 +17,7 @@ import { localizeShellHref } from "@/i18n/shell/shell.href";
 interface CheckoutApiResponse {
   cart: WooCommerceCart;
   checkout: WooCommerceCheckout;
+  locale: "vi" | "en" | "lo";
   paymentMethods: PaymentMethodOption[];
 }
 
@@ -34,9 +35,15 @@ export function CheckoutContent() {
 
     async function fetchCheckout() {
       try {
-        const response = await fetch("/api/checkout", {
-          cache: "no-store",
-        });
+        setCheckoutData(null);
+        setErrorMessage(null);
+
+        const response = await fetch(
+          `/api/checkout?locale=${encodeURIComponent(locale)}`,
+          {
+            cache: "no-store",
+          },
+        );
 
         const data = await response.json();
 
@@ -44,8 +51,13 @@ export function CheckoutContent() {
           throw new Error(data.message || t("common.error"));
         }
 
+        const nextCheckoutData = data as CheckoutApiResponse;
+        if (nextCheckoutData.locale !== locale) {
+          throw new Error(t("common.error"));
+        }
+
         if (!cancelled) {
-          setCheckoutData(data as CheckoutApiResponse);
+          setCheckoutData(nextCheckoutData);
         }
       } catch (error) {
         if (!cancelled) {
@@ -61,7 +73,7 @@ export function CheckoutContent() {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [locale, t]);
 
   if (errorMessage) {
     return (

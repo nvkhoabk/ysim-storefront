@@ -56,11 +56,10 @@ export default function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (
-    process.env.NODE_ENV === "production" &&
-    (pathname === "/ui-preview" ||
-      pathname.startsWith("/ui-preview/") ||
-      pathname === "/api/ui-preview" ||
-      pathname.startsWith("/api/ui-preview/"))
+    pathname === "/ui-preview" ||
+    pathname.startsWith("/ui-preview/") ||
+    pathname === "/api/ui-preview" ||
+    pathname.startsWith("/api/ui-preview/")
   ) {
     return new NextResponse("Not Found", {
       status: 404,

@@ -10,6 +10,8 @@ export const paymentProviderIdSchema = z.enum([
 ]);
 
 export const createPaymentSchema = z.object({
+  locale: z.enum(["vi", "en", "lo"]),
+
   provider: paymentProviderIdSchema,
 
   orderId: z.number().int().positive(),

@@ -17,6 +17,15 @@ import {
   getStoreApiVariationReferenceIds,
   hydrateStoreApiVariations,
 } from "./store-api-variation-adapter";
+import {
+  dedupeProductFamilies,
+  normalizeStorefrontProductLocale,
+  productCatalogAttemptOrder,
+  resolveProductCatalogSource,
+  selectSkuFamilyMembers,
+  selectWooCatalogFamilyMembers,
+  wooCatalogFamilyIdentity,
+} from "./product-catalog-policy";
 import type {
   WooCommerceImage,
   WooCommercePrice,
@@ -36,15 +45,10 @@ interface GetProductsOptions {
   featured?: boolean;
 }
 
-type CatalogSource = "woocommerce" | "localization" | "hybrid";
-
-function catalogSource(): CatalogSource {
-  const configured =
-    process.env.YSIM_PRODUCT_CATALOG_SOURCE?.trim().toLowerCase();
-  if (configured === "localization" || configured === "hybrid") {
-    return configured;
-  }
-  return "woocommerce";
+function catalogSource() {
+  return resolveProductCatalogSource(
+    process.env.YSIM_PRODUCT_CATALOG_SOURCE,
+  );
 }
 
 function normalizePositiveInteger(
@@ -241,13 +245,24 @@ function adaptLocalizedProduct(
       maximum: 99,
       multiple_of: 1,
     },
+    catalog_identity: {
+      familyId: resolved.familyId,
+      familyCode: resolved.familyCode,
+      requestedLocale: resolved.requestedLocale,
+      resolvedLocale: resolved.resolvedLocale,
+      authoritativeProductId: product.id,
+      source: "product-family",
+    },
   };
 }
 
 async function fetchStoreApiPages<T>(endpoint: string): Promise<T[]> {
   const separator = endpoint.includes("?") ? "&" : "?";
   const results: T[] = [];
-  const perPage = 100;
+  // The public Woo catalog currently exceeds Next.js' 2 MB cache-item limit
+  // at 100 products. Smaller pages remain cacheable and remove the noisy
+  // failed-to-set-cache path without changing the complete result set.
+  const perPage = 25;
 
   for (let page = 1; page <= maxCatalogPages(); page += 1) {
     const response = await storeApiFetch<unknown>(
@@ -285,8 +300,10 @@ async function fetchWooCatalog(
     query.set("featured", "true");
   }
 
-  const products = await fetchStoreApiPages<WooCommerceProduct>(
-    `/products?${query.toString()}`,
+  const products = await attachWooCatalogFamilyAnchors(
+    await fetchStoreApiPages<WooCommerceProduct>(
+      `/products?${query.toString()}`,
+    ),
   );
   if (!options.destination?.trim() && !options.category?.trim()) {
     return products;
@@ -313,7 +330,39 @@ async function fetchLocalizedCatalog(
     destination: options.destination,
     featured: options.featured,
   });
-  return response.items.map(adaptLocalizedProduct);
+  return dedupeProductFamilies(response.items).map(adaptLocalizedProduct);
+}
+
+function selectWooSkuFamilyProducts(
+  products: readonly WooCommerceProduct[],
+  localeValue: string | undefined,
+): WooCommerceProduct[] {
+  const requestedLocale = normalizeStorefrontProductLocale(localeValue);
+  return selectWooCatalogFamilyMembers(products, requestedLocale).map((product) => {
+    const identity = wooCatalogFamilyIdentity(product);
+    const variations = product.variations
+      ? selectSkuFamilyMembers(product.variations, requestedLocale)
+      : product.variations;
+
+    if (!identity) {
+      return variations === product.variations
+        ? product
+        : { ...product, variations };
+    }
+
+    return {
+      ...product,
+      variations,
+      catalog_identity: {
+        familyId: 0,
+        familyCode: identity.familyCode,
+        requestedLocale,
+        resolvedLocale: identity.locale,
+        authoritativeProductId: product.id,
+        source: "woocommerce",
+      },
+    };
+  });
 }
 
 function paginate(
@@ -330,27 +379,35 @@ function paginate(
 /**
  * Product listing.
  *
- * Default source is WooCommerce Store API because Woo categories are the
- * canonical destination taxonomy. Set YSIM_PRODUCT_CATALOG_SOURCE=localization
- * only when the localization endpoint has complete product-family coverage.
+ * WooCommerce is the complete default read model. Explicit locale suffixes
+ * and the confirmed legacy numeric-copy SKU stem provide the family boundary
+ * so each commercial package is returned once in the requested locale.
+ * The Product Family API remains available as strict mode or hybrid fallback.
  */
 export async function getProducts(
   options: GetProductsOptions = {},
 ): Promise<WooCommerceProduct[]> {
   const source = catalogSource();
-  if (source === "localization") {
-    return fetchLocalizedCatalog(options);
+  const attempts = productCatalogAttemptOrder(source);
+  let primaryError: unknown;
+
+  for (const attempt of attempts) {
+    try {
+      if (attempt === "localization") {
+        return await fetchLocalizedCatalog(options);
+      }
+
+      const products = selectWooSkuFamilyProducts(
+        await fetchWooCatalog(options),
+        options.locale,
+      );
+      return paginate(products, options.page, options.perPage);
+    } catch (error) {
+      primaryError ??= error;
+    }
   }
 
-  try {
-    const products = await fetchWooCatalog(options);
-    return paginate(products, options.page, options.perPage);
-  } catch (error) {
-    if (source !== "hybrid") {
-      throw error;
-    }
-    return fetchLocalizedCatalog(options);
-  }
+  throw primaryError ?? new Error("PRODUCT_CATALOG_SOURCE_UNAVAILABLE");
 }
 
 function chunkValues<T>(values: readonly T[], size: number): T[][] {
@@ -359,6 +416,59 @@ function chunkValues<T>(values: readonly T[], size: number): T[][] {
     chunks.push(values.slice(index, index + size));
   }
   return chunks;
+}
+
+async function attachWooCatalogFamilyAnchors(
+  products: readonly WooCommerceProduct[],
+): Promise<WooCommerceProduct[]> {
+  const referenceByProductId = new Map<number, number>();
+
+  for (const product of products) {
+    if (product.sku?.trim()) {
+      continue;
+    }
+    const firstReferenceId = getStoreApiVariationReferenceIds(
+      product.variations,
+    )[0];
+    if (firstReferenceId) {
+      referenceByProductId.set(product.id, firstReferenceId);
+    }
+  }
+
+  if (referenceByProductId.size === 0) {
+    return [...products];
+  }
+
+  const fetchedById = new Map<number, WooCommerceProduct>();
+  const referenceIds = Array.from(referenceByProductId.values());
+  for (const ids of chunkValues(referenceIds, 100)) {
+    const query = new URLSearchParams({
+      type: "variation",
+      include: ids.join(","),
+      catalog_visibility: "any",
+      orderby: "include",
+      per_page: String(ids.length),
+    });
+    const fetched = await fetchStoreApiArray<WooCommerceProduct>(
+      `/products?${query.toString()}`,
+    );
+    for (const variation of fetched) {
+      fetchedById.set(variation.id, variation);
+    }
+  }
+
+  return products.map((product) => {
+    if (product.sku?.trim()) {
+      return product;
+    }
+    const referenceId = referenceByProductId.get(product.id);
+    const anchorSku = referenceId
+      ? fetchedById.get(referenceId)?.sku?.trim()
+      : "";
+    return anchorSku
+      ? { ...product, catalog_family_anchor_sku: anchorSku }
+      : product;
+  });
 }
 
 async function fetchStoreApiArray<T>(endpoint: string): Promise<T[]> {
@@ -561,39 +671,51 @@ async function fetchWooProductBySlug(
     parentProduct: product,
     variationProducts,
   });
-  return { ...product, variations };
+  const resolvedProduct = {
+    ...product,
+    variations,
+    catalog_family_anchor_sku:
+      product.sku?.trim() || variations[0]?.sku?.trim() || undefined,
+  };
+  return resolvedProduct;
 }
 
-function mergeWooProductDetailWithLocalizedContent(
-  wooProduct: WooCommerceProduct,
-  localizedProduct: WooCommerceProduct,
-): WooCommerceProduct {
-  return {
-    ...wooProduct,
-    name: localizedProduct.name || wooProduct.name,
-    short_description:
-      localizedProduct.short_description || wooProduct.short_description,
-    description: localizedProduct.description || wooProduct.description,
-    images:
-      localizedProduct.images?.length > 0
-        ? localizedProduct.images
-        : wooProduct.images,
-    // Woo category, attribute and variation data remain authoritative. They
-    // share the IDs used by Store API cart operations and may be more complete
-    // than the current localization family.
-    categories:
-      (wooProduct.categories?.length ?? 0) > 0
-        ? wooProduct.categories
-        : localizedProduct.categories,
-    attributes:
-      (wooProduct.attributes?.length ?? 0) > 0
-        ? wooProduct.attributes
-        : localizedProduct.attributes,
-    variations:
-      (wooProduct.variations?.length ?? 0) > 0
-        ? wooProduct.variations
-        : localizedProduct.variations,
-  };
+async function fetchWooSkuFamilyProductBySlug(
+  slug: string,
+  localeValue: string,
+): Promise<WooCommerceProduct | null> {
+  const seed = await fetchWooProductBySlug(slug);
+  if (!seed) {
+    return null;
+  }
+
+  const seedIdentity = wooCatalogFamilyIdentity(seed);
+  if (!seedIdentity) {
+    return selectWooSkuFamilyProducts([seed], localeValue)[0] || seed;
+  }
+
+  const familyMembers = (await fetchWooCatalog({})).filter((candidate) => {
+    const identity = wooCatalogFamilyIdentity(candidate);
+    return identity?.familyCode === seedIdentity.familyCode;
+  });
+  const selectedFamilyMembers = selectWooCatalogFamilyMembers(
+    familyMembers,
+    localeValue,
+  );
+  const selected =
+    selectedFamilyMembers.length < familyMembers.length
+      ? selectedFamilyMembers[0]
+      : seed;
+  const resolved =
+    selected && selected.id !== seed.id
+      ? await fetchWooProductBySlug(selected.slug)
+      : seed;
+
+  if (!resolved) {
+    return selectWooSkuFamilyProducts([seed], localeValue)[0] || seed;
+  }
+
+  return selectWooSkuFamilyProducts([resolved], localeValue)[0] || resolved;
 }
 
 async function fetchLocalizedProductBySlugSafe(
@@ -609,10 +731,9 @@ async function fetchLocalizedProductBySlugSafe(
 }
 
 /**
- * Product detail uses WooCommerce as the authoritative source for IDs,
- * categories, variation references, prices and stock. Localized content is
- * overlaid when available without allowing an incomplete localization family
- * to collapse the Woo variation matrix.
+ * Product detail resolves the requested locale within the same canonical SKU
+ * family. The selected WooCommerce record remains authoritative for product
+ * and variation IDs, categories, prices, stock and checkout SKU.
  */
 export async function getProductBySlug(
   slug: string,
@@ -620,28 +741,25 @@ export async function getProductBySlug(
 ): Promise<WooCommerceProduct | null> {
   const source = catalogSource();
   if (source === "localization") {
-    const localized = await fetchLocalizedProductBySlugSafe(slug, locale);
-    return localized || fetchWooProductBySlug(slug);
+    return fetchLocalizedProductBySlugSafe(slug, locale);
+  }
+
+  if (source === "woocommerce") {
+    return fetchWooSkuFamilyProductBySlug(slug, locale);
   }
 
   let wooError: unknown;
-  const [wooProduct, localizedProduct] = await Promise.all([
-    fetchWooProductBySlug(slug).catch((error: unknown) => {
+  const wooProduct = await fetchWooSkuFamilyProductBySlug(slug, locale).catch(
+    (error: unknown) => {
       wooError = error;
       return null;
-    }),
-    fetchLocalizedProductBySlugSafe(slug, locale),
-  ]);
-
-  if (wooProduct && localizedProduct) {
-    return mergeWooProductDetailWithLocalizedContent(
-      wooProduct,
-      localizedProduct,
-    );
-  }
+    },
+  );
   if (wooProduct) {
     return wooProduct;
   }
+
+  const localizedProduct = await fetchLocalizedProductBySlugSafe(slug, locale);
   if (localizedProduct) {
     return localizedProduct;
   }

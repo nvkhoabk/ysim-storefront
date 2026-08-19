@@ -4,7 +4,7 @@ import { getMarketById, getMarketByLocale } from "./market.registry";
 import { resolveMarket } from "./market.resolve";
 import type { MarketConfig, MarketResolutionSource } from "./market.types";
 
-const BYPASS_PREFIXES = ["/api", "/_next", "/ui-preview", "/.well-known"];
+const BYPASS_PREFIXES = ["/api", "/_next", "/.well-known"];
 const BYPASS_EXACT_PATHS = new Set([
   "/favicon.ico",
   "/icon.png",

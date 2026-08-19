@@ -3,6 +3,9 @@ import type {
   CheckoutCandidateFormState,
   CheckoutCandidateSubmitResponse,
 } from "@/types/view-models/checkout-route-candidate";
+import type {
+  ShellLocale,
+} from "@/i18n/shell/shell.types";
 
 interface ApiErrorBody {
   message?: string;
@@ -44,13 +47,16 @@ async function readJson<T>(
   return body as T;
 }
 
-export async function loadCheckoutCandidate():
+export async function loadCheckoutCandidate(
+  locale:
+    ShellLocale,
+):
   Promise<
     CheckoutCandidateApiResponse
   > {
   return readJson(
     await fetch(
-      "/api/checkout",
+      `/api/checkout?locale=${encodeURIComponent(locale)}`,
       {
         cache:
           "no-store",
@@ -62,6 +68,8 @@ export async function loadCheckoutCandidate():
 export async function submitCheckoutCandidate(
   form:
     CheckoutCandidateFormState,
+  locale:
+    ShellLocale,
 ): Promise<
   CheckoutCandidateSubmitResponse
 > {
@@ -77,7 +85,10 @@ export async function submitCheckoutCandidate(
         },
         body:
           JSON.stringify(
-            form,
+            {
+              ...form,
+              locale,
+            },
           ),
       },
     ),

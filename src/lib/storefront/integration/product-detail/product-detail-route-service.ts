@@ -109,10 +109,6 @@ export async function loadProductDetailRouteCandidate({
 
   const product = mapProductDetailRouteProduct(source, locale);
 
-  const assetWarnings = product.gallery.filter((image) =>
-    image.src.startsWith("/ui-preview/"),
-  ).length;
-
   return {
     routeMode,
     routeModeLabel: getProductionRouteModeLabel(routeMode),
@@ -143,17 +139,9 @@ export async function loadProductDetailRouteCandidate({
       {
         domain: "gallery",
         label: "Gallery",
-        status:
-          assetWarnings > 0
-            ? "warning"
-            : sourceMode === "production"
-              ? "live"
-              : "fixture",
-        statusLabel: assetWarnings > 0 ? "Review" : "Ready",
-        message:
-          assetWarnings > 0
-            ? `${assetWarnings} ảnh vẫn dùng /ui-preview/.`
-            : `${product.gallery.length} ảnh hợp lệ.`,
+        status: sourceMode === "production" ? "live" : "fixture",
+        statusLabel: "Ready",
+        message: `${product.gallery.length} ảnh hợp lệ.`,
         itemCount: product.gallery.length,
       },
       {

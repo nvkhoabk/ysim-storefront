@@ -53,6 +53,7 @@ export const shellMessagesLo = {
     placeholder: "ທ່ານຈະໄປໃສ?",
     label: "ຄົ້ນຫາຈຸດໝາຍ, ສິນຄ້າ ຫຼື ຄູ່ມື",
     results: "ຜົນການຄົ້ນຫາ",
+    flagLabel: "ທຸງຊາດ {name}",
     emptyTitle: "ບໍ່ພົບຜົນລັບ",
     emptyDescription: "ລອງຄົ້ນຫາຊື່ປະເທດ, ປະລິມານ data ຫຼື ຫົວຂໍ້ຄູ່ມື.",
   },

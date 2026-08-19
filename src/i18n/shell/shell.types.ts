@@ -44,11 +44,10 @@ export interface LocalizedShellLabels {
   readonly brandHome: string;
 }
 
-export type ShellLanguageSwitchMode = "display" | "preview" | "market";
+export type ShellLanguageSwitchMode = "display" | "market";
 
 export interface ShellLanguageSwitchConfig {
   readonly mode: ShellLanguageSwitchMode;
-  readonly previewPath?: string;
 }
 
 export interface LocalizedShellBundle {

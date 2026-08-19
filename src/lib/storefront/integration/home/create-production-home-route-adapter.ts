@@ -17,6 +17,7 @@ import type {
 import type {
   HomeRouteDataAdapter,
 } from "./home-route-adapter";
+import { getProducts } from "@/lib/woocommerce/products";
 
 function positiveInteger(
   value:
@@ -66,7 +67,9 @@ function contentLocale(
   return "vi";
 }
 
-export function createProductionHomeRouteAdapterFromEnvironment():
+export function createProductionHomeRouteAdapterFromEnvironment(
+  productLocale = "vi",
+):
   HomeRouteDataAdapter | undefined {
   const commerceBaseUrl =
     process.env
@@ -125,6 +128,13 @@ export function createProductionHomeRouteAdapterFromEnvironment():
               6,
             24,
           ),
+
+        productLoader: () =>
+          getProducts({
+            page: 1,
+            perPage: Math.max(productLimit * 6, 24),
+            locale: productLocale,
+          }),
 
         categoryFetchLimit:
           100,

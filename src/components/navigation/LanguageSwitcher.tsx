@@ -44,17 +44,6 @@ export function LanguageSwitcher({
     const nextLocale = event.target.value as ShellLocale;
     if (nextLocale === currentLocale || switchConfig.mode === "display") return;
 
-    if (switchConfig.mode === "preview") {
-      const target = new URL(window.location.href);
-      target.pathname =
-        switchConfig.previewPath ?? "/ui-preview/localized-shell";
-      target.searchParams.set("locale", nextLocale);
-      window.location.assign(
-        `${target.pathname}${target.search}${target.hash}`,
-      );
-      return;
-    }
-
     const localizedPathname = localizeShellHref(
       window.location.pathname,
       nextLocale,

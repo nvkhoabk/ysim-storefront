@@ -1,58 +1,26 @@
-import type {
-  ArticleCardViewModel,
-} from "@/types/view-models/content";
+import type { ArticleCardViewModel } from "@/types/view-models/content";
 
-import type {
-  DestinationCardViewModel,
-} from "@/types/view-models/destination";
+import type { DestinationCardViewModel } from "@/types/view-models/destination";
 
-import type {
-  HeroSearchItemViewModel,
-} from "@/types/view-models/hero";
+import type { HeroSearchItemViewModel } from "@/types/view-models/hero";
 
-import type {
-  ProductCardViewModel,
-} from "@/types/view-models/product-card";
+import type { ProductCardViewModel } from "@/types/view-models/product-card";
 
-function formatVnd(
-  amount:
-    | number
-    | string,
-): string {
+function formatVnd(amount: number | string): string {
   const numeric =
-    typeof amount ===
-      "number"
+    typeof amount === "number"
       ? amount
-      : Number(
-          String(
-            amount,
-          ).replace(
-            /[^\d.-]/g,
-            "",
-          ),
-        );
+      : Number(String(amount).replace(/[^\d.-]/g, ""));
 
-  if (
-    !Number.isFinite(
-      numeric,
-    )
-  ) {
+  if (!Number.isFinite(numeric)) {
     return "Xem giá";
   }
 
-  return new Intl.NumberFormat(
-    "vi-VN",
-    {
-      style:
-        "currency",
-      currency:
-        "VND",
-      maximumFractionDigits:
-        0,
-    },
-  ).format(
-    numeric,
-  );
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(numeric);
 }
 
 export function createHomeHeroSearchItems({
@@ -60,117 +28,76 @@ export function createHomeHeroSearchItems({
   products,
   guides,
 }: {
-  destinations:
-    readonly DestinationCardViewModel[];
-  products:
-    readonly ProductCardViewModel[];
-  guides:
-    readonly ArticleCardViewModel[];
+  destinations: readonly DestinationCardViewModel[];
+  products: readonly ProductCardViewModel[];
+  guides: readonly ArticleCardViewModel[];
 }): readonly HeroSearchItemViewModel[] {
-  const destinationItems =
-    destinations.map(
-      (
-        destination,
-      ): HeroSearchItemViewModel => ({
-        id:
-          `destination-${destination.slug}`,
+  const destinationItems = destinations.map(
+    (destination): HeroSearchItemViewModel => ({
+      id: `destination-${destination.slug}`,
 
-        type:
-          "destination",
+      canonicalId: destination.slug,
 
-        label:
-          destination.name,
+      type: "destination",
 
-        description:
-          destination.description ||
-          `eSIM cho ${destination.name}`,
+      label: destination.name,
 
-        href:
-          destination.href,
+      description: destination.description || `eSIM cho ${destination.name}`,
 
-        keywords: [
-          destination.slug,
-          destination.name,
-          destination.regionLabel ||
-            "",
-        ].filter(Boolean),
+      href: destination.href,
 
-        meta:
-          `Từ ${formatVnd(
-            destination.priceFrom,
-          )}`,
-      }),
-    );
+      keywords: [
+        destination.slug,
+        destination.name,
+        destination.regionLabel || "",
+      ].filter(Boolean),
 
-  const productItems =
-    products.map(
-      (
-        product,
-      ): HeroSearchItemViewModel => ({
-        id:
-          `product-${product.id}`,
+      meta: `Từ ${formatVnd(destination.priceFrom)}`,
+    }),
+  );
 
-        type:
-          "product",
+  const productItems = products.map((product): HeroSearchItemViewModel => ({
+    id: `product-${product.id}`,
 
-        label:
-          product.name,
+    canonicalId: product.familyCode,
 
-        description:
-          `${product.dataLabel} · ${product.durationLabel}`,
+    type: "product",
 
-        href:
-          product.href,
+    label: product.name,
 
-        keywords: [
-          product.familyCode,
-          product.slug,
-          product.dataLabel,
-          product.durationLabel,
-        ],
+    description: `${product.dataLabel} · ${product.durationLabel}`,
 
-        meta:
-          formatVnd(
-            product.price,
-          ),
-      }),
-    );
+    href: product.href,
 
-  const guideItems =
-    guides.map(
-      (
-        guide,
-      ): HeroSearchItemViewModel => ({
-        id:
-          `guide-${guide.id}`,
+    keywords: [
+      product.familyCode,
+      product.slug,
+      product.dataLabel,
+      product.durationLabel,
+    ],
 
-        type:
-          "guide",
+    meta: formatVnd(product.price),
+  }));
 
-        label:
-          guide.title,
+  const guideItems = guides.map((guide): HeroSearchItemViewModel => ({
+    id: `guide-${guide.id}`,
 
-        description:
-          guide.excerpt,
+    canonicalId: guide.familyCode || guide.slug,
 
-        href:
-          guide.href,
+    type: "guide",
 
-        keywords: [
-          guide.category ||
-            "",
-          guide.familyCode,
-          guide.slug,
-        ].filter(Boolean),
+    label: guide.title,
 
-        meta:
-          guide.category,
-      }),
-    );
+    description: guide.excerpt,
 
-  return [
-    ...destinationItems,
-    ...productItems,
-    ...guideItems,
-  ];
+    href: guide.href,
+
+    keywords: [guide.category || "", guide.familyCode, guide.slug].filter(
+      Boolean,
+    ),
+
+    meta: guide.category,
+  }));
+
+  return [...destinationItems, ...productItems, ...guideItems];
 }

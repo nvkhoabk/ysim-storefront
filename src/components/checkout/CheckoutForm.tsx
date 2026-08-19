@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, CreditCard, Gift, LoaderCircle, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type FieldErrors, useForm, useWatch } from "react-hook-form";
 
 import {
@@ -31,6 +31,7 @@ interface CheckoutFormProps {
 
 interface CheckoutApiResponse {
   checkout: WooCommerceCheckout;
+  selectedLocale: "vi" | "en" | "lo";
   selectedPaymentProvider: PaymentMethodOption["id"];
 }
 
@@ -57,6 +58,19 @@ interface CartApiResponse {
 interface CheckoutAmount {
   amount: number;
   currency: string;
+}
+
+function checkoutPaymentProviderId(
+  providerId: PaymentMethodOption["id"] | undefined,
+): CheckoutFormInput["paymentMethod"] | null {
+  if (
+    providerId === "gpay_virtual_account" ||
+    providerId === "gpay_gateway_all"
+  ) {
+    return providerId;
+  }
+
+  return null;
 }
 
 function FieldError({ message }: { message?: string }) {
@@ -201,10 +215,12 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
     control,
 
     formState: { errors, isSubmitting },
+    setValue,
   } = useForm<CheckoutFormFields, unknown, CheckoutFormInput>({
     resolver: zodResolver(checkoutFormSchema),
 
     defaultValues: {
+      locale,
       fullName: "",
       email: "",
       phone: "",
@@ -215,7 +231,9 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
       recipientName: "",
       recipientEmail: "",
 
-      paymentMethod: "gpay_gateway_all",
+      paymentMethod:
+        checkoutPaymentProviderId(paymentMethods[0]?.id) ??
+        "gpay_virtual_account",
 
       customerNote: "",
       acceptTerms: false,
@@ -231,6 +249,24 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
     control,
     name: "paymentMethod",
   });
+
+  useEffect(() => {
+    setValue("locale", locale);
+
+    const nextPaymentMethod = checkoutPaymentProviderId(
+      paymentMethods[0]?.id,
+    );
+
+    if (
+      !paymentMethods.some((method) => method.id === paymentMethod) &&
+      nextPaymentMethod
+    ) {
+      setValue("paymentMethod", nextPaymentMethod, {
+        shouldDirty: false,
+        shouldValidate: true,
+      });
+    }
+  }, [locale, paymentMethod, paymentMethods, setValue]);
 
   async function submitCheckout(values: CheckoutFormInput) {
     setSubmitError(null);
@@ -266,7 +302,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
         throw new Error(getErrorMessage(checkoutData, t("common.error")));
       }
 
-      const { checkout, selectedPaymentProvider } =
+      const { checkout, selectedLocale, selectedPaymentProvider } =
         checkoutData as CheckoutApiResponse;
 
       if (!checkout.order_id || !checkout.order_key) {
@@ -291,6 +327,7 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
 
         body: JSON.stringify({
           provider: selectedPaymentProvider,
+          locale: selectedLocale,
 
           orderId: checkout.order_id,
 
@@ -441,6 +478,8 @@ export function CheckoutForm({ paymentMethods }: CheckoutFormProps) {
       onSubmit={handleSubmit(submitCheckout, handleInvalid)}
       className="space-y-6"
     >
+      <input type="hidden" {...register("locale")} />
+
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-50 text-green-700">

@@ -1,30 +1,26 @@
 import Link from "next/link";
 
-import {
-  CheckCircle2,
-  CreditCard,
-  ReceiptText,
-} from "lucide-react";
+import { CheckCircle2, CreditCard, ReceiptText } from "lucide-react";
 
-import {
-  Price,
-} from "@/components/ui";
+import { Price } from "@/components/ui";
 
-import type {
-  CheckoutOrderHandoff,
-} from "@/types/view-models/checkout-route-candidate";
+import { useStorefrontLocale } from "@/i18n/runtime";
+import { localizeShellHref } from "@/i18n/shell/shell.href";
+
+import type { CheckoutOrderHandoff } from "@/types/view-models/checkout-route-candidate";
 
 export function CheckoutCandidateSuccess({
   handoff,
 }: {
-  handoff:
-    CheckoutOrderHandoff;
+  handoff: CheckoutOrderHandoff;
 }) {
+  const { locale } = useStorefrontLocale();
+
   return (
     <div className="mx-auto max-w-3xl rounded-[var(--ysim-radius-xl)] border border-emerald-200 bg-white p-7 text-center shadow-[var(--ysim-shadow-sm)] sm:p-10">
       <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-600" />
 
-      <p className="mt-5 text-sm font-bold uppercase tracking-[0.1em] text-emerald-700">
+      <p className="mt-5 text-sm font-bold tracking-[0.1em] text-emerald-700 uppercase">
         Order created
       </p>
 
@@ -33,60 +29,51 @@ export function CheckoutCandidateSuccess({
       </h1>
 
       <p className="mt-3 text-sm leading-relaxed text-[var(--ysim-color-text-muted)]">
-        WooCommerce đã tạo đơn chờ thanh toán. Package 29 chưa gọi cổng thanh toán.
+        WooCommerce đã tạo đơn chờ thanh toán. Package 29 chưa gọi cổng thanh
+        toán.
       </p>
 
       <dl className="mt-7 grid gap-4 text-left sm:grid-cols-2">
         <div className="rounded-[var(--ysim-radius-lg)] bg-[var(--ysim-color-surface-subtle)] p-4">
-          <dt className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ysim-color-text-soft)]">
+          <dt className="text-xs font-bold tracking-[0.08em] text-[var(--ysim-color-text-soft)] uppercase">
             Mã đơn
           </dt>
           <dd className="mt-1 font-bold text-[var(--ysim-color-text)]">
-            {
-              handoff.orderNumber
-            }
+            {handoff.orderNumber}
           </dd>
         </div>
 
         <div className="rounded-[var(--ysim-radius-lg)] bg-[var(--ysim-color-surface-subtle)] p-4">
-          <dt className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ysim-color-text-soft)]">
+          <dt className="text-xs font-bold tracking-[0.08em] text-[var(--ysim-color-text-soft)] uppercase">
             Trạng thái
           </dt>
           <dd className="mt-1 font-bold text-[var(--ysim-color-text)]">
-            {
-              handoff.orderStatus
-            }
+            {handoff.orderStatus}
           </dd>
         </div>
 
         <div className="rounded-[var(--ysim-radius-lg)] bg-[var(--ysim-color-surface-subtle)] p-4">
-          <dt className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ysim-color-text-soft)]">
+          <dt className="text-xs font-bold tracking-[0.08em] text-[var(--ysim-color-text-soft)] uppercase">
             Phương thức
           </dt>
           <dd className="mt-1 font-bold text-[var(--ysim-color-text)]">
-            {
-              handoff.provider
-            }
+            {handoff.provider}
           </dd>
         </div>
 
         <div className="rounded-[var(--ysim-radius-lg)] bg-[var(--ysim-color-surface-subtle)] p-4">
-          <dt className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--ysim-color-text-soft)]">
+          <dt className="text-xs font-bold tracking-[0.08em] text-[var(--ysim-color-text-soft)] uppercase">
             Tổng tiền
           </dt>
           <dd className="mt-1">
-            <Price
-              amount={
-                handoff.amount
-              }
-            />
+            <Price amount={handoff.amount} />
           </dd>
         </div>
       </dl>
 
       <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
         <Link
-          href="/ui-preview/payment-route-candidate"
+          href={localizeShellHref("/payment/return", locale)}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--ysim-radius-md)] bg-[var(--ysim-color-brand-700)] px-5 text-sm font-bold text-white"
         >
           <CreditCard className="h-4 w-4" />
@@ -94,7 +81,10 @@ export function CheckoutCandidateSuccess({
         </Link>
 
         <Link
-          href={`/ui-preview/order-route-candidate/${encodeURIComponent(handoff.orderNumber)}`}
+          href={localizeShellHref(
+            `/orders/${encodeURIComponent(handoff.orderNumber)}`,
+            locale,
+          )}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--ysim-radius-md)] border border-[var(--ysim-color-brand-700)] px-5 text-sm font-bold text-[var(--ysim-color-brand-700)]"
         >
           <ReceiptText className="h-4 w-4" />
@@ -103,7 +93,8 @@ export function CheckoutCandidateSuccess({
       </div>
 
       <p className="mt-5 text-xs font-semibold text-[var(--ysim-color-text-soft)]">
-        Payment handoff đã được lưu trong sessionStorage; order key không hiển thị trên màn hình.
+        Payment handoff đã được lưu trong sessionStorage; order key không hiển
+        thị trên màn hình.
       </p>
     </div>
   );

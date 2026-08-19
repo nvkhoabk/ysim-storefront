@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { checkoutFormSchema } from "@/features/checkout/checkout.validation";
-import type { PaymentMethodOption } from "@/features/payments/payment.types";
+import {
+  getPaymentMethodsForLocale,
+  isPaymentLocale,
+  isPaymentProviderAllowedForLocale,
+  PAYMENT_LOCALE_POLICY_VERSION,
+} from "@/features/payments/payment-locale-policy";
 import { getCartTokenCookie, setCartTokenCookie } from "@/lib/cart-cookie";
 import { getWooCart } from "@/lib/woocommerce/cart-api";
 import {
@@ -12,23 +17,41 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const paymentMethods: PaymentMethodOption[] = [
-  {
-    id: "gpay_gateway_all",
-    title: "Thanh toán qua cổng GPay",
-    description:
-      "Chuyển sang cổng thanh toán GPay để chọn phương thức được hỗ trợ.",
-  },
-  {
-    id: "gpay_virtual_account",
-    title: "Chuyển khoản QR qua tài khoản ảo GPay",
-    description:
-      "YSim tạo tài khoản ảo dùng một lần và hiển thị VietQR ngay trên trang.",
-  },
-];
+function invalidLocaleResponse(): NextResponse {
+  return NextResponse.json(
+    {
+      success: false,
+      code: "PAYMENT_LOCALE_INVALID",
+      message: "Ngôn ngữ thanh toán không hợp lệ.",
+    },
+    {
+      status: 400,
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
+}
 
-export async function GET() {
+function providerNotAllowedResponse(): NextResponse {
+  return NextResponse.json(
+    {
+      success: false,
+      code: "PAYMENT_PROVIDER_NOT_ALLOWED_FOR_LOCALE",
+      message: "Phương thức thanh toán không hợp lệ với ngôn ngữ hiện tại.",
+    },
+    {
+      status: 400,
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
+}
+
+export async function GET(request: Request) {
   try {
+    const locale = new URL(request.url).searchParams.get("locale");
+    if (!isPaymentLocale(locale)) {
+      return invalidLocaleResponse();
+    }
+
     const cartToken = await getCartTokenCookie();
 
     if (!cartToken) {
@@ -53,7 +76,9 @@ export async function GET() {
       {
         cart: cartResult.data,
         checkout: checkoutResult.data,
-        paymentMethods,
+        locale,
+        paymentMethods: getPaymentMethodsForLocale(locale),
+        paymentLocalePolicyVersion: PAYMENT_LOCALE_POLICY_VERSION,
       },
       {
         status: 200,
@@ -90,6 +115,16 @@ export async function POST(request: Request) {
       );
     }
 
+    const values = parsed.data;
+    if (
+      !isPaymentProviderAllowedForLocale(
+        values.locale,
+        values.paymentMethod,
+      )
+    ) {
+      return providerNotAllowedResponse();
+    }
+
     const cartToken = await getCartTokenCookie();
 
     if (!cartToken) {
@@ -116,7 +151,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const values = parsed.data;
     const fullNameParts = values.fullName.trim().split(/\s+/).filter(Boolean);
     const firstName = fullNameParts.shift() ?? values.fullName;
     const lastName = fullNameParts.join(" ");
@@ -168,7 +202,9 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         checkout: result.data,
+        selectedLocale: values.locale,
         selectedPaymentProvider: values.paymentMethod,
+        paymentLocalePolicyVersion: PAYMENT_LOCALE_POLICY_VERSION,
       },
       {
         status: 200,

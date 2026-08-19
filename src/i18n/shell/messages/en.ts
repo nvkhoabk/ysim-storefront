@@ -53,6 +53,7 @@ export const shellMessagesEn = {
     placeholder: "Where are you going?",
     label: "Search destinations, products, or guides",
     results: "Search results",
+    flagLabel: "Flag of {name}",
     emptyTitle: "No results found",
     emptyDescription: "Try a country name, data allowance, or guide topic.",
   },

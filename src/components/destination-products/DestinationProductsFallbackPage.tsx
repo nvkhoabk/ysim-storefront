@@ -5,22 +5,27 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, MapPinned, PackageSearch } from "lucide-react";
 
 import { EsimQuickProductCatalog } from "@/components/catalog/EsimQuickProductCatalog";
+import type { StorefrontDestinationHeroAsset } from "@/config/storefront-destination-heroes";
 import type { EsimQuickFilterSelection } from "@/types/view-models/esim-quick-filter";
 import type { SecondaryProductViewModel } from "@/types/view-models/secondary-routes";
 import { useStorefrontLocale } from "@/i18n/runtime";
 import { createListingTranslator } from "@/i18n/listing/listing.registry";
 import { localizeShellHref } from "@/i18n/shell/shell.href";
 
+import { DestinationCountryHero } from "./DestinationCountryHero";
+
 export interface DestinationProductsFallbackPageProps {
   products: readonly SecondaryProductViewModel[];
   selection: EsimQuickFilterSelection;
   matchingProductCount: number;
+  heroAsset: StorefrontDestinationHeroAsset;
 }
 
 export function DestinationProductsFallbackPage({
   products,
   selection,
   matchingProductCount,
+  heroAsset,
 }: DestinationProductsFallbackPageProps) {
   const router = useRouter();
   const { locale } = useStorefrontLocale();
@@ -43,8 +48,8 @@ export function DestinationProductsFallbackPage({
             {t("ordinary.viewAll")}
           </Link>
 
-          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
-            <div>
+          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(26rem,1.08fr)] lg:items-stretch">
+            <div className="flex min-w-0 flex-col justify-center">
               <p className="text-sm font-extrabold tracking-[0.16em] text-[var(--ysim-color-brand-700)] uppercase">
                 {t("ordinary.destinationPlansEyebrow")}
               </p>
@@ -69,37 +74,46 @@ export function DestinationProductsFallbackPage({
                   {t("ordinary.chooseAnotherDestination")}
                 </Link>
               </div>
-            </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              <div className="flex items-center gap-3 rounded-[var(--ysim-radius-lg)] border border-[var(--ysim-color-border)] bg-[var(--ysim-color-surface)] p-4">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--ysim-color-brand-100)] text-[var(--ysim-color-brand-700)]">
-                  <MapPinned aria-hidden="true" className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-xs font-bold tracking-[0.12em] text-[var(--ysim-color-text-muted)] uppercase">
-                    {t("ordinary.selectedDestination")}
-                  </p>
-                  <p className="mt-1 font-black text-[var(--ysim-color-text-strong)]">
-                    {selection.label}
-                  </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                <div className="flex items-center gap-3 rounded-[var(--ysim-radius-lg)] border border-[var(--ysim-color-border)] bg-[var(--ysim-color-surface)] p-4">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--ysim-color-brand-100)] text-[var(--ysim-color-brand-700)]">
+                    <MapPinned aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold tracking-[0.12em] text-[var(--ysim-color-text-muted)] uppercase">
+                      {t("ordinary.selectedDestination")}
+                    </p>
+                    <p className="mt-1 font-black text-[var(--ysim-color-text-strong)]">
+                      {selection.label}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-[var(--ysim-radius-lg)] border border-[var(--ysim-color-border)] bg-[var(--ysim-color-surface)] p-4">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--ysim-color-brand-100)] text-[var(--ysim-color-brand-700)]">
+                    <PackageSearch aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold tracking-[0.12em] text-[var(--ysim-color-text-muted)] uppercase">
+                      {t("ordinary.matchingProducts")}
+                    </p>
+                    <p className="mt-1 font-black text-[var(--ysim-color-text-strong)]">
+                      {t("ordinary.planCount", {
+                        count: matchingProductCount,
+                      })}
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3 rounded-[var(--ysim-radius-lg)] border border-[var(--ysim-color-border)] bg-[var(--ysim-color-surface)] p-4">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--ysim-color-brand-100)] text-[var(--ysim-color-brand-700)]">
-                  <PackageSearch aria-hidden="true" className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-xs font-bold tracking-[0.12em] text-[var(--ysim-color-text-muted)] uppercase">
-                    {t("ordinary.matchingProducts")}
-                  </p>
-                  <p className="mt-1 font-black text-[var(--ysim-color-text-strong)]">
-                    {t("ordinary.planCount", { count: matchingProductCount })}
-                  </p>
-                </div>
-              </div>
             </div>
+
+            <DestinationCountryHero
+              asset={heroAsset}
+              alt={t("ordinary.destinationImageAlt", {
+                name: selection.label,
+              })}
+            />
           </div>
         </div>
       </section>
