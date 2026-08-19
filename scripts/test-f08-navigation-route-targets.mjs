@@ -47,6 +47,23 @@ assert.deepEqual(
 );
 console.log("SOURCE_WIDE_DESTINATION_FRAGMENT_SCAN=PASS");
 
+const legacyCollectionTargetFindings = sourceRecords.flatMap((record) =>
+  [
+    ...record.source.matchAll(
+      /\/destinations\?continent=|\/esim\?category=global/gi,
+    ),
+  ].map((match) => `${record.relativePath}:${match[0]}`),
+);
+
+assert.deepEqual(
+  legacyCollectionTargetFindings,
+  [],
+  `Collection navigation must use canonical destination paths:\n${legacyCollectionTargetFindings.join(
+    "\n",
+  )}`,
+);
+console.log("SOURCE_WIDE_LEGACY_COLLECTION_TARGET_SCAN=PASS");
+
 const expectedCountryTargets = [
   "/destinations/japan",
   "/destinations/south-korea",
@@ -65,6 +82,14 @@ const localizedShellSource = await readFile(
 );
 const heroSource = await readFile(
   path.join(sourceRoot, "config/storefront-heroes.ts"),
+  "utf8",
+);
+const destinationPopularSource = await readFile(
+  path.join(sourceRoot, "content/destination/popular.ts"),
+  "utf8",
+);
+const esimCatalogSource = await readFile(
+  path.join(sourceRoot, "content/esim/catalog.ts"),
   "utf8",
 );
 
@@ -113,6 +138,23 @@ for (const legacyTarget of [
 }
 console.log("CANONICAL_COLLECTION_NAVIGATION_TARGETS=PASS_3_OF_3");
 console.log("LEGACY_COLLECTION_NAVIGATION_TARGETS_ABSENT=PASS_3_OF_3");
+
+for (const target of [
+  "/destinations/asia",
+  "/destinations/europe",
+  "/destinations/north-america",
+  "/destinations/south-america",
+  "/destinations/africa",
+  "/destinations/oceania",
+  "/destinations/global",
+]) {
+  assert.ok(
+    esimCatalogSource.includes(target),
+    `eSIM catalog content is missing canonical collection target ${target}`,
+  );
+}
+assert.ok(destinationPopularSource.includes("/destinations/global"));
+console.log("CANONICAL_COLLECTION_CONTENT_TARGETS=PASS_8_OF_8");
 
 const destinationDetailRouteSource = await readFile(
   path.join(sourceRoot, "app/destinations/[slug]/page.tsx"),
@@ -171,5 +213,5 @@ assert.ok(contactSource.includes('id="contact"'));
 assert.ok(faqSource.includes('id="faq"'));
 console.log("SUPPORT_RENDERED_SECTION_IDS=PASS_2_OF_2");
 
-console.log("F08_NAVIGATION_ROUTE_TARGET_ASSERTIONS=25");
+console.log("F08_NAVIGATION_ROUTE_TARGET_ASSERTIONS=35");
 console.log("F08_NAVIGATION_ROUTE_TARGET_RESULT=PASS");

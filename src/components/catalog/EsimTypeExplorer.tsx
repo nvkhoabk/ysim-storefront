@@ -165,7 +165,7 @@ function ContinentGroup({
       </ul>
 
       <Link
-        href={`/destinations?continent=${encodeURIComponent(group.id)}`}
+        href={`/destinations/${encodeURIComponent(group.id)}`}
         className={
           styles.viewAll
         }

@@ -15,8 +15,12 @@ const routes = [
   "/vi/destinations/united-states",
   "/vi/destinations/singapore",
   "/vi/destinations/korea",
+  "/vi/destinations/asia",
   "/vi/destinations/europe",
   "/vi/destinations/north-america",
+  "/vi/destinations/south-america",
+  "/vi/destinations/africa",
+  "/vi/destinations/oceania",
   "/vi/destinations/global",
 ];
 const timeoutMilliseconds = 180_000;

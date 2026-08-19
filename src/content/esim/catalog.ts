@@ -50,7 +50,7 @@ export const esimContinents: EsimContinent[] = [
     key: "asia",
     title: "Châu Á",
     slug: "asia",
-    href: "/destinations?continent=asia",
+    href: "/destinations/asia",
     totalLabel: "Xem tất cả (50+)",
     countries: [
       {
@@ -115,7 +115,7 @@ export const esimContinents: EsimContinent[] = [
     key: "europe",
     title: "Châu Âu",
     slug: "europe",
-    href: "/destinations?continent=europe",
+    href: "/destinations/europe",
     totalLabel: "Xem tất cả (40+)",
     countries: [
       {
@@ -180,7 +180,7 @@ export const esimContinents: EsimContinent[] = [
     key: "north-america",
     title: "Bắc Mỹ",
     slug: "north-america",
-    href: "/destinations?continent=north-america",
+    href: "/destinations/north-america",
     totalLabel: "Xem tất cả (10+)",
     countries: [
       {
@@ -217,7 +217,7 @@ export const esimContinents: EsimContinent[] = [
     key: "south-america",
     title: "Nam Mỹ",
     slug: "south-america",
-    href: "/destinations?continent=south-america",
+    href: "/destinations/south-america",
     totalLabel: "Xem tất cả (15+)",
     countries: [
       {
@@ -261,7 +261,7 @@ export const esimContinents: EsimContinent[] = [
     key: "africa",
     title: "Châu Phi",
     slug: "africa",
-    href: "/destinations?continent=africa",
+    href: "/destinations/africa",
     totalLabel: "Xem tất cả (20+)",
     countries: [
       {
@@ -305,7 +305,7 @@ export const esimContinents: EsimContinent[] = [
     key: "oceania",
     title: "Châu Đại Dương",
     slug: "oceania",
-    href: "/destinations?continent=oceania",
+    href: "/destinations/oceania",
     totalLabel: "Xem tất cả (10+)",
     countries: [
       {
@@ -354,7 +354,7 @@ export const esimSpecialDestinations: EsimSpecialDestination[] = [
   {
     id: "global",
     title: "eSIM Toàn cầu",
-    href: "/esim?category=global",
+    href: "/destinations/global",
   },
 ];
 
