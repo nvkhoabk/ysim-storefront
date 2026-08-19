@@ -69,6 +69,7 @@ export interface ProductDetailRouteProductViewModel {
   destinationName?: string;
   shortDescription: string;
   description: string;
+  descriptionPreview: string;
   gallery:
     readonly ProductDetailImageViewModel[];
   features:

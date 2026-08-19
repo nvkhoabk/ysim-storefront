@@ -55,7 +55,6 @@ export default async function Page({
     <EsimInlineQuickFilterPage
       products={catalog.products}
       initialSelection={initialSelection}
-      selectionApplied={initialSelection.kind !== "all"}
     />
   );
 }

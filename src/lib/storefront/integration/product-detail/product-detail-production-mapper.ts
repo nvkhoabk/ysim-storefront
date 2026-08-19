@@ -303,6 +303,7 @@ export function mapProductDetailRouteProduct(
       product.short_description,
     ),
     description: normalizeProductDescriptionHtml(product.description),
+    descriptionPreview: normalizeProductDescriptionText(product.description),
     gallery: gallery(product),
     features: features(product, t),
     variations,

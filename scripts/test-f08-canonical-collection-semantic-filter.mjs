@@ -26,9 +26,7 @@ const [
   readSource("src/components/catalog/EsimInlineQuickFilterPage.tsx"),
   readSource("src/components/catalog/EsimInlineQuickCatalogExperience.tsx"),
   readSource("src/components/catalog/EsimQuickProductCatalog.tsx"),
-  readSource(
-    "src/lib/storefront/catalog/woocommerce-category-taxonomy.ts",
-  ),
+  readSource("src/lib/storefront/catalog/woocommerce-category-taxonomy.ts"),
   readSource("scripts/test-f08-dev-runtime-smoke.mjs"),
 ]);
 
@@ -48,31 +46,39 @@ assert.match(
   destinationRouteSource,
   /matchingProductCount = catalog\.products\.length/u,
 );
-assert.match(destinationRouteSource, /selectionApplied/u);
+assert.doesNotMatch(destinationRouteSource, /selectionApplied/u);
 assert.match(
   esimRouteSource,
   /loadCatalog\(request\.shell\.locale, initialSelection\)/u,
 );
-assert.match(
-  esimRouteSource,
-  /selectionApplied=\{initialSelection\.kind !== "all"\}/u,
-);
+assert.doesNotMatch(esimRouteSource, /selectionApplied/u);
 assert.match(fallbackSource, /createEsimQuickFilterUrl\(selection\)/u);
-assert.match(fallbackSource, /selectionApplied=\{selectionApplied\}/u);
+assert.match(
+  fallbackSource,
+  /prefilteredSelectionKey=\{esimQuickFilterSelectionKey\(selection\)\}/u,
+);
 assert.match(
   inlinePageSource,
   /key=\{`\$\{initialSelection\.kind\}:\$\{initialSelection\.id\}`\}/u,
 );
-assert.match(inlinePageSource, /selectionApplied/);
+assert.match(
+  inlinePageSource,
+  /prefilteredSelectionKey=\{\s*esimQuickFilterSelectionKey\([\s\S]*initialSelection/u,
+);
 assert.match(
   inlineExperienceSource,
   /router\.push\(\s*localizeShellHref\(createEsimQuickFilterUrl\(localized\), locale\),\s*\)/u,
 );
-assert.match(inlineExperienceSource, /selectionApplied=\{selectionApplied\}/u);
+assert.match(
+  inlineExperienceSource,
+  /prefilteredSelectionKey=\{prefilteredSelectionKey\}/u,
+);
+assert.match(catalogSource, /prefilteredSelectionKey === selectionKey/u);
 assert.match(
   catalogSource,
-  /selectionApplied\s*\?\s*products\s*:\s*products\.filter/u,
+  /selectionPrefiltered\s*\?\s*products\s*:\s*products\.filter/u,
 );
+assert.doesNotMatch(catalogSource, /selectionApplied/u);
 assert.match(catalogSource, /taxonomy-authoritative-v3/u);
 assert.match(
   taxonomySource,
@@ -127,6 +133,7 @@ for (const observedFalsePositive of [
 
 console.log("COLLECTION_QUERY_DISPATCH=PASS");
 console.log("DESTINATION_AND_FULL_CATALOG_PREFILTER=PASS");
-console.log("COLLECTION_PREFILTER_BYPASS=PASS");
+console.log("COLLECTION_PREFILTER_KEY_BINDING=PASS");
+console.log("CLIENT_FILTER_TRANSITION_STALE_BYPASS=PASS");
 console.log("COLLECTION_RUNTIME_SEMANTIC_CONTRACTS=PASS_14_OF_14");
 console.log("F08_COLLECTION_SEMANTIC_FILTER_RESULT=PASS");

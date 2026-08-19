@@ -88,7 +88,7 @@ export function ProductDetailCandidateClient({
 
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
-  const hasExpandableDescription = product.description.length > 280;
+  const hasExpandableDescription = product.descriptionPreview.length > 280;
 
   const selected = useMemo(
     () =>
@@ -465,7 +465,14 @@ export function ProductDetailCandidateClient({
                 {t("product.descriptionTitle")}
               </h2>
 
-              <div className="relative">
+              {hasExpandableDescription && !descriptionExpanded ? (
+                <p
+                  id="product-description-content"
+                  className="mt-3 line-clamp-4 text-sm leading-7 whitespace-pre-line text-[var(--ysim-color-text-muted)]"
+                >
+                  {product.descriptionPreview}
+                </p>
+              ) : (
                 <div
                   id="product-description-content"
                   className={cn(
@@ -496,20 +503,10 @@ export function ProductDetailCandidateClient({
                     "[&_.alignleft]:float-left [&_.alignleft]:mr-4",
                     "[&_.alignright]:float-right [&_.alignright]:ml-4",
                     "[&_.has-text-align-center]:text-center [&_.has-text-align-right]:text-right",
-                    hasExpandableDescription && !descriptionExpanded
-                      ? "max-h-28 overflow-hidden [&_figure]:hidden [&_hr]:hidden [&_img]:hidden"
-                      : "",
                   )}
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
-
-                {hasExpandableDescription && !descriptionExpanded ? (
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent"
-                  />
-                ) : null}
-              </div>
+              )}
 
               {hasExpandableDescription ? (
                 <button

@@ -50,7 +50,7 @@ console.log("SOURCE_WIDE_DESTINATION_FRAGMENT_SCAN=PASS");
 const legacyCollectionTargetFindings = sourceRecords.flatMap((record) =>
   [
     ...record.source.matchAll(
-      /\/destinations\?continent=|\/esim\?category=global/gi,
+      /\/destinations\?|\/esim\?category=global|\/esim\?destination=/gi,
     ),
   ].map((match) => `${record.relativePath}:${match[0]}`),
 );
@@ -63,6 +63,41 @@ assert.deepEqual(
   )}`,
 );
 console.log("SOURCE_WIDE_LEGACY_COLLECTION_TARGET_SCAN=PASS");
+
+const explorerSource = await readFile(
+  path.join(sourceRoot, "components/catalog/EsimTypeExplorer.tsx"),
+  "utf8",
+);
+const popularDestinationsComponentSource = await readFile(
+  path.join(sourceRoot, "components/home/PopularDestinations.tsx"),
+  "utf8",
+);
+const searchSource = await readFile(
+  path.join(sourceRoot, "lib/storefront/search/storefront-search.ts"),
+  "utf8",
+);
+
+for (const target of [
+  "/destinations/${encodeURIComponent(destination.slug)}",
+  "/destinations/${encodeURIComponent(region.id)}",
+  "/destinations/global",
+]) {
+  assert.ok(
+    explorerSource.includes(target),
+    `Type explorer is missing canonical target ${target}`,
+  );
+}
+assert.match(explorerSource, /localizeShellHref/u);
+assert.match(popularDestinationsComponentSource, /localizeShellHref/u);
+assert.match(
+  popularDestinationsComponentSource,
+  /\/destinations\/\$\{encodeURIComponent\(destination\.slug\)\}/u,
+);
+assert.match(
+  searchSource,
+  /\/destinations\/\$\{encodeURIComponent\(definition\.routeSlug\)\}/u,
+);
+console.log("CANONICAL_LOCALIZED_NAVIGATION_SURFACES=PASS_3_OF_3");
 
 const expectedCountryTargets = [
   "/destinations/japan",
@@ -213,5 +248,5 @@ assert.ok(contactSource.includes('id="contact"'));
 assert.ok(faqSource.includes('id="faq"'));
 console.log("SUPPORT_RENDERED_SECTION_IDS=PASS_2_OF_2");
 
-console.log("F08_NAVIGATION_ROUTE_TARGET_ASSERTIONS=35");
+console.log("F08_NAVIGATION_ROUTE_TARGET_ASSERTIONS=45");
 console.log("F08_NAVIGATION_ROUTE_TARGET_RESULT=PASS");

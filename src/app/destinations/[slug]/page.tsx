@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 
 import { PageShell } from "@/components/layout";
 import { DestinationProductsFallbackPage } from "@/components/destination-products/DestinationProductsFallbackPage";
-import {
-  resolveEsimQuickFilterFromSearchParams,
-} from "@/lib/storefront/catalog/esim-quick-filter";
+import { resolveEsimQuickFilterFromSearchParams } from "@/lib/storefront/catalog/esim-quick-filter";
 import { loadCatalog } from "@/lib/storefront/integration/secondary-routes/service";
 import type { EsimQuickFilterSelection } from "@/types/view-models/esim-quick-filter";
 import {
@@ -95,7 +93,6 @@ export default async function DestinationDetailPage({
           selection={selection}
           matchingProductCount={matchingProductCount}
           heroAsset={heroAsset}
-          selectionApplied
         />
       </PageShell>
     </StorefrontLocaleProvider>

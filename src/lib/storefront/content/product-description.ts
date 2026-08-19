@@ -1,3 +1,5 @@
+import sanitizeHtml from "sanitize-html";
+
 const namedHtmlEntities: Readonly<Record<string, string>> = {
   amp: "&",
   apos: "'",
@@ -48,25 +50,69 @@ function decodeHtmlEntities(value: string): string {
   );
 }
 
-function stripUnsafeHtml(value: string): string {
-  return value
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(
-      /<(script|style|iframe|object|embed|form|template|svg|math)\b[\s\S]*?<\/\1\s*>/gi,
-      "",
-    )
-    .replace(
-      /<\/?(?:script|style|iframe|object|embed|form|input|button|textarea|select|option|template|meta|link|base|svg|math)\b[^>]*>/gi,
-      "",
-    )
-    .replace(
-      /\s(?:on[a-z]+|style|srcdoc)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi,
-      "",
-    )
-    .replace(
-      /\s(?:href|src|xlink:href)\s*=\s*(?:"\s*(?:javascript|vbscript|data\s*:\s*text\/html)[^"]*"|'\s*(?:javascript|vbscript|data\s*:\s*text\/html)[^']*'|(?:javascript|vbscript|data\s*:\s*text\/html)[^\s>]*)/gi,
-      "",
-    );
+const productDescriptionTags = [
+  "a",
+  "b",
+  "blockquote",
+  "br",
+  "caption",
+  "div",
+  "em",
+  "figcaption",
+  "figure",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "hr",
+  "i",
+  "img",
+  "li",
+  "ol",
+  "p",
+  "span",
+  "strong",
+  "table",
+  "tbody",
+  "td",
+  "tfoot",
+  "th",
+  "thead",
+  "tr",
+  "u",
+  "ul",
+] as const;
+
+function sanitizeProductDescriptionHtml(value: string): string {
+  return sanitizeHtml(value, {
+    allowedTags: [...productDescriptionTags],
+    allowedAttributes: {
+      "*": ["class", "title"],
+      a: ["href", "rel", "target"],
+      img: ["alt", "height", "loading", "src", "width"],
+      td: ["colspan", "headers", "rowspan"],
+      th: ["colspan", "headers", "rowspan", "scope"],
+    },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    allowedSchemesByTag: {
+      img: ["http", "https"],
+    },
+    allowProtocolRelative: false,
+    parser: {
+      decodeEntities: true,
+    },
+    transformTags: {
+      a: (tagName, attribs) => ({
+        tagName,
+        attribs:
+          attribs.target === "_blank"
+            ? { ...attribs, rel: "noopener noreferrer" }
+            : attribs,
+      }),
+    },
+  });
 }
 
 export function normalizeProductDescriptionText(
@@ -106,7 +152,7 @@ export function normalizeProductDescriptionHtml(
     "&#$1;",
   );
 
-  return stripUnsafeHtml(normalizedEntities)
+  return sanitizeProductDescriptionHtml(normalizedEntities)
     .replace(/\r\n?/g, "\n")
     .replace(/[ \t]+([,.;:!?])/g, "$1")
     .trim();

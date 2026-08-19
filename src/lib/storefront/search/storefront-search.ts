@@ -49,7 +49,7 @@ function staticDestinationSuggestions(
     type: "destination",
     label: definition.names[locale],
     href: localizeShellHref(
-      `/esim?destination=${encodeURIComponent(definition.routeSlug)}`,
+      `/destinations/${encodeURIComponent(definition.routeSlug)}`,
       locale,
     ),
     localizedTerms: {

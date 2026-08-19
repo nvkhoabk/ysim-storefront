@@ -11,6 +11,9 @@ import type {
 import type {
   SecondaryProductViewModel,
 } from "@/types/view-models/secondary-routes";
+import {
+  esimQuickFilterSelectionKey,
+} from "@/lib/storefront/catalog/esim-quick-filter";
 
 import {
   EsimInlineQuickCatalogExperience,
@@ -19,13 +22,11 @@ import {
 export function EsimInlineQuickFilterPage({
   products,
   initialSelection,
-  selectionApplied = false,
 }: {
   products:
     readonly SecondaryProductViewModel[];
   initialSelection:
     EsimQuickFilterSelection;
-  selectionApplied?: boolean;
 }) {
   return (
     <PageShell
@@ -50,7 +51,11 @@ export function EsimInlineQuickFilterPage({
               initialSelection={
                 initialSelection
               }
-              selectionApplied={selectionApplied}
+              prefilteredSelectionKey={
+                esimQuickFilterSelectionKey(
+                  initialSelection,
+                )
+              }
             />
           </Container>
         </Section>

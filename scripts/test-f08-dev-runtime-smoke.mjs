@@ -9,6 +9,7 @@ const routes = [
   "/vi",
   "/vi/esim?destination=korea",
   "/vi/esim",
+  "/vi/esim/esim-trung-quoc",
   "/vi/support",
   "/vi/destinations",
   "/vi/destinations/japan",
@@ -22,6 +23,10 @@ const routes = [
   "/vi/destinations/africa",
   "/vi/destinations/oceania",
   "/vi/destinations/global",
+  "/en/destinations",
+  "/lo/destinations",
+  "/en/destinations/asia",
+  "/lo/destinations/global",
   "/vi/esim?continent=asia",
   "/vi/esim?continent=europe",
   "/vi/esim?continent=north-america",
@@ -35,6 +40,7 @@ const collectionContracts = new Map([
     "/vi/destinations/asia",
     {
       filter: "continent:asia",
+      minimumProducts: 1,
       forbidden: [/eSIM Châu Âu/iu, /eSIM Nga/iu],
     },
   ],
@@ -42,6 +48,7 @@ const collectionContracts = new Map([
     "/vi/destinations/europe",
     {
       filter: "continent:europe",
+      minimumProducts: 1,
       forbidden: [/eSIM Châu Á/iu, /eSIM Nam Mỹ/iu],
     },
   ],
@@ -49,6 +56,7 @@ const collectionContracts = new Map([
     "/vi/destinations/north-america",
     {
       filter: "continent:north-america",
+      minimumProducts: 1,
       forbidden: [/eSIM Châu Á/iu, /eSIM Nam Mỹ/iu],
     },
   ],
@@ -56,6 +64,7 @@ const collectionContracts = new Map([
     "/vi/destinations/south-america",
     {
       filter: "continent:south-america",
+      minimumProducts: 1,
       forbidden: [/eSIM Châu Á/iu, /eSIM Bắc Mỹ/iu],
     },
   ],
@@ -63,6 +72,7 @@ const collectionContracts = new Map([
     "/vi/destinations/africa",
     {
       filter: "continent:africa",
+      minimumProducts: 0,
       forbidden: [/eSIM Châu Á/iu, /eSIM Châu Âu/iu, /eSIM Bắc Mỹ/iu],
     },
   ],
@@ -70,6 +80,7 @@ const collectionContracts = new Map([
     "/vi/destinations/oceania",
     {
       filter: "continent:oceania",
+      minimumProducts: 1,
       forbidden: [/eSIM Châu Á/iu, /eSIM Châu Âu/iu, /eSIM Nam Mỹ/iu],
     },
   ],
@@ -77,10 +88,20 @@ const collectionContracts = new Map([
     "/vi/destinations/global",
     {
       filter: "global:global",
+      minimumProducts: 1,
       forbidden: [],
     },
   ],
 ]);
+
+collectionContracts.set(
+  "/en/destinations/asia",
+  collectionContracts.get("/vi/destinations/asia"),
+);
+collectionContracts.set(
+  "/lo/destinations/global",
+  collectionContracts.get("/vi/destinations/global"),
+);
 
 for (const [route, contract] of [...collectionContracts]) {
   const slug = route.split("/").at(-1);
@@ -171,11 +192,13 @@ try {
       [stdoutTail, stderrTail].filter(Boolean).join("\n"),
     );
     const body = await response.text();
-    assert.equal(
-      response.status,
-      200,
-      `${route} returned HTTP ${response.status}.`,
-    );
+    if (response.status !== 200) {
+      throw new Error(
+        `${route} returned HTTP ${response.status}.\n${[stdoutTail, stderrTail]
+          .filter(Boolean)
+          .join("\n")}`,
+      );
+    }
     assert.doesNotMatch(
       body,
       /this page could not be found/i,
@@ -208,6 +231,18 @@ try {
         ),
         `${route} did not use taxonomy-authoritative filtering.`,
       );
+      const productCountMatch = catalogBody.match(
+        /data-ysim-product-count="(\d+)"/u,
+      );
+      assert.ok(
+        productCountMatch,
+        `${route} did not expose its rendered product count.`,
+      );
+      const productCount = Number(productCountMatch[1]);
+      assert.ok(
+        productCount >= collectionContract.minimumProducts,
+        `${route} rendered ${productCount} products; expected at least ${collectionContract.minimumProducts}.`,
+      );
       for (const forbidden of collectionContract.forbidden) {
         assert.doesNotMatch(
           catalogBody,
@@ -220,6 +255,36 @@ try {
           .replace(/[^a-z0-9]+/gi, "_")
           .toUpperCase()}=PASS_SEMANTIC`,
       );
+    }
+    const localeMatch = route.match(/^\/(vi|en|lo)\/destinations$/u);
+    if (localeMatch) {
+      const locale = localeMatch[1];
+      assert.match(
+        body,
+        new RegExp(`href="/${locale}/destinations/[a-z0-9-]+"`, "u"),
+        `${route} did not emit locale-preserving canonical destination links.`,
+      );
+      assert.doesNotMatch(
+        body,
+        /href="\/(?:vi|en|lo)\/destinations\?/u,
+        `${route} emitted a legacy destination query target.`,
+      );
+      console.log(
+        `DEV_RUNTIME_LOCALIZED_CANONICAL_NAVIGATION_${locale.toUpperCase()}=PASS`,
+      );
+    }
+    if (route === "/vi/esim/esim-trung-quoc") {
+      assert.match(
+        body,
+        /id="product-description-content"/u,
+        `${route} did not render the product-description presentation.`,
+      );
+      assert.doesNotMatch(
+        body,
+        /(?:javascript|vbscript|data):/iu,
+        `${route} rendered an unsafe active URL scheme.`,
+      );
+      console.log("DEV_RUNTIME_PRODUCT_DESCRIPTION_SANITIZER=PASS");
     }
     console.log(
       `DEV_RUNTIME_ROUTE_${route.replace(/[^a-z0-9]+/gi, "_").toUpperCase()}=PASS_200`,

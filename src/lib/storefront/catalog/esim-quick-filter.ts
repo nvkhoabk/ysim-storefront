@@ -671,6 +671,13 @@ export function productMatchesEsimQuickFilter(
     );
 }
 
+export function esimQuickFilterSelectionKey(
+  selection:
+    EsimQuickFilterSelection,
+): string {
+  return `${selection.kind}:${selection.id}`;
+}
+
 export function createEsimQuickFilterUrl(
   selection:
     EsimQuickFilterSelection,

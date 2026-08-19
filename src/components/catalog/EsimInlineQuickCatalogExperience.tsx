@@ -37,11 +37,11 @@ function scrollToCatalog(): void {
 export function EsimInlineQuickCatalogExperience({
   products,
   initialSelection,
-  selectionApplied = false,
+  prefilteredSelectionKey,
 }: {
   products: readonly SecondaryProductViewModel[];
   initialSelection: EsimQuickFilterSelection;
-  selectionApplied?: boolean;
+  prefilteredSelectionKey: string;
 }) {
   const { locale } = useStorefrontLocale();
   const router = useRouter();
@@ -74,7 +74,7 @@ export function EsimInlineQuickCatalogExperience({
       <EsimQuickProductCatalog
         products={products}
         selection={selection}
-        selectionApplied={selectionApplied}
+        prefilteredSelectionKey={prefilteredSelectionKey}
         onClearSelection={clearSelection}
       />
 
