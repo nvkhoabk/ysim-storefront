@@ -48,6 +48,27 @@ function decodeHtmlEntities(value: string): string {
   );
 }
 
+function stripUnsafeHtml(value: string): string {
+  return value
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(
+      /<(script|style|iframe|object|embed|form|template|svg|math)\b[\s\S]*?<\/\1\s*>/gi,
+      "",
+    )
+    .replace(
+      /<\/?(?:script|style|iframe|object|embed|form|input|button|textarea|select|option|template|meta|link|base|svg|math)\b[^>]*>/gi,
+      "",
+    )
+    .replace(
+      /\s(?:on[a-z]+|style|srcdoc)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi,
+      "",
+    )
+    .replace(
+      /\s(?:href|src|xlink:href)\s*=\s*(?:"\s*(?:javascript|vbscript|data\s*:\s*text\/html)[^"]*"|'\s*(?:javascript|vbscript|data\s*:\s*text\/html)[^']*'|(?:javascript|vbscript|data\s*:\s*text\/html)[^\s>]*)/gi,
+      "",
+    );
+}
+
 export function normalizeProductDescriptionText(
   value: string | undefined,
 ): string {
@@ -69,5 +90,24 @@ export function normalizeProductDescriptionText(
     .replace(/ +([,.;:!?])/g, "$1")
     .replace(/ *\n */g, "\n")
     .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * WooCommerce returns rendered HTML for the long product description.
+ * Preserve its editorial structure while removing active markup and inline
+ * execution hooks before it is rendered by the trusted storefront component.
+ */
+export function normalizeProductDescriptionHtml(
+  value: string | undefined,
+): string {
+  const normalizedEntities = (value || "").replace(
+    /&amp;#(x[0-9a-f]+|\d+);/gi,
+    "&#$1;",
+  );
+
+  return stripUnsafeHtml(normalizedEntities)
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+([,.;:!?])/g, "$1")
     .trim();
 }

@@ -14,7 +14,10 @@ import type {
 } from "@/types/view-models/product-detail-route-candidate";
 import { createDetailTranslator } from "@/i18n/detail/detail.registry";
 import { localizeDestinationName } from "@/i18n/listing/static-destination.config";
-import { normalizeProductDescriptionText } from "@/lib/storefront/content/product-description";
+import {
+  normalizeProductDescriptionHtml,
+  normalizeProductDescriptionText,
+} from "@/lib/storefront/content/product-description";
 
 type DetailTranslator = ReturnType<typeof createDetailTranslator>;
 
@@ -296,8 +299,10 @@ export function mapProductDetailRouteProduct(
           product.categories[0].name,
         )
       : undefined,
-    shortDescription: normalizeProductDescriptionText(product.short_description),
-    description: normalizeProductDescriptionText(product.description),
+    shortDescription: normalizeProductDescriptionText(
+      product.short_description,
+    ),
+    description: normalizeProductDescriptionHtml(product.description),
     gallery: gallery(product),
     features: features(product, t),
     variations,
